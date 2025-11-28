@@ -506,6 +506,54 @@
     width: 100%;
 }
 
+.verification-tasks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-lg);
+}
+
+.verification-task-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition-base);
+}
+
+.verification-task-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-primary);
+}
+
+.verification-task-header h3 {
+    margin: 0 0 var(--spacing-xs) 0;
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.verification-photo-container {
+    text-align: center;
+    margin-top: var(--spacing-md);
+}
+
+.verification-photo-container img {
+    transition: transform var(--transition-base);
+    cursor: pointer;
+}
+
+.verification-photo-container img:hover {
+    transform: scale(1.02);
+}
+
+.verification-actions {
+    margin-top: var(--spacing-md);
+    display: flex;
+    gap: var(--spacing-md);
+}
+
 /* Ograniczenie maksymalnej szerokości kart na bardzo dużych ekranach */
 @media (min-width: 1400px) {
     .users-grid {

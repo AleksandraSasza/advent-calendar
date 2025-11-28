@@ -360,39 +360,43 @@ header p {
     border-radius: var(--radius-xl);
     width: 90%;
     max-width: 500px;
+    max-height: 90vh;
     box-shadow: var(--shadow-xl);
     border: 1px solid var(--color-border);
     animation: slideIn var(--transition-slow);
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .modal-header {
     background: var(--color-primary);
     color: white;
-    padding: var(--spacing-lg);
+    padding: var(--spacing-md) var(--spacing-lg);
     text-align: center;
     position: relative;
 }
 
 .modal-header h2 {
-    font-size: var(--font-size-2xl);
+    font-size: var(--font-size-xl);
     font-weight: 600;
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: 0;
     letter-spacing: 0.5px;
     line-height: 1.2;
     font-family: 'Quintessential', cursive;
+    display: inline-block;
+    padding: var(--spacing-xs) var(--spacing-md);
 }
 
 .modal-country {
-    font-size: var(--font-size-base);
-    opacity: 0.9;
-    font-weight: 400;
-    letter-spacing: 0.5px;
-    font-family: 'Quintessential', cursive;
+    display: none; /* Ukryte - nazwa państwa nie jest już wyświetlana */
 }
 
 .modal-body {
     padding: var(--spacing-xl);
+    overflow-y: auto;
+    flex: 1;
+    -webkit-overflow-scrolling: touch;
 }
 
 .task-content h3 {
@@ -627,6 +631,18 @@ header p {
     box-shadow: var(--shadow-md), 0 0 0 3px rgba(1, 57, 39, 0.2);
 }
 
+/* Przyciski usuwania zdjęcia */
+#remove-photo-btn:hover,
+#remove-uploaded-photo-btn:hover {
+    opacity: 1 !important;
+    background: rgba(0, 0, 0, 0.7) !important;
+}
+
+#remove-photo-btn:active,
+#remove-uploaded-photo-btn:active {
+    transform: scale(0.95);
+}
+
 /* Notifications */
 .notification {
     position: fixed;
@@ -759,14 +775,20 @@ header p {
         border-radius: 0;
         height: 100vh;
         max-height: 100vh;
-        overflow-y: auto;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
     }
     
     .modal-header {
         padding: var(--spacing-lg);
+        flex-shrink: 0;
     }
     
     .modal-body {
         padding: var(--spacing-lg) var(--spacing-md);
+        overflow-y: auto;
+        flex: 1;
+        -webkit-overflow-scrolling: touch;
     }
 }

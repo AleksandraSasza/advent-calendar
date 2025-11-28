@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ranking - Kalendarz Adwentowy</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Quintessential&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="ranking-styles.css">
+</head>
+<body class="ranking-body">
+    <!-- Kontener dla płatków śniegu -->
+    <div class="snow-container" aria-hidden="true">
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+    </div>
+    
+    <div class="ranking-container">
+        <div class="ranking-header">
+            <h1>🏆 Ranking Użytkowników</h1>
+            <p>Zobacz kto wykonał najwięcej zadań w kalendarzu adwentowym!</p>
+            <div class="ranking-nav">
+                <a href="index.html" class="btn btn-secondary">← Wróć do kalendarza</a>
+            </div>
+        </div>
+        
+        <div class="ranking-content">
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Ładowanie rankingu...</p>
+            </div>
+            
+            <div id="ranking-list" class="ranking-list" style="display: none;">
+                <!-- Ranking będzie tutaj wstawiony przez JavaScript -->
+            </div>
+            
+            <div id="error-message" class="error-message" style="display: none;">
+                <p>Wystąpił błąd podczas ładowania rankingu. Spróbuj odświeżyć stronę.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Konfiguracja Supabase (PRZED Supabase Client) -->
+    <script src="config.js"></script>
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Eksportuj supabase jako supabaseLib dla ranking-script.js
+        window.supabaseLib = window.supabase;
+    </script>
+    <script src="ranking-script.js"></script>
+</body>
+</html>
+

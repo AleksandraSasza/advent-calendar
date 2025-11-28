@@ -317,18 +317,67 @@ COMMENT ON COLUMN task_templates.metadata IS 'JSONB: pytania quizowe, opcje, wym
 COMMENT ON COLUMN assigned_tasks.response_metadata IS 'JSONB: odpowiedzi quizowe, wyniki, metadane';
 
 -- =========================================================
+-- =========================================================
+-- STORAGE: Polityki RLS dla bucketu task-responses
+-- =========================================================
+
+-- WAŻNE: Najpierw utwórz bucket w Supabase Dashboard:
+-- Storage → Create bucket → Nazwa: "task-responses", Public: true
+
+-- Polityka: Użytkownicy mogą uploadować pliki do swoich folderów
+CREATE POLICY IF NOT EXISTS "Users can upload their own task responses"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'task-responses' 
+  AND (storage.foldername(name))[1] = auth.uid()::text
+);
+
+-- Polityka: Użytkownicy mogą czytać swoje pliki
+CREATE POLICY IF NOT EXISTS "Users can read their own task responses"
+ON storage.objects FOR SELECT
+USING (
+  bucket_id = 'task-responses' 
+  AND (storage.foldername(name))[1] = auth.uid()::text
+);
+
+-- Polityka: Użytkownicy mogą usuwać swoje pliki
+CREATE POLICY IF NOT EXISTS "Users can delete their own task responses"
+ON storage.objects FOR DELETE
+USING (
+  bucket_id = 'task-responses' 
+  AND (storage.foldername(name))[1] = auth.uid()::text
+);
+
+-- Polityka: Admini mogą czytać wszystkie pliki
+CREATE POLICY IF NOT EXISTS "Admins can read all task responses"
+ON storage.objects FOR SELECT
+USING (
+  bucket_id = 'task-responses' 
+  AND EXISTS (
+    SELECT 1 FROM profiles p 
+    WHERE p.id = auth.uid() AND p.role = 'admin'
+  )
+);
+
+-- =========================================================
 -- KONIEC SCHEMATU
 -- =========================================================
 
 -- UWAGI:
 -- 1. Po wykonaniu tego skryptu, utwórz bucket w Supabase Storage:
+--    - Przejdź do: Storage → Create bucket
 --    - Nazwa: "task-responses"
---    - Public: false (lub true jeśli chcesz publiczne linki)
+--    - Public: true (lub false jeśli chcesz prywatne linki)
+--    - File size limit: 5MB (lub inny limit)
+--    - Allowed MIME types: image/*
 --
--- 2. Aby ustawić użytkownika jako admina:
+-- 2. Polityki RLS dla Storage są już dodane powyżej
+--    (Supabase automatycznie zastosuje je do bucketu)
+--
+-- 3. Aby ustawić użytkownika jako admina:
 --    UPDATE profiles SET role = 'admin' WHERE email = 'twoj-email@example.com';
 --
--- 3. Przykład wypełnienia calendar_days:
+-- 4. Przykład wypełnienia calendar_days:
 --    INSERT INTO calendar_days (day_number, fun_fact) VALUES
 --    (1, '🎄 W Polsce Wigilia to najważniejszy dzień świąt!'),
 --    (2, '🎅 W Niemczech tradycja jarmarków bożonarodzeniowych...');

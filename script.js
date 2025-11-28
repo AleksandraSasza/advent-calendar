@@ -394,31 +394,185 @@ function openTaskModal(day) {
     const country = dbData?.country || defaultData?.country || 'Brak państwa';
     const funFact = dbData?.fun_fact || defaultData?.funFact || 'Brak ciekawostki';
     
-    const taskData = userTasks[day]; // Dynamiczne zadanie z Supabase
+    // Użyj dayNumber (liczba) jako klucza, bo w loadUserTasks zadania są zapisywane z kluczem liczbowym
+    const taskData = userTasks[dayNumber]; // Dynamiczne zadanie z Supabase
+    
+    console.log('🔍 openTaskModal - dzień:', dayNumber, 'typ:', typeof dayNumber);
+    console.log('🔍 openTaskModal - userTasks:', userTasks);
+    console.log('🔍 openTaskModal - taskData dla dnia', dayNumber, ':', taskData);
+    console.log('🔍 openTaskModal - currentUser:', currentUser);
+    
     const modal = document.getElementById('task-modal');
     
-    // Wyświetl tylko dzień i państwo w nagłówku
+    // Wyświetl tylko dzień w nagłówku
     document.getElementById('modal-day').textContent = `Dzień ${day}`;
-    document.getElementById('modal-country').textContent = country;
     
     // Wyświetl zadanie z Supabase lub komunikat
     const taskDescription = document.getElementById('task-description');
+    const markButton = document.getElementById('mark-completed');
+    const photoUploadSection = document.getElementById('photo-upload-section');
+    
+    // Reset badge statusu na początku - ukryj go domyślnie
+    const statusBadge = document.getElementById('task-status-badge');
+    if (statusBadge) {
+        statusBadge.style.display = 'none';
+    }
+    const photoInput = document.getElementById('task-photo-input');
+    const photoPreview = document.getElementById('photo-preview');
+    const photoPreviewContainer = document.getElementById('photo-preview-container');
+    const uploadedPhotoContainer = document.getElementById('uploaded-photo-container');
+    const uploadedPhoto = document.getElementById('uploaded-photo');
+    const photoFilename = document.getElementById('photo-filename');
+    
+    // Reset sekcji zdjęcia
+    photoInput.value = '';
+    photoPreviewContainer.style.display = 'none';
+    photoFilename.textContent = '';
+    
+    // Sprawdź czy zadanie rzeczywiście istnieje i ma tytuł
     if (taskData && taskData.task_title) {
         taskDescription.innerHTML = `<strong>${taskData.task_title}</strong><br>${taskData.task_description || ''}`;
+        
+        // Pokaż sekcję uploadu zdjęcia tylko dla zadań typu photo_upload
+        const verificationMessage = document.getElementById('verification-message');
+        const selectPhotoBtn = document.getElementById('select-photo-btn');
+        const photoFilename = document.getElementById('photo-filename');
+        const addPhotoSection = document.getElementById('add-photo-section');
+        const viewPhotoLinkContainer = document.getElementById('view-photo-link-container');
+        const viewPhotoLink = document.getElementById('view-photo-link');
+        
+        // Sprawdź status tylko jeśli zadanie istnieje
+        const isCompleted = taskData.status === 'completed' || taskData.status === 'pending_verification' || completedDays.has(dayNumber);
+        
+        if (taskData.task_type === 'photo_upload') {
+            photoUploadSection.style.display = 'block';
+            
+            // Jeśli zadanie jest wykonane lub czeka na weryfikację
+            if (isCompleted) {
+                // Ukryj sekcję dodawania zdjęcia
+                if (addPhotoSection) {
+                    addPhotoSection.style.display = 'none';
+                }
+                photoPreviewContainer.style.display = 'none';
+                // Ukryj pole z przesłanym zdjęciem - pokazujemy tylko link
+                uploadedPhotoContainer.style.display = 'none';
+                
+                // Pokaż link do zobaczenia zdjęcia (jeśli istnieje)
+                if (taskData.response_media_url) {
+                    if (viewPhotoLinkContainer) {
+                        viewPhotoLinkContainer.style.display = 'block';
+                    }
+                    if (viewPhotoLink) {
+                        viewPhotoLink.href = taskData.response_media_url;
+                        viewPhotoLink.target = '_blank';
+                        viewPhotoLink.onclick = function(e) {
+                            e.preventDefault();
+                            window.open(taskData.response_media_url, '_blank');
+                        };
+                    }
+                } else {
+                    if (viewPhotoLinkContainer) {
+                        viewPhotoLinkContainer.style.display = 'none';
+                    }
+                }
+                
+                // Pokaż komunikat o weryfikacji tylko dla pending_verification
+                if (verificationMessage) {
+                    if (taskData.status === 'pending_verification') {
+                        verificationMessage.style.display = 'block';
+                    } else {
+                        verificationMessage.style.display = 'none';
+                    }
+                }
+            } else {
+                // Zadanie nie jest wykonane - pokaż możliwość dodania zdjęcia
+                if (addPhotoSection) {
+                    addPhotoSection.style.display = 'block';
+                }
+                if (viewPhotoLinkContainer) {
+                    viewPhotoLinkContainer.style.display = 'none';
+                }
+                
+                // Jeśli zdjęcie już zostało przesłane (ale zadanie nie jest wykonane), pokaż podgląd
+                if (taskData.response_media_url) {
+                    uploadedPhoto.src = taskData.response_media_url;
+                    uploadedPhotoContainer.style.display = 'block';
+                    photoPreviewContainer.style.display = 'none';
+                } else {
+                    uploadedPhotoContainer.style.display = 'none';
+                }
+                
+                // Pokaż komunikat o weryfikacji dla zadań ze zdjęciami
+                if (verificationMessage) {
+                    verificationMessage.style.display = 'block';
+                }
+            }
+        } else {
+            photoUploadSection.style.display = 'none';
+            if (verificationMessage) {
+                verificationMessage.style.display = 'none';
+            }
+        }
+        
+        // Status zadania - wyświetl jako badge zamiast przycisku
+        const closeButton = document.getElementById('close-modal');
+        
+        // Sprawdź czy zadanie jest już wykonane lub czeka na weryfikację
+        if (isCompleted) {
+            // Ukryj przycisk "Oznacz jako wykonane"
+            markButton.style.display = 'none';
+            
+            // Pokaż status jako badge w headerze
+            if (statusBadge) {
+                statusBadge.style.display = 'block';
+                if (taskData.status === 'pending_verification') {
+                    statusBadge.textContent = '⏳ Oczekuje na weryfikację';
+                    statusBadge.style.background = '#fff3cd';
+                    statusBadge.style.color = '#856404';
+                    statusBadge.style.border = '1px solid #ffc107';
+                } else {
+                    statusBadge.textContent = '✓ Wykonane';
+                    statusBadge.style.background = '#d4edda';
+                    statusBadge.style.color = '#155724';
+                    statusBadge.style.border = '1px solid #28a745';
+                }
+            }
+        } else {
+            // Pokaż przycisk "Oznacz jako wykonane" tylko dla niezakończonych zadań
+            markButton.style.display = 'inline-flex';
+            
+            // Dla zadań ze zdjęciami zmień tekst przycisku
+            if (taskData.task_type === 'photo_upload') {
+                markButton.textContent = 'Prześlij zdjęcie do weryfikacji';
+            } else {
+                markButton.textContent = 'Oznacz jako wykonane';
+            }
+            
+            markButton.disabled = false;
+            markButton.style.background = '';
+            
+            // Ukryj badge statusu
+            if (statusBadge) {
+                statusBadge.style.display = 'none';
+            }
+        }
     } else {
         taskDescription.textContent = 'Zadanie nie zostało jeszcze przypisane dla tego dnia. Skontaktuj się z administratorem.';
-    }
-    
-    // Sprawdź czy zadanie jest już wykonane
-    const markButton = document.getElementById('mark-completed');
-    if (completedDays.has(dayNumber) || (taskData && taskData.status === 'completed')) {
-        markButton.textContent = '✓ Wykonane';
-        markButton.disabled = true;
-        markButton.style.background = '#28a745';
-    } else {
-        markButton.textContent = 'Oznacz jako wykonane';
-        markButton.disabled = false;
-        markButton.style.background = '';
+        // Ukryj przycisk i sekcję zdjęcia jeśli nie ma zadania
+        markButton.style.display = 'none';
+        photoUploadSection.style.display = 'none';
+        
+        // Ukryj badge statusu jeśli nie ma zadania
+        const statusBadge = document.getElementById('task-status-badge');
+        if (statusBadge) {
+            statusBadge.style.display = 'none';
+        }
+        
+        // Ukryj komunikat o weryfikacji
+        const verificationMessage = document.getElementById('verification-message');
+        if (verificationMessage) {
+            verificationMessage.style.display = 'none';
+        }
     }
     
     modal.style.display = 'block';
@@ -445,29 +599,183 @@ async function markTaskCompleted() {
             return;
         }
         
+        let mediaUrl = taskData.response_media_url || null;
+        
+        // Jeśli zadanie wymaga zdjęcia, sprawdź czy zostało przesłane
+        if (taskData.task_type === 'photo_upload') {
+            const photoInput = document.getElementById('task-photo-input');
+            const photoPreview = document.getElementById('photo-preview');
+            const photoPreviewContainer = document.getElementById('photo-preview-container');
+            
+            // Sprawdź czy jest nowy plik w input lub czy jest podgląd (zdjęcie wybrane ale jeszcze nie przesłane)
+            const file = photoInput?.files[0];
+            const hasPreview = photoPreviewContainer?.style.display !== 'none' && photoPreview?.src;
+            
+            if (!file && !hasPreview && !taskData.response_media_url) {
+                showNotification('Musisz dodać zdjęcie, aby oznaczyć zadanie jako wykonane', 'error');
+                return;
+            }
+            
+            // Jeśli wybrano nowe zdjęcie, prześlij je do Supabase Storage
+            if (file) {
+                try {
+                    console.log('📤 Przesyłanie zdjęcia:', file.name, file.size, 'bytes');
+                    
+                    // Utwórz unikalną nazwę pliku
+                    // Format: {user_id}/{task_id}/{timestamp}.{ext}
+                    // To pozwala RLS sprawdzić uprawnienia użytkownika
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${currentUser.id}/${taskData.id}/${Date.now()}.${fileExt}`;
+                    
+                    console.log('📁 Nazwa pliku:', fileName);
+                    
+                    // Prześlij plik do Supabase Storage
+                    // Uwaga: folder musi zaczynać się od user_id dla RLS
+                    const { data: uploadData, error: uploadError } = await supabase.storage
+                        .from('task-responses')
+                        .upload(fileName, file, {
+                            cacheControl: '3600',
+                            upsert: false
+                        });
+                    
+                    if (uploadError) {
+                        console.error('❌ Błąd uploadu zdjęcia:', uploadError);
+                        console.error('Szczegóły błędu:', {
+                            message: uploadError.message,
+                            statusCode: uploadError.statusCode,
+                            error: uploadError.error
+                        });
+                        showNotification('Błąd przesyłania zdjęcia: ' + (uploadError.message || 'Nieznany błąd'), 'error');
+                        return;
+                    }
+                    
+                    console.log('✅ Plik przesłany:', uploadData);
+                    
+                    // Pobierz publiczny URL zdjęcia
+                    const { data: urlData } = supabase.storage
+                        .from('task-responses')
+                        .getPublicUrl(fileName);
+                    
+                    if (!urlData || !urlData.publicUrl) {
+                        console.error('❌ Nie udało się pobrać publicznego URL');
+                        showNotification('Błąd: Nie udało się pobrać URL zdjęcia', 'error');
+                        return;
+                    }
+                    
+                    mediaUrl = urlData.publicUrl;
+                    console.log('✅ Zdjęcie przesłane, URL:', mediaUrl);
+                } catch (uploadErr) {
+                    console.error('❌ Błąd przesyłania zdjęcia (catch):', uploadErr);
+                    showNotification('Błąd przesyłania zdjęcia: ' + (uploadErr.message || 'Nieznany błąd'), 'error');
+                    return;
+                }
+            } else if (hasPreview && !taskData.response_media_url) {
+                // Jeśli jest podgląd ale nie ma pliku w input, to znaczy że coś poszło nie tak
+                console.warn('⚠️ Jest podgląd zdjęcia, ale brak pliku w input');
+                showNotification('Błąd: Wybierz zdjęcie ponownie', 'error');
+                return;
+            }
+        }
+        
+        // Dla zadań ze zdjęciami ustaw status 'pending_verification', dla innych 'completed'
+        // Sprawdź czy zadanie wymaga zdjęcia i czy zdjęcie zostało przesłane
+        let newStatus;
+        if (taskData.task_type === 'photo_upload') {
+            if (mediaUrl) {
+                newStatus = 'pending_verification';
+            } else {
+                // Jeśli zadanie wymaga zdjęcia, ale nie ma zdjęcia, nie można oznaczyć jako wykonane
+                showNotification('Musisz dodać zdjęcie, aby oznaczyć zadanie jako wykonane', 'error');
+                return;
+            }
+        } else {
+            newStatus = 'completed';
+        }
+        
+        console.log('📝 Aktualizacja zadania:', {
+            taskId: taskData.id,
+            userId: currentUser.id,
+            newStatus: newStatus,
+            mediaUrl: mediaUrl,
+            taskType: taskData.task_type
+        });
+        
         // Zaktualizuj status zadania w Supabase
-        const { error } = await supabase
+        const updateData = {
+            status: newStatus
+        };
+        
+        // Ustaw completed_at tylko dla zadań completed
+        if (newStatus === 'completed') {
+            updateData.completed_at = new Date().toISOString();
+        } else {
+            // Dla pending_verification nie ustawiamy completed_at
+            updateData.completed_at = null;
+        }
+        
+        // Jeśli jest zdjęcie, dodaj je do aktualizacji
+        if (mediaUrl) {
+            updateData.response_media_url = mediaUrl;
+        }
+        
+        console.log('📤 Dane do aktualizacji:', updateData);
+        console.log('🔍 Sprawdzam sesję użytkownika:', {
+            userId: currentUser?.id,
+            email: currentUser?.email
+        });
+        
+        const { data: updateResult, error } = await supabase
             .from('assigned_tasks')
-            .update({
-                status: 'completed',
-                completed_at: new Date().toISOString()
-            })
-            .eq('id', taskData.id);
+            .update(updateData)
+            .eq('id', taskData.id)
+            .eq('user_id', currentUser.id) // Dodatkowe sprawdzenie user_id dla bezpieczeństwa
+            .select();
         
         if (error) {
-            console.error('Błąd aktualizacji zadania:', error);
-            showNotification('Błąd zapisywania postępu', 'error');
+            console.error('❌ Błąd aktualizacji zadania:', error);
+            console.error('Szczegóły błędu:', {
+                message: error.message,
+                code: error.code,
+                details: error.details,
+                hint: error.hint
+            });
+            
+            // Sprawdź czy to błąd RLS
+            if (error.code === 'PGRST116' || error.message?.includes('row-level security') || error.message?.includes('permission denied')) {
+                showNotification('Błąd uprawnień: Sprawdź polityki RLS dla tabeli assigned_tasks. Upewnij się, że możesz aktualizować swoje zadania.', 'error');
+            } else if (error.code === '23505') {
+                showNotification('Błąd: Zadanie już istnieje dla tego dnia', 'error');
+            } else {
+                showNotification('Błąd zapisywania postępu: ' + (error.message || 'Nieznany błąd'), 'error');
+            }
             return;
         }
         
+        if (!updateResult || updateResult.length === 0) {
+            console.error('❌ Brak zaktualizowanych rekordów');
+            showNotification('Błąd: Nie udało się zaktualizować zadania. Sprawdź czy zadanie istnieje i należy do Ciebie.', 'error');
+            return;
+        }
+        
+        console.log('✅ Zadanie zaktualizowane:', updateResult);
+        
         // Zaktualizuj lokalny stan
-    completedDays.add(currentDay);
-        userTasks[currentDay].status = 'completed';
-    updateProgress();
+        if (newStatus === 'completed') {
+            completedDays.add(currentDay);
+        }
+        userTasks[currentDay].status = newStatus;
+        if (mediaUrl) {
+            userTasks[currentDay].response_media_url = mediaUrl;
+        }
+        updateProgress();
         updateAllMarkers(); // Odśwież wszystkie markery (mogą się odblokować inne dni)
     closeModal();
     
-    showNotification(`Zadanie na dzień ${currentDay} zostało oznaczone jako wykonane!`, 'success');
+    if (newStatus === 'pending_verification') {
+        showNotification(`Zadanie na dzień ${currentDay} zostało przesłane do weryfikacji przez administratora!`, 'success');
+    } else {
+        showNotification(`Zadanie na dzień ${currentDay} zostało oznaczone jako wykonane!`, 'success');
+    }
     } catch (error) {
         console.error('Błąd oznaczania zadania jako wykonane:', error);
         showNotification('Błąd zapisywania postępu', 'error');
@@ -515,10 +823,65 @@ function setupModalEvents() {
     const closeBtn = document.querySelector('.close');
     const closeModalBtn = document.getElementById('close-modal');
     const markCompletedBtn = document.getElementById('mark-completed');
+    const photoInput = document.getElementById('task-photo-input');
+    const selectPhotoBtn = document.getElementById('select-photo-btn');
     
     closeBtn.addEventListener('click', closeModal);
     closeModalBtn.addEventListener('click', closeModal);
     markCompletedBtn.addEventListener('click', markTaskCompleted);
+    
+    // Obsługa wyboru zdjęcia
+    if (selectPhotoBtn) {
+        selectPhotoBtn.addEventListener('click', () => {
+            photoInput.click();
+        });
+    }
+    
+    // Obsługa zmiany zdjęcia
+    if (photoInput) {
+        photoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const photoFilename = document.getElementById('photo-filename');
+                const photoPreview = document.getElementById('photo-preview');
+                const photoPreviewContainer = document.getElementById('photo-preview-container');
+                const uploadedPhotoContainer = document.getElementById('uploaded-photo-container');
+                
+                photoFilename.textContent = file.name;
+                uploadedPhotoContainer.style.display = 'none';
+                
+                // Pokaż podgląd
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    photoPreview.src = e.target.result;
+                    photoPreviewContainer.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+    
+    // Obsługa usuwania zdjęcia z podglądu
+    const removePhotoBtn = document.getElementById('remove-photo-btn');
+    if (removePhotoBtn) {
+        removePhotoBtn.addEventListener('click', function() {
+            const photoInput = document.getElementById('task-photo-input');
+            const photoPreviewContainer = document.getElementById('photo-preview-container');
+            const photoFilename = document.getElementById('photo-filename');
+            
+            if (photoInput) {
+                photoInput.value = '';
+            }
+            if (photoPreviewContainer) {
+                photoPreviewContainer.style.display = 'none';
+            }
+            if (photoFilename) {
+                photoFilename.textContent = '';
+            }
+        });
+    }
+    
+    // Usuwanie przesłanego zdjęcia jest wyłączone - użytkownik nie może usuwać już przesłanych zdjęć
     
     // Zamykanie modala po kliknięciu poza nim
     window.addEventListener('click', (event) => {
@@ -574,52 +937,97 @@ async function loadUserTasks() {
         return;
     }
     
+    console.log('🔍 Ładowanie zadań dla użytkownika:', currentUser.id, currentUser.email, 'rola:', currentUser.role);
+    
     try {
-        // Pobierz zadania użytkownika z joined calendar_days (aby mieć day_number)
-        const { data, error } = await supabase
+        // Pobierz zadania użytkownika - najpierw bez join, potem pobierz day_number osobno
+        const { data: tasksData, error: tasksError } = await supabase
             .from('assigned_tasks')
             .select(`
                 *,
-                calendar_days!inner(day_number),
                 task_templates(title, description, task_type, metadata)
             `)
-            .eq('user_id', currentUser.id)
-            .order('calendar_days.day_number', { ascending: true });
+            .eq('user_id', currentUser.id);
         
-        if (error) {
-            console.error('Błąd ładowania zadań użytkownika:', error);
+        if (tasksError) {
+            console.error('❌ Błąd ładowania zadań użytkownika:', tasksError);
+            console.error('❌ Szczegóły błędu:', {
+                message: tasksError.message,
+                code: tasksError.code,
+                details: tasksError.details,
+                hint: tasksError.hint
+            });
             return;
         }
+        
+        console.log('📋 Pobrane zadania z bazy (bez join):', tasksData);
+        console.log('📋 Liczba zadań:', tasksData?.length || 0);
+        
+        if (!tasksData || tasksData.length === 0) {
+            console.log('⚠️ Brak zadań dla użytkownika');
+            userTasks = {};
+            return;
+        }
+        
+        // Pobierz wszystkie calendar_day_id z zadań
+        const calendarDayIds = [...new Set(tasksData.map(t => t.calendar_day_id).filter(id => id))];
+        console.log('📋 Calendar day IDs:', calendarDayIds);
+        
+        // Pobierz informacje o dniach kalendarza
+        const { data: daysData, error: daysError } = await supabase
+            .from('calendar_days')
+            .select('id, day_number')
+            .in('id', calendarDayIds);
+        
+        if (daysError) {
+            console.error('❌ Błąd ładowania dni kalendarza:', daysError);
+        }
+        
+        console.log('📋 Pobrane dni kalendarza:', daysData);
+        
+        // Utwórz mapę: calendar_day_id -> day_number
+        const dayIdToDayNumber = {};
+        if (daysData) {
+            daysData.forEach(day => {
+                dayIdToDayNumber[day.id] = day.day_number;
+            });
+        }
+        
+        console.log('📋 Mapa dayIdToDayNumber:', dayIdToDayNumber);
         
         // Przekształć dane do formatu userTasks
         // Klucz to day_number (1-24)
         userTasks = {};
-        if (data && data.length > 0) {
-            data.forEach(task => {
-                const dayNumber = task.calendar_days.day_number;
-                userTasks[dayNumber] = {
-                    id: task.id,
-                    calendar_day_id: task.calendar_day_id,
-                    task_template_id: task.task_template_id,
-                    task_title: task.task_templates?.title || 'Zadanie',
-                    task_description: task.task_templates?.description || '',
-                    task_type: task.task_templates?.task_type || 'text_response',
-                    status: task.status,
-                    response_text: task.response_text,
-                    response_media_url: task.response_media_url,
-                    response_metadata: task.response_metadata
-                };
-                
-                // Jeśli zadanie jest wykonane, dodaj do completedDays
-                if (task.status === 'completed') {
-                    completedDays.add(dayNumber);
-                }
-            });
-        }
+        tasksData.forEach(task => {
+            const dayNumber = dayIdToDayNumber[task.calendar_day_id];
+            if (!dayNumber) {
+                console.warn('⚠️ Zadanie bez day_number dla calendar_day_id:', task.calendar_day_id, task);
+                return;
+            }
+            console.log(`📝 Dodaję zadanie dla dnia ${dayNumber} (calendar_day_id: ${task.calendar_day_id}):`, task.task_templates?.title);
+            userTasks[dayNumber] = {
+                id: task.id,
+                calendar_day_id: task.calendar_day_id,
+                task_template_id: task.task_template_id,
+                task_title: task.task_templates?.title || 'Zadanie',
+                task_description: task.task_templates?.description || '',
+                task_type: task.task_templates?.task_type || 'text_response',
+                status: task.status,
+                response_text: task.response_text,
+                response_media_url: task.response_media_url,
+                response_metadata: task.response_metadata
+            };
+            
+            // Jeśli zadanie jest wykonane, dodaj do completedDays
+            if (task.status === 'completed') {
+                completedDays.add(dayNumber);
+            }
+        });
         
         console.log('✅ Załadowano zadania użytkownika dla dni:', Object.keys(userTasks).map(d => `Dzień ${d}`).join(', '));
+        console.log('✅ Obiekt userTasks:', userTasks);
     } catch (error) {
-        console.error('Błąd ładowania zadań użytkownika:', error);
+        console.error('❌ Błąd ładowania zadań użytkownika:', error);
     }
 }
 

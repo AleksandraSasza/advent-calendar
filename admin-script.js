@@ -267,6 +267,9 @@ async function loadAllData() {
         displayUsers();
         displayCalendarDays();
         displayTaskTemplates();
+        // Załaduj zadania do weryfikacji tylko jeśli sekcja jest widoczna
+        // loadVerificationTasks() sprawdzi czy kontener istnieje i nie pokaże błędów
+        loadVerificationTasks();
         
         // Wyświetl tabelę zadań (z opóźnieniem, aby upewnić się, że HTML jest gotowy)
         setTimeout(async () => {
@@ -1079,6 +1082,7 @@ function setupEventListeners() {
     }
     
     // Zamykanie modali po kliknięciu poza nimi
+    // UWAGA: Modal szablonu NIE zamyka się po kliknięciu poza nim - tylko przez przycisk Anuluj
     const addDayModal = document.getElementById('add-day-modal');
     if (addDayModal) {
         addDayModal.addEventListener('click', (e) => {
@@ -1088,14 +1092,16 @@ function setupEventListeners() {
         });
     }
     
-    const addTemplateModal = document.getElementById('add-template-modal');
-    if (addTemplateModal) {
-        addTemplateModal.addEventListener('click', (e) => {
-            if (e.target.id === 'add-template-modal') {
-                closeAddTemplateModal();
-            }
-        });
-    }
+    // Modal szablonu - NIE zamyka się po kliknięciu poza nim
+    // Zamyka się tylko przez przycisk "Anuluj" lub po pomyślnym dodaniu
+    // const addTemplateModal = document.getElementById('add-template-modal');
+    // if (addTemplateModal) {
+    //     addTemplateModal.addEventListener('click', (e) => {
+    //         if (e.target.id === 'add-template-modal') {
+    //             closeAddTemplateModal();
+    //         }
+    //     });
+    // }
     
     // Zamykanie modalu użytkownika
     const closeUserModal = document.getElementById('close-user-modal');
@@ -1770,8 +1776,8 @@ async function displayTasksTable() {
         return;
     }
     
-    // Filtruj tylko użytkowników (bez adminów)
-    const regularUsers = allUsers.filter(u => u.role !== 'admin');
+    // Uwzględnij wszystkich użytkowników (w tym adminów) - żeby admin mógł testować zadania
+    const regularUsers = allUsers;
     
     console.log('✅ Tbody znalezione, użytkowników:', regularUsers.length);
     
@@ -1808,12 +1814,12 @@ async function displayTasksTable() {
         });
         
         // Wygeneruj nagłówek z użytkownikami
-        const headerCells = ['<th style="position: sticky; left: 0; background: #f5f5f7; z-index: 10; min-width: 50px; max-width: 50px; width: 50px;">Dzień</th>'];
+        const headerCells = ['<th style="position: sticky; left: 0; background: #f5f5f7; z-index: 10; min-width: 50px; max-width: 50px; width: 50px; color: #1d1d1f; font-weight: 600;">Dzień</th>'];
         regularUsers.forEach(user => {
             const userName = (user.display_name || user.email).replace(/</g, "&lt;").replace(/>/g, "&gt;");
             headerCells.push(`
                 <th style="min-width: 200px; max-width: 250px;">
-                    <div style="font-weight: 500; font-size: 0.875rem;">${userName}</div>
+                    <div style="font-weight: 500; font-size: 0.875rem; color: #1d1d1f;">${userName}</div>
                     <div style="font-size: 0.75rem; color: #6e6e73; margin-top: 2px;">${user.email}</div>
                 </th>
             `);
@@ -1827,7 +1833,7 @@ async function displayTasksTable() {
             
             // Komórka z numerem dnia
             cells.push(`
-                <td style="position: sticky; left: 0; background: #f5f5f7; z-index: 5; font-weight: 600; text-align: center; min-width: 50px; max-width: 50px; width: 50px;">
+                <td style="position: sticky; left: 0; background: #f5f5f7; z-index: 5; font-weight: 600; text-align: center; min-width: 50px; max-width: 50px; width: 50px; color: #1d1d1f;">
                     ${day}
                 </td>
             `);
@@ -1920,32 +1926,57 @@ function openAssignTaskModal(dayNumber = null, userId = null) {
         taskSelect.appendChild(option);
     });
     
-    // Wypełnij select z użytkownikami
+    // Wypełnij select z użytkownikami (w tym adminami)
     userSelect.innerHTML = '<option value="">Wybierz użytkownika...</option>';
     allUsers.forEach(user => {
         const option = document.createElement('option');
+        const roleLabel = user.role === 'admin' ? ' (Admin)' : '';
         option.value = user.id;
-        option.textContent = `${user.display_name || user.email}`;
+        option.textContent = `${user.display_name || user.email}${roleLabel}`;
         userSelect.appendChild(option);
     });
     
-    // Ustaw wartości jeśli podano
+    // Ukryj/pokaż pola w zależności od tego, czy są podane wartości
+    const daySelectGroup = document.getElementById('assign-day-select-group');
+    const assignToAllGroup = document.getElementById('assign-to-all-group');
+    const userSelectGroup = document.getElementById('assign-user-select-group');
+    
+    // Jeśli podano dayNumber (kliknięto w konkretny dzień), ukryj pole wyboru dnia
     if (dayNumber) {
         dayInput.value = dayNumber;
+        if (daySelectGroup) {
+            daySelectGroup.style.display = 'none';
+        }
+    } else {
+        if (daySelectGroup) {
+            daySelectGroup.style.display = 'block';
+        }
     }
+    
+    // Jeśli podano userId (kliknięto plusik w tabeli), automatycznie wybierz użytkownika
     if (userId) {
         assignToAll.checked = false;
-        const userSelectGroup = document.getElementById('assign-user-select-group');
-        if (userSelectGroup) {
-            userSelectGroup.style.display = 'block';
+        // Ukryj checkbox "Przypisz do wszystkich" - nie ma sensu gdy wybrano konkretnego użytkownika
+        if (assignToAllGroup) {
+            assignToAllGroup.style.display = 'none';
         }
-        userSelect.value = userId;
-    } else {
-        assignToAll.checked = true;
-        const userSelectGroup = document.getElementById('assign-user-select-group');
+        // Ukryj pole wyboru użytkownika - już został wybrany
         if (userSelectGroup) {
             userSelectGroup.style.display = 'none';
         }
+        userSelect.value = userId;
+    } else {
+        // Jeśli nie podano userId, domyślnie "przypisz do wszystkich"
+        assignToAll.checked = true;
+        // Pokaż checkbox "Przypisz do wszystkich"
+        if (assignToAllGroup) {
+            assignToAllGroup.style.display = 'flex';
+        }
+        // Ukryj pole wyboru użytkownika (będzie pokazane gdy odznaczy checkbox)
+        if (userSelectGroup) {
+            userSelectGroup.style.display = 'none';
+        }
+        userSelect.value = '';
     }
     
     modal.style.display = 'block';
@@ -1981,7 +2012,8 @@ async function assignTaskFromModal() {
         return;
     }
     
-    const usersToAssign = assignToAll ? allUsers.filter(u => u.role !== 'admin') : [allUsers.find(u => u.id === userId)];
+    // Uwzględnij wszystkich użytkowników (w tym adminów) - żeby admin mógł testować zadania
+    const usersToAssign = assignToAll ? allUsers : [allUsers.find(u => u.id === userId)];
     
     if (usersToAssign.length === 0) {
         showNotification('Brak użytkowników do przypisania', 'error');
@@ -2140,7 +2172,187 @@ function switchSection(sectionName) {
             await displayTasksTable();
         }, 100);
     }
+    
+    // Jeśli przełączamy na sekcję weryfikacji, odśwież listę
+    if (sectionName === 'verification') {
+        setTimeout(async () => {
+            await loadVerificationTasks();
+        }, 100);
+    }
 }
+
+// Załaduj zadania do weryfikacji
+async function loadVerificationTasks() {
+    const listContainer = document.getElementById('verification-tasks-list');
+    
+    // Jeśli kontener nie istnieje (sekcja nie jest widoczna), nie ładuj zadań
+    if (!listContainer) {
+        console.log('Sekcja weryfikacji nie jest widoczna - pomijam ładowanie zadań');
+        return;
+    }
+    
+    try {
+        // Pobierz zadania z odpowiedzią (zdjęciem) które są oznaczone jako completed
+        // ale mogą wymagać weryfikacji - lub zadania ze statusem pending_verification jeśli istnieje
+        const { data: tasks, error } = await supabase
+            .from('assigned_tasks')
+            .select(`
+                *,
+                calendar_days (day_number),
+                task_templates (title, task_type),
+                profiles (email, display_name)
+            `)
+            .not('response_media_url', 'is', null)
+            .eq('status', 'completed')
+            .order('completed_at', { ascending: false });
+        
+        if (error) {
+            console.error('Błąd ładowania zadań do weryfikacji:', error);
+            // NIE pokazuj powiadomienia o błędzie - po prostu wyświetl pustą listę
+            displayVerificationTasks([]);
+            return;
+        }
+        
+        displayVerificationTasks(tasks || []);
+    } catch (error) {
+        console.error('Błąd w loadVerificationTasks:', error);
+        // NIE pokazuj powiadomienia o błędzie - po prostu wyświetl pustą listę
+        displayVerificationTasks([]);
+    }
+}
+
+// Wyświetl zadania do weryfikacji
+function displayVerificationTasks(tasks) {
+    const listContainer = document.getElementById('verification-tasks-list');
+    
+    if (!listContainer) {
+        console.error('Nie znaleziono kontenera verification-tasks-list');
+        return;
+    }
+    
+    if (tasks.length === 0) {
+        listContainer.innerHTML = '<p style="color: #6e6e73; text-align: center; padding: 40px;">Brak zadań oczekujących na weryfikację</p>';
+        return;
+    }
+    
+    listContainer.innerHTML = `
+        <div class="verification-tasks-grid">
+            ${tasks.map(task => {
+                const day = task.calendar_days;
+                const template = task.task_templates;
+                const user = task.profiles;
+                const userName = user?.display_name || user?.email || 'Nieznany użytkownik';
+                const photoUrl = task.response_media_url;
+                
+                return `
+                    <div class="verification-task-card">
+                        <div class="verification-task-header">
+                            <div>
+                                <h3>Dzień ${day?.day_number || '?'} - ${template?.title || 'Brak tytułu'}</h3>
+                                <p style="color: #6e6e73; font-size: 0.875rem; margin-top: 4px;">Użytkownik: ${userName}</p>
+                                ${task.completed_at ? `<p style="color: #6e6e73; font-size: 0.8125rem; margin-top: 2px;">Przesłano: ${new Date(task.completed_at).toLocaleString('pl-PL')}</p>` : ''}
+                            </div>
+                        </div>
+                        ${photoUrl ? `
+                            <div class="verification-photo-container" style="margin-top: 16px;">
+                                <img src="${photoUrl}" alt="Zdjęcie zadania" style="max-width: 100%; max-height: 400px; border-radius: 8px; border: 1px solid #e8e8ed; cursor: pointer;" onclick="window.open('${photoUrl}', '_blank')">
+                            </div>
+                        ` : '<p style="color: #d32f2f; margin-top: 16px;">⚠️ Brak zdjęcia</p>'}
+                        <div class="verification-actions" style="margin-top: 16px; display: flex; gap: 12px;">
+                            <button class="btn btn-primary" onclick="acceptVerificationTask('${task.id}')" style="flex: 1;">
+                                ✅ Zaakceptuj
+                            </button>
+                            <button class="btn btn-secondary" onclick="rejectVerificationTask('${task.id}')" style="flex: 1; background: #d32f2f; color: white; border-color: #d32f2f;">
+                                ❌ Odrzuć
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+}
+
+// Zaakceptuj zadanie (dostępne globalnie)
+window.acceptVerificationTask = async function(taskId) {
+    if (!confirm('Czy na pewno chcesz zaakceptować to zadanie? Zadanie zostanie oznaczone jako wykonane.')) {
+        return;
+    }
+    
+    try {
+        const { error } = await supabase
+            .from('assigned_tasks')
+            .update({
+                status: 'completed',
+                completed_at: new Date().toISOString()
+            })
+            .eq('id', taskId);
+        
+        if (error) throw error;
+        
+        showNotification('Zadanie zostało zaakceptowane', 'success');
+        await loadVerificationTasks(); // Odśwież listę
+    } catch (error) {
+        console.error('Błąd akceptacji zadania:', error);
+        showNotification('Błąd akceptacji zadania: ' + (error.message || 'Nieznany błąd'), 'error');
+    }
+};
+
+// Odrzuć zadanie (dostępne globalnie)
+window.rejectVerificationTask = async function(taskId) {
+    if (!confirm('Czy na pewno chcesz odrzucić to zadanie? Zdjęcie zostanie usunięte i użytkownik będzie mógł przesłać nowe.')) {
+        return;
+    }
+    
+    try {
+        // Pobierz zadanie, aby usunąć zdjęcie ze storage
+        const { data: task, error: fetchError } = await supabase
+            .from('assigned_tasks')
+            .select('response_media_url')
+            .eq('id', taskId)
+            .single();
+        
+        if (fetchError) throw fetchError;
+        
+        // Usuń zdjęcie ze storage jeśli istnieje
+        if (task?.response_media_url) {
+            try {
+                // Wyciągnij ścieżkę z URL
+                const urlParts = task.response_media_url.split('/task-responses/');
+                if (urlParts.length > 1) {
+                    const filePath = urlParts[1].split('?')[0];
+                    const { error: deleteError } = await supabase.storage
+                        .from('task-responses')
+                        .remove([filePath]);
+                    
+                    if (deleteError) {
+                        console.warn('Nie udało się usunąć zdjęcia ze storage:', deleteError);
+                    }
+                }
+            } catch (storageError) {
+                console.warn('Błąd usuwania zdjęcia ze storage:', storageError);
+            }
+        }
+        
+        // Zaktualizuj status zadania na pending i usuń URL zdjęcia
+        const { error } = await supabase
+            .from('assigned_tasks')
+            .update({
+                status: 'pending',
+                response_media_url: null,
+                completed_at: null
+            })
+            .eq('id', taskId);
+        
+        if (error) throw error;
+        
+        showNotification('Zadanie zostało odrzucone. Użytkownik może przesłać nowe zdjęcie.', 'success');
+        await loadVerificationTasks(); // Odśwież listę
+    } catch (error) {
+        console.error('Błąd odrzucania zadania:', error);
+        showNotification('Błąd odrzucania zadania: ' + (error.message || 'Nieznany błąd'), 'error');
+    }
+};
 
 // Funkcja powiadomień
 function showNotification(message, type = 'success') {

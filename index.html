@@ -91,7 +91,7 @@
                 Witaj, <span id="user-email"></span>!
             </div>
             <div class="user-actions">
-                <a href="profile.html" class="btn btn-secondary">Mój Profil</a>
+                <a href="ranking.html" class="btn btn-secondary">🏆 Ranking</a>
                 <a href="admin.html" id="admin-link" class="btn btn-secondary" style="display: none;">Panel Admina</a>
                 <button id="logout-btn" class="logout-btn">Wyloguj się</button>
             </div>
@@ -115,12 +115,45 @@
             <div class="modal-header">
                 <h2 id="modal-day">Dzień 1</h2>
                 <div class="modal-country" id="modal-country">Polska</div>
+                <div id="task-status-badge" style="display: none; margin-top: 12px; padding: 8px 16px; border-radius: 8px; font-size: 0.875rem; font-weight: 500; text-align: center;"></div>
             </div>
             <div class="modal-body">
                 <div class="task-content" id="task-content">
-                    <h3>Zadanie na dziś:</h3>
+                    <h3>Zadanie:</h3>
                     <p id="task-description">Przygotuj listę prezentów dla najbliższych!</p>
-                    <div class="task-actions">
+                    
+                    <!-- Sekcja uploadu zdjęcia (tylko dla zadań typu photo_upload) -->
+                    <div id="photo-upload-section" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e8e8ed;">
+                        <!-- Link do zobaczenia zdjęcia (tylko dla wykonanych zadań) -->
+                        <div id="view-photo-link-container" style="display: none; margin-bottom: 12px;">
+                            <a href="#" id="view-photo-link" style="color: #1a5d1a; text-decoration: underline; font-size: 0.875rem; cursor: pointer;">Zobacz dodane zdjęcie</a>
+                        </div>
+                        
+                        <!-- Sekcja dodawania zdjęcia (tylko dla niezakończonych zadań) -->
+                        <div id="add-photo-section">
+                            <label style="display: block; font-weight: 500; margin-bottom: 8px; color: #1d1d1f;">Dodaj zdjęcie:</label>
+                            <input type="file" id="task-photo-input" accept="image/*" style="display: none;">
+                            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                                <button type="button" id="select-photo-btn" class="btn btn-secondary" style="background: white; border: 2px solid #1a5d1a; color: #1a5d1a;">
+                                    📷 Wybierz zdjęcie
+                                </button>
+                                <span id="photo-filename" style="color: #6e6e73; font-size: 0.875rem;"></span>
+                            </div>
+                        </div>
+                        
+                        <div id="photo-preview-container" style="margin-top: 12px; display: none; position: relative;">
+                            <button type="button" id="remove-photo-btn" style="position: absolute; top: 8px; right: 8px; background: rgba(0, 0, 0, 0.5); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; z-index: 10; transition: all 0.2s ease; opacity: 0.7;" title="Usuń zdjęcie" onmouseover="this.style.opacity='1'; this.style.background='rgba(0, 0, 0, 0.7)';" onmouseout="this.style.opacity='0.7'; this.style.background='rgba(0, 0, 0, 0.5)';">×</button>
+                            <img id="photo-preview" src="" alt="Podgląd zdjęcia" style="max-width: 100%; max-height: 400px; border-radius: 8px; border: 1px solid #e8e8ed; display: block;">
+                        </div>
+                        <div id="uploaded-photo-container" style="margin-top: 12px; display: none; position: relative;">
+                            <img id="uploaded-photo" src="" alt="Przesłane zdjęcie" style="max-width: 100%; max-height: 400px; border-radius: 8px; border: 1px solid #e8e8ed; display: block;">
+                        </div>
+                        <div id="verification-message" style="display: none; margin-top: 12px; padding: 12px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; color: #856404; font-size: 0.875rem;">
+                            ⚠️ Zadanie zostanie uznane jako zakończone po weryfikacji zdjęcia przez administratora.
+                        </div>
+                    </div>
+                    
+                    <div class="task-actions" style="margin-top: 20px;">
                         <button id="mark-completed" class="btn btn-primary">Oznacz jako wykonane</button>
                         <button id="close-modal" class="btn btn-secondary">Zamknij</button>
                     </div>
