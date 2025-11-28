@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalendarz Adwentowy - Mapa Świata</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Quintessential&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+          crossorigin=""/>
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
+            crossorigin=""></script>
+</head>
+<body>
+    <!-- Kontener dla płatków śniegu -->
+    <div class="snow-container" aria-hidden="true">
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+    </div>
+    <div class="container">
+        <header>
+            <h1>🎄 Kalendarz Adwentowy 2025 🎄</h1>
+            <p>Kliknij w numerowane państwo, aby odkryć zadanie na dany dzień!</p>
+            <div class="auth-buttons" id="auth-buttons" style="display: none;">
+                <a href="login.html" class="btn btn-primary">Zaloguj się</a>
+            </div>
+        </header>
+        
+        <div class="map-container">
+            <div id="world-map"></div>
+        </div>
+        
+        <!-- Panel użytkownika -->
+        <div id="user-info" class="user-info" style="display: none;">
+            <div class="user-welcome">
+                Witaj, <span id="user-email"></span>!
+            </div>
+            <div class="user-actions">
+                <a href="profile.html" class="btn btn-secondary">Mój Profil</a>
+                <a href="admin.html" id="admin-link" class="btn btn-secondary" style="display: none;">Panel Admina</a>
+                <button id="logout-btn" class="logout-btn">Wyloguj się</button>
+            </div>
+        </div>
+
+        <div class="info-panel">
+            <div class="day-counter">
+                <span id="current-day">0</span> / 24 dni adwentu
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Modal z zadaniami -->
+    <div id="task-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div class="modal-header">
+                <h2 id="modal-day">Dzień 1</h2>
+                <div class="modal-country" id="modal-country">Polska</div>
+            </div>
+            <div class="modal-body">
+                <div class="task-content" id="task-content">
+                    <h3>Zadanie na dziś:</h3>
+                    <p id="task-description">Przygotuj listę prezentów dla najbliższych!</p>
+                    <div class="task-actions">
+                        <button id="mark-completed" class="btn btn-primary">Oznacz jako wykonane</button>
+                        <button id="close-modal" class="btn btn-secondary">Zamknij</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Konfiguracja Supabase (PRZED Supabase Client) -->
+    <script src="config.js"></script>
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Eksportuj supabase jako supabaseLib dla script.js
+        window.supabaseLib = window.supabase;
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mój Profil - Kalendarz Adwentowy</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Quintessential&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="profile-styles.css">
+</head>
+<body class="profile-body">
+    <!-- Kontener dla płatków śniegu -->
+    <div class="snow-container" aria-hidden="true">
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+    </div>
+    <div class="profile-container">
+        <div class="profile-header">
+            <h1>🎄 Mój Profil</h1>
+            <p>Zarządzaj swoim kontem i ustawieniami</p>
+            <a href="index.html" class="back-link">← Wróć do kalendarza</a>
+        </div>
+        
+        <div class="profile-content">
+            <!-- Informacje o użytkowniku -->
+            <div class="profile-card">
+                <h2>👤 Informacje o koncie</h2>
+                <div class="user-info-display">
+                    <div class="info-item">
+                        <label>Email:</label>
+                        <span id="user-email-display">-</span>
+                    </div>
+                    <div class="info-item">
+                        <label>Imię:</label>
+                        <span id="user-name-display">-</span>
+                        <div id="name-edit-controls" style="display: none;">
+                            <input type="text" id="new-name" placeholder="Wpisz imię" style="margin-right: 10px; padding: 5px 10px; border: 1px solid #ddd; border-radius: 5px;">
+                            <button id="save-name-btn" class="btn btn-small" style="background: #28a745; color: white; margin-right: 5px;">Zapisz</button>
+                            <button id="cancel-name-btn" class="btn btn-small" style="background: #6c757d; color: white;">Anuluj</button>
+                        </div>
+                        <button id="edit-name-btn" class="btn btn-small">Edytuj</button>
+                    </div>
+                    <div class="info-item">
+                        <label>Data rejestracji:</label>
+                        <span id="user-created-display">-</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Zmiana hasła -->
+            <div class="profile-card">
+                <h2>🔒 Zmiana hasła</h2>
+                <form id="change-password-form">
+                    <div class="form-group">
+                        <label for="current-password">Obecne hasło:</label>
+                        <input type="password" id="current-password" placeholder="Wpisz obecne hasło" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new-password">Nowe hasło:</label>
+                        <input type="password" id="new-password" placeholder="Wpisz nowe hasło (min. 6 znaków)" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm-new-password">Potwierdź nowe hasło:</label>
+                        <input type="password" id="confirm-new-password" placeholder="Potwierdź nowe hasło" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Zmień hasło</button>
+                </form>
+            </div>
+            
+            
+            <!-- Statystyki -->
+            <div class="profile-card">
+                <h2>📊 Statystyki</h2>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number" id="completed-tasks">0</div>
+                        <div class="stat-label">Wykonane zadania</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="remaining-tasks">24</div>
+                        <div class="stat-label">Pozostałe zadania</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="progress-percentage">0%</div>
+                        <div class="stat-label">Postęp</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Akcje konta -->
+            <div class="profile-card">
+                <h2>⚙️ Akcje konta</h2>
+                <div class="account-actions">
+                    <button id="logout-btn" class="btn btn-danger">Wyloguj się</button>
+                    <button id="delete-account-btn" class="btn btn-danger-outline">Usuń konto</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="profile-script.js"></script>
+</body>
+</html>

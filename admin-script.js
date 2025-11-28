@@ -1,0 +1,2156 @@
+// Konfiguracja Supabase - ładowana z config.js
+if (!window.SUPABASE_CONFIG) {
+    console.error('⚠️ BŁĄD: Plik config.js nie jest załadowany!');
+}
+
+const SUPABASE_URL = window.SUPABASE_CONFIG?.URL;
+const SUPABASE_ANON_KEY = window.SUPABASE_CONFIG?.ANON_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    console.error('⚠️ BŁĄD: Konfiguracja Supabase nie jest ustawiona!');
+    alert('⚠️ BŁĄD KONFIGURACJI:\n\nSkopiuj config.example.js jako config.js i wypełnij swoimi danymi z Supabase Dashboard.');
+}
+
+// Inicjalizacja klienta Supabase
+let supabase;
+try {
+    // Sprawdź różne sposoby dostępu do biblioteki Supabase
+    if (typeof window.supabaseLib !== 'undefined' && window.supabaseLib.createClient) {
+        supabase = window.supabaseLib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    } else if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    } else {
+        console.error('Supabase library nie jest załadowana!');
+        throw new Error('Supabase library not loaded');
+    }
+    console.log('Supabase zainicjalizowany pomyślnie');
+} catch (error) {
+    console.error('Błąd inicjalizacji Supabase:', error);
+}
+
+let currentUser = null;
+let currentUserProfile = null; // Profil zalogowanego użytkownika (admin)
+let allUsers = [];
+let allTaskTemplates = [];
+let allCalendarDays = [];
+
+// Sprawdź autoryzację i załaduj dane
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('🔍 Admin panel - sprawdzanie autoryzacji...');
+    
+    // Zabezpieczenie przed pętlą przekierowań
+    const redirectFlag = sessionStorage.getItem('redirecting');
+    if (redirectFlag === 'true') {
+        sessionStorage.removeItem('redirecting');
+        console.log('✅ Flaga przekierowania usunięta');
+    }
+    
+    // Poczekaj chwilę na załadowanie Supabase
+    if (!supabase) {
+        console.error('❌ Supabase nie jest zainicjalizowany - czekam 500ms...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        if (!supabase) {
+            console.error('❌ Supabase nadal nie jest zainicjalizowany');
+            alert('Błąd: Supabase nie jest załadowany. Odśwież stronę.');
+            window.location.href = 'login.html';
+            return;
+        }
+    }
+    
+    console.log('✅ Supabase zainicjalizowany');
+    
+    // Sprawdź czy użytkownik jest zalogowany
+    console.log('🔍 Sprawdzanie sesji...');
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+        console.error('❌ Błąd sprawdzania sesji:', sessionError);
+        alert('Błąd sprawdzania sesji: ' + sessionError.message);
+        window.location.href = 'login.html';
+        return;
+    }
+    
+    if (!session || !session.user) {
+        console.log('❌ Brak sesji - przekierowanie do logowania');
+        alert('Musisz się zalogować, aby uzyskać dostęp do panelu admina.');
+        window.location.href = 'login.html';
+        return;
+    }
+    
+    console.log('✅ Sesja znaleziona, użytkownik:', session.user.email);
+    currentUser = session.user;
+    
+    // Sprawdź czy użytkownik jest adminem
+    console.log('🔍 Sprawdzanie roli użytkownika...');
+    const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', currentUser.id)
+        .single();
+    
+    if (profileError) {
+        console.error('❌ Błąd pobierania profilu:', profileError);
+        alert('Błąd pobierania profilu: ' + profileError.message);
+        setTimeout(() => {
+            window.location.href = 'login.html';
+        }, 2000);
+        return;
+    }
+    
+    if (!profile) {
+        console.log('❌ Profil nie istnieje');
+        alert('Profil użytkownika nie istnieje. Skontaktuj się z administratorem.');
+        setTimeout(() => {
+            window.location.href = 'login.html';
+        }, 2000);
+        return;
+    }
+    
+    console.log('✅ Profil znaleziony:', profile);
+    console.log('🔍 Rola użytkownika:', profile.role);
+    
+    // ZAPISZ profil zalogowanego użytkownika (admin) - ważne!
+    currentUserProfile = profile;
+    
+    // Sprawdź rolę (case-insensitive dla bezpieczeństwa)
+    const userRole = profile.role?.toString().trim().toLowerCase();
+    const isAdmin = userRole === 'admin';
+    
+    console.log('🔍 Rola użytkownika:', profile.role);
+    console.log('🔍 Typ roli:', typeof profile.role);
+    console.log('🔍 Porównanie z "admin":', profile.role === 'admin');
+    console.log('🔍 Porównanie (case-insensitive):', userRole === 'admin');
+    console.log('🔍 Czy jest adminem:', isAdmin);
+    
+    if (!isAdmin) {
+        console.log('❌ Użytkownik nie jest adminem, rola:', profile.role);
+        alert('Brak uprawnień administratora. Twoja rola: "' + profile.role + '"\n\nSkontaktuj się z administratorem, aby uzyskać dostęp.');
+        sessionStorage.setItem('redirecting', 'true');
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 2000);
+        return;
+    }
+    
+    console.log('✅ Użytkownik jest adminem, ładuję panel...');
+    
+    // Załaduj wszystkie dane
+    try {
+        await loadAllData();
+        await ensureAllDaysExist(); // Automatycznie dodaj wszystkie dni jeśli brakuje
+        setupEventListeners();
+        console.log('✅ Panel admina załadowany pomyślnie');
+    } catch (error) {
+        console.error('❌ Błąd ładowania panelu:', error);
+        alert('Błąd ładowania panelu admina: ' + error.message);
+    }
+});
+
+// Upewnij się, że wszystkie dni (1-24) istnieją w bazie
+async function ensureAllDaysExist() {
+    try {
+        console.log('🔍 Sprawdzanie czy wszystkie dni istnieją w bazie...');
+        
+        // Pobierz istniejące dni
+        const { data: existingDays, error: fetchError } = await supabase
+            .from('calendar_days')
+            .select('day_number');
+        
+        if (fetchError) {
+            console.error('Błąd pobierania dni:', fetchError);
+            return;
+        }
+        
+        const existingDayNumbers = new Set((existingDays || []).map(d => d.day_number));
+        const allDayNumbers = Array.from({ length: 24 }, (_, i) => i + 1);
+        const missingDays = allDayNumbers.filter(day => !existingDayNumbers.has(day));
+        
+        if (missingDays.length === 0) {
+            console.log('✅ Wszystkie dni już istnieją w bazie');
+            return;
+        }
+        
+        console.log(`📅 Brakuje ${missingDays.length} dni:`, missingDays);
+        
+        // Dodaj brakujące dni
+        const daysToInsert = missingDays.map(dayNumber => ({
+            day_number: dayNumber,
+            is_active: true
+        }));
+        
+        const { error: insertError } = await supabase
+            .from('calendar_days')
+            .insert(daysToInsert);
+        
+        if (insertError) {
+            console.error('Błąd dodawania dni:', insertError);
+            showNotification('Błąd automatycznego dodawania dni: ' + insertError.message, 'error');
+            return;
+        }
+        
+        console.log(`✅ Dodano ${missingDays.length} brakujących dni do bazy`);
+        showNotification(`Automatycznie dodano ${missingDays.length} dni do kalendarza`, 'success');
+        
+        // Odśwież listę dni
+        await loadAllData();
+        
+    } catch (error) {
+        console.error('Błąd w ensureAllDaysExist:', error);
+    }
+}
+
+// Załaduj wszystkie dane potrzebne w panelu
+async function loadAllData() {
+    try {
+        // Załaduj użytkowników - SPRAWDŹ RLS!
+        console.log('🔍 Ładowanie użytkowników z profiles...');
+        console.log('🔍 Aktualna sesja:', currentUser?.id, currentUser?.email);
+        
+        const { data: users, error: usersError } = await supabase
+            .from('profiles')
+            .select('id, email, display_name, role, created_at')
+            .order('created_at', { ascending: false });
+        
+        if (usersError) {
+            console.error('❌ Błąd ładowania użytkowników:', usersError);
+            console.error('❌ Szczegóły błędu:', {
+                message: usersError.message,
+                code: usersError.code,
+                details: usersError.details,
+                hint: usersError.hint
+            });
+            
+            // Jeśli błąd RLS, pokaż szczegółową informację
+            if (usersError.code === 'PGRST116' || usersError.message?.includes('row-level security')) {
+                showNotification('Błąd RLS: Admin nie może zobaczyć wszystkich użytkowników. Uruchom skrypt napraw-rls-admin.sql w Supabase.', 'error');
+            }
+            
+            throw usersError;
+        }
+        
+        console.log('✅ Załadowano użytkowników:', users?.length || 0);
+        console.log('📋 Lista użytkowników:', users);
+        
+        if (users && users.length > 0) {
+            console.log('📋 Pierwszy użytkownik:', users[0]);
+            console.log('📋 Ostatni użytkownik:', users[users.length - 1]);
+        }
+        
+        allUsers = users || [];
+        
+        // Załaduj dni kalendarza
+        const { data: days, error: daysError } = await supabase
+            .from('calendar_days')
+            .select('*')
+            .order('day_number', { ascending: true });
+        
+        if (daysError) {
+            console.error('Błąd ładowania dni kalendarza:', daysError);
+            showNotification('Błąd ładowania dni kalendarza: ' + daysError.message, 'error');
+            allCalendarDays = [];
+        } else {
+            allCalendarDays = days || [];
+            console.log('✅ Załadowano dni kalendarza:', allCalendarDays.length);
+        }
+        
+        // Załaduj szablony zadań
+        const { data: templates, error: templatesError } = await supabase
+            .from('task_templates')
+            .select('*')
+            .order('created_at', { ascending: false });
+        
+        if (templatesError) throw templatesError;
+        allTaskTemplates = templates || [];
+        
+        // Wyświetl dane
+        displayUsers();
+        displayCalendarDays();
+        displayTaskTemplates();
+        
+        // Wyświetl tabelę zadań (z opóźnieniem, aby upewnić się, że HTML jest gotowy)
+        setTimeout(async () => {
+            await displayTasksTable();
+        }, 100);
+        
+    } catch (error) {
+        console.error('Błąd ładowania danych:', error);
+        showNotification('Błąd ładowania danych', 'error');
+    }
+}
+
+// Wyświetl listę użytkowników
+function displayUsers() {
+    const usersList = document.getElementById('users-list');
+    
+    if (allUsers.length === 0) {
+        usersList.innerHTML = '<p>Brak użytkowników</p>';
+        return;
+    }
+    
+    usersList.innerHTML = `
+        <div class="users-grid">
+            ${allUsers.map(user => `
+                <div class="user-card" data-user-id="${user.id}">
+                    <div class="user-info">
+                        <div class="user-name-section">
+                            <input type="text" 
+                                   class="user-name-input" 
+                                   value="${user.display_name || ''}" 
+                                   placeholder="Imię użytkownika"
+                                   data-user-id="${user.id}"
+                                   data-original-value="${user.display_name || ''}">
+                            <button class="btn-icon save-name-btn" 
+                                    onclick="saveUserName('${user.id}')" 
+                                    title="Zapisz imię"
+                                    style="display: none;">
+                                ✓
+                            </button>
+                        </div>
+                        <p class="user-email">${user.email}</p>
+                        <span class="role-badge ${user.role}">${user.role === 'admin' ? '👑 Admin' : '👤 User'}</span>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+    
+    // Dodaj event listenery dla automatycznego zapisywania przy zmianie
+    document.querySelectorAll('.user-name-input').forEach(input => {
+        input.addEventListener('input', function() {
+            const saveBtn = this.parentElement.querySelector('.save-name-btn');
+            const originalValue = this.dataset.originalValue || '';
+            if (this.value.trim() !== originalValue.trim()) {
+                saveBtn.style.display = 'inline-flex';
+            } else {
+                saveBtn.style.display = 'none';
+            }
+        });
+        
+        input.addEventListener('blur', function() {
+            // Opcjonalnie: auto-zapisz przy straceniu fokusa
+            const saveBtn = this.parentElement.querySelector('.save-name-btn');
+            if (saveBtn.style.display !== 'none') {
+                const userId = this.dataset.userId;
+                saveUserName(userId);
+            }
+        });
+    });
+}
+
+// Wypełnij formularz przypisywania zadań
+function populateAssignForm() {
+    const userSelect = document.getElementById('assign-user');
+    const taskSelect = document.getElementById('assign-task');
+    
+    // Wypełnij użytkowników
+    userSelect.innerHTML = '<option value="">Wybierz użytkownika...</option>';
+    allUsers.forEach(user => {
+        const option = document.createElement('option');
+        option.value = user.id;
+        option.textContent = `${user.display_name || user.email} (${user.role})`;
+        userSelect.appendChild(option);
+    });
+    
+    // Wypełnij szablony zadań
+    taskSelect.innerHTML = '<option value="">Wybierz zadanie...</option>';
+    allTaskTemplates.forEach(template => {
+        const day = allCalendarDays.find(d => d.id === template.calendar_day_id);
+        const option = document.createElement('option');
+        option.value = template.id;
+        option.textContent = `${template.title} (Dzień ${day ? day.day_number : '?'}, ${template.task_type})`;
+        option.dataset.dayId = template.calendar_day_id;
+        taskSelect.appendChild(option);
+    });
+}
+
+// Mapowanie dni do państw (kopiowane z script.js dla użycia w panelu admina)
+// W produkcji można to załadować z zewnętrznego pliku
+const dayToCountryMap = {
+    1: { country: "Polska", funFact: "🎄 W Polsce Wigilia to najważniejszy dzień świąt! Tradycyjnie jemy 12 potraw i dzielimy się opłatkiem." },
+    2: { country: "Niemcy", funFact: "🎅 W Niemczech tradycja jarmarków bożonarodzeniowych sięga średniowiecza! Słynne są pierniki norymberskie." },
+    3: { country: "Francja", funFact: "🎁 We Francji prezenty przynosi Père Noël (Ojciec Święty Mikołaj), a dzieci zostawiają mu wino i ciastka!" },
+    4: { country: "Włochy", funFact: "🎄 We Włoszech prezenty przynosi Babbo Natale, ale prawdziwa magia dzieje się 6 stycznia - Święto Trzech Króli!" },
+    5: { country: "Hiszpania", funFact: "👑 W Hiszpanii główne prezenty przychodzą 6 stycznia od Trzech Króli! Dzieci zostawiają im buty wypełnione słomą dla wielbłądów." },
+    6: { country: "Wielka Brytania", funFact: "🎄 Tradycja choinek bożonarodzeniowych przyszła do UK z Niemiec dzięki księciu Albertowi w czasach królowej Wiktorii!" },
+    7: { country: "Rosja", funFact: "❄️ W Rosji Nowy Rok jest ważniejszy niż Boże Narodzenie! Dziadek Mróz (Ded Moroz) przynosi prezenty 31 grudnia." },
+    8: { country: "Chiny", funFact: "🍊 W Chinach święta zimowe to Chiński Nowy Rok! Czerwony kolor symbolizuje szczęście i prosperity." },
+    9: { country: "Japonia", funFact: "🍗 W Japonii tradycją jest jedzenie KFC na Boże Narodzenie! Trzeba rezerwować kurczaka z tygodniowym wyprzedzeniem." },
+    10: { country: "Australia", funFact: "🏖️ W Australii Boże Narodzenie wypada w środku lata! Ludzie świętują na plażach i robią BBQ." },
+    11: { country: "Brazylia", funFact: "🎅 W Brazylii Święty Mikołaj nazywa się Papai Noel i często nosi lekkie, letnie ubrania zamiast grubego futra!" },
+    12: { country: "USA", funFact: "🎄 Nowy Jork ma najbardziej znaną choinkę świata na Rockefeller Center! Tradycja sięga 1931 roku." },
+    13: { country: "Kanada", funFact: "🎅 Kanada ma oficjalny kod pocztowy dla Świętego Mikołaja: H0H 0H0! Dzieci mogą wysyłać tam listy i otrzymują odpowiedź." },
+    14: { country: "Meksyk", funFact: "🌟 W Meksyku tradycją są Las Posadas - 9-dniowe procesje i imprezy upamiętniające wędrówkę Marii i Józefa do Betlejem." },
+    15: { country: "Indie", funFact: "🪔 W Indiach Boże Narodzenie łączy się z tradycjami Diwali - domyśl świetlne i kolorowe dekoracje wypełniają ulice!" },
+    16: { country: "Egipt", funFact: "⛪ Chrześcijanie w Egipcie (Koptowie) obchodzą Boże Narodzenie 7 stycznia według kalendarza koptyjskiego!" },
+    17: { country: "RPA", funFact: "🌞 W RPA Boże Narodzenie to letnia impreza! Ludzie świętują grillując na świeżym powietrzu i pływając w oceanie." },
+    18: { country: "Argentyna", funFact: "🎆 W Argentynie o północy 24 grudnia eksplodują fajerwerki! To moment otwarcia prezentów i rozpoczęcia świętowania." },
+    19: { country: "Chile", funFact: "🎅 W Chile Święty Mikołaj nazywa się Viejito Pascuero (Stary Człowiek Wielkanocny) i przychodzi przez kominek mimo letnich upałów!" },
+    20: { country: "Peru", funFact: "🌟 W Peru tradycją jest budowanie elaborate szopek (nacimientos) z lokalnych materiałów i figurek z ceramiki z Ayacucho!" },
+    21: { country: "Kolumbia", funFact: "🕯️ W Kolumbii Día de las Velitas (Dzień Świeczek) 7 grudnia rozpoczyna sezon świąteczny - miasta świecą tysiącami świec!" },
+    22: { country: "Wenezuela", funFact: "⛸️ W Caracas w Wenezueli tradycją jest chodzenie na rolkach do kościoła na poranną mszę w Wigilię! Ulice są zamykane dla samochodów." },
+    23: { country: "Ekwador", funFact: "🎭 W Ekwadorze tradycją jest palenie starej szafy (Año Viejo) - kukieł symbolizujących stary rok, 31 grudnia o północy!" },
+    24: { country: "Urugwaj", funFact: "🎄 W Urugwaju Boże Narodzenie to czas rodzinnych spotkań na plaży i tradycyjnego asado (grilla) pod palmami zamiast choinkami!" }
+};
+
+// Lista dostępnych państw z mapowaniem do współrzędnych (po polsku)
+const countriesList = [
+    { name: "Polska", coordinates: [52.2297, 21.0122] },
+    { name: "Niemcy", coordinates: [51.1657, 10.4515] },
+    { name: "Francja", coordinates: [46.2276, 2.2137] },
+    { name: "Włochy", coordinates: [41.9028, 12.4964] },
+    { name: "Hiszpania", coordinates: [40.4637, -3.7492] },
+    { name: "Wielka Brytania", coordinates: [55.3781, -3.4360] },
+    { name: "Rosja", coordinates: [61.5240, 105.3188] },
+    { name: "Chiny", coordinates: [35.8617, 104.1954] },
+    { name: "Japonia", coordinates: [36.2048, 138.2529] },
+    { name: "Australia", coordinates: [-25.2744, 133.7751] },
+    { name: "Brazylia", coordinates: [-14.2350, -51.9253] },
+    { name: "USA", coordinates: [39.8283, -98.5795] },
+    { name: "Kanada", coordinates: [56.1304, -106.3468] },
+    { name: "Meksyk", coordinates: [23.6345, -102.5528] },
+    { name: "Indie", coordinates: [20.5937, 78.9629] },
+    { name: "Egipt", coordinates: [26.0975, 30.0444] },
+    { name: "RPA", coordinates: [-30.5595, 22.9375] },
+    { name: "Argentyna", coordinates: [-38.4161, -63.6167] },
+    { name: "Chile", coordinates: [-35.6751, -71.5430] },
+    { name: "Peru", coordinates: [-9.1900, -75.0152] },
+    { name: "Kolumbia", coordinates: [4.7110, -74.0721] },
+    { name: "Wenezuela", coordinates: [6.4238, -66.5897] },
+    { name: "Ekwador", coordinates: [-1.8312, -78.1834] },
+    { name: "Urugwaj", coordinates: [-32.5228, -55.7658] }
+];
+
+// Funkcja pomocnicza do pobierania współrzędnych dla państwa
+function getCoordinatesForCountry(countryName) {
+    const country = countriesList.find(c => c.name === countryName);
+    return country ? country.coordinates : null;
+}
+
+// Przełącz tryb edycji dla dnia
+window.toggleEditMode = function(dayId) {
+    const dayCard = document.querySelector(`.day-card[data-day-id="${dayId}"]`);
+    if (!dayCard) return;
+    
+    const isEditMode = dayCard.dataset.editMode === 'true';
+    const editBtn = dayCard.querySelector('.edit-day-btn');
+    const countrySelect = dayCard.querySelector('.day-country-select');
+    const customInput = dayCard.querySelector('.day-country-custom-input');
+    const funFactInput = dayCard.querySelector('.day-funfact-input');
+    const actionsDiv = dayCard.querySelector('.day-actions');
+    
+    if (!isEditMode) {
+        // Włącz tryb edycji
+        dayCard.dataset.editMode = 'true';
+        if (countrySelect) countrySelect.disabled = false;
+        if (customInput) customInput.disabled = false;
+        if (funFactInput) funFactInput.disabled = false;
+        if (actionsDiv) {
+            actionsDiv.style.display = 'flex';
+        }
+        if (editBtn) {
+            const svg = editBtn.querySelector('svg');
+            if (svg) {
+                svg.querySelectorAll('path').forEach(path => {
+                    path.setAttribute('stroke', '#013927');
+                });
+            }
+        }
+        
+        // Zmień style pól na aktywne
+        if (countrySelect) {
+            countrySelect.style.background = 'white';
+            countrySelect.style.cursor = 'pointer';
+        }
+        if (customInput) {
+            customInput.style.background = 'white';
+            customInput.style.cursor = 'text';
+        }
+        if (funFactInput) {
+            funFactInput.style.background = 'white';
+            funFactInput.style.cursor = 'text';
+        }
+    } else {
+        // Wyłącz tryb edycji
+        cancelEditDay(dayId);
+    }
+};
+
+// Anuluj edycję i przywróć oryginalne wartości
+window.cancelEditDay = function(dayId) {
+    const dayCard = document.querySelector(`.day-card[data-day-id="${dayId}"]`);
+    if (!dayCard) return;
+    
+    // Znajdź oryginalne dane z bazy
+    const day = allCalendarDays.find(d => d.id == dayId);
+    if (!day) return;
+    
+    const country = day.country || dayToCountryMap[day.day_number]?.country || 'Brak państwa';
+    const funFact = day.fun_fact || dayToCountryMap[day.day_number]?.funFact || 'Brak ciekawostki';
+    const isCustomCountry = !countriesList.find(c => c.name === country) && country;
+    
+    const editBtn = dayCard.querySelector('.edit-day-btn');
+    const countrySelect = dayCard.querySelector('.day-country-select');
+    const customInput = dayCard.querySelector('.day-country-custom-input');
+    const funFactInput = dayCard.querySelector('.day-funfact-input');
+    const actionsDiv = dayCard.querySelector('.day-actions');
+    
+    // Przywróć oryginalne wartości
+    if (countrySelect) {
+        if (isCustomCountry) {
+            countrySelect.value = '__OTHER__';
+        } else {
+            countrySelect.value = country;
+        }
+        countrySelect.disabled = true;
+        countrySelect.style.background = '#f5f5f7';
+        countrySelect.style.cursor = 'not-allowed';
+    }
+    
+    if (customInput) {
+        customInput.value = isCustomCountry ? country : '';
+        customInput.disabled = true;
+        customInput.style.background = '#f5f5f7';
+        customInput.style.cursor = 'not-allowed';
+        customInput.style.display = isCustomCountry ? 'block' : 'none';
+    }
+    
+    if (funFactInput) {
+        funFactInput.value = funFact;
+        funFactInput.disabled = true;
+        funFactInput.style.background = '#f5f5f7';
+        funFactInput.style.cursor = 'not-allowed';
+    }
+    
+    // Ukryj przyciski akcji
+    if (actionsDiv) actionsDiv.style.display = 'none';
+    
+    // Wyłącz tryb edycji
+    dayCard.dataset.editMode = 'false';
+    if (editBtn) {
+        const svg = editBtn.querySelector('svg');
+        if (svg) {
+            svg.querySelectorAll('path').forEach(path => {
+                path.setAttribute('stroke', '#013927');
+            });
+        }
+    }
+    
+    // Ukryj hint jeśli nie jest niestandardowe państwo
+    const hint = dayCard.querySelector('.country-custom-hint');
+    if (hint) {
+        hint.style.display = isCustomCountry ? 'block' : 'none';
+    }
+};
+
+// Obsługa zmiany wyboru państwa - pokaż/ukryj pole tekstowe dla niestandardowego państwa
+window.handleCountrySelectChange = function(selectElement) {
+    const dayCard = selectElement.closest('.day-card');
+    if (!dayCard) return;
+    
+    const customInput = dayCard.querySelector('.day-country-custom-input');
+    const hint = dayCard.querySelector('.country-custom-hint');
+    
+    if (selectElement.value === '__OTHER__') {
+        // Pokaż pole tekstowe dla niestandardowego państwa
+        if (customInput) {
+            customInput.style.display = 'block';
+            customInput.focus();
+        }
+        if (hint) {
+            hint.style.display = 'block';
+        }
+    } else {
+        // Ukryj pole tekstowe
+        if (customInput) {
+            customInput.style.display = 'none';
+            customInput.value = '';
+        }
+        if (hint) {
+            hint.style.display = 'none';
+        }
+    }
+};
+
+// Wyświetl dni kalendarza
+function displayCalendarDays() {
+    const daysList = document.getElementById('calendar-days-list');
+    
+    if (allCalendarDays.length === 0) {
+        daysList.innerHTML = '<p>Brak dni w kalendarzu. Dodaj pierwszy dzień!</p>';
+        return;
+    }
+    
+    daysList.innerHTML = `
+        <div class="calendar-days-grid">
+            ${allCalendarDays.map(day => {
+                // Pobierz państwo i ciekawostkę - najpierw z bazy, potem z mapowania
+                const country = day.country || dayToCountryMap[day.day_number]?.country || 'Brak państwa';
+                const funFact = day.fun_fact || dayToCountryMap[day.day_number]?.funFact || 'Brak ciekawostki';
+                
+                const isCustomCountry = !countriesList.find(c => c.name === country) && country;
+                
+                return `
+                <div class="day-card" data-day-id="${day.id}" data-edit-mode="false">
+                    <div class="day-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <h4 style="margin: 0;">Dzień ${day.day_number}</h4>
+                        <button class="edit-day-btn" onclick="toggleEditMode(${day.id})" title="Edytuj dzień" style="background: none; border: none; cursor: pointer; padding: 4px 8px; transition: all 0.2s; display: flex; align-items: center; justify-content: center;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" fill="white" stroke="#013927" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" fill="white" stroke="#013927" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="day-content">
+                        <div class="day-field">
+                            <label>Państwo:</label>
+                            <select class="day-country-select" data-day-id="${day.id}" onchange="handleCountrySelectChange(this)" disabled style="width: 100%; padding: 8px 12px; border: 1px solid #d2d2d7; border-radius: 8px; font-size: 0.9375rem; min-height: 44px; background: #f5f5f7; cursor: not-allowed;">
+                                <option value="">-- Wybierz państwo --</option>
+                                ${countriesList.map(c => `
+                                    <option value="${c.name}" ${c.name === country ? 'selected' : ''}>${c.name}</option>
+                                `).join('')}
+                                <option value="__OTHER__" ${isCustomCountry ? 'selected' : ''}>➕ Inne państwo...</option>
+                            </select>
+                            <input type="text" 
+                                   class="day-country-custom-input" 
+                                   data-day-id="${day.id}" 
+                                   value="${isCustomCountry ? country : ''}" 
+                                   placeholder="Wpisz nazwę państwa"
+                                   disabled
+                                   style="width: 100%; padding: 8px 12px; border: 1px solid #d2d2d7; border-radius: 8px; font-size: 0.9375rem; min-height: 44px; margin-top: 8px; display: ${isCustomCountry ? 'block' : 'none'}; background: #f5f5f7; cursor: not-allowed;">
+                            <small style="display: ${isCustomCountry ? 'block' : 'none'}; color: #6e6e73; margin-top: 4px; font-size: 0.8125rem;" class="country-custom-hint">
+                                💡 Dla niestandardowych państw współrzędne będą ustawione na domyślne. Możesz je później zaktualizować w bazie danych.
+                            </small>
+                        </div>
+                        <div class="day-field">
+                            <label>Ciekawostka:</label>
+                            <textarea class="day-funfact-input" data-day-id="${day.id}" placeholder="Ciekawostka o państwie" disabled style="background: #f5f5f7; cursor: not-allowed;">${funFact}</textarea>
+                        </div>
+                        <div class="day-actions" style="display: none; margin-top: 12px; gap: 8px;">
+                            <button class="btn btn-small btn-save" onclick="saveDayInfo(${day.id})" style="flex: 1; background: white; color: #013927; border: 2px solid #013927; padding: 10px 16px; border-radius: 8px; font-size: 0.9375rem; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                                Zapisz
+                            </button>
+                            <button class="btn btn-small btn-cancel" onclick="cancelEditDay(${day.id})" style="flex: 1; background: white; color: #d32f2f; border: 2px solid #d32f2f; padding: 10px 16px; border-radius: 8px; font-size: 0.9375rem; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                                Anuluj
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            }).join('')}
+        </div>
+    `;
+    
+    // Dodaj hover effect dla przycisku edycji
+    document.querySelectorAll('.edit-day-btn').forEach(btn => {
+        btn.addEventListener('mouseenter', function() {
+            const dayCard = this.closest('.day-card');
+            const isEditMode = dayCard.dataset.editMode === 'true';
+            if (!isEditMode) {
+                const svg = this.querySelector('svg');
+                if (svg) {
+                    svg.querySelectorAll('path').forEach(path => {
+                        path.setAttribute('stroke', '#0d4d0d');
+                    });
+                }
+            }
+        });
+        btn.addEventListener('mouseleave', function() {
+            const dayCard = this.closest('.day-card');
+            const isEditMode = dayCard.dataset.editMode === 'true';
+            if (!isEditMode) {
+                const svg = this.querySelector('svg');
+                if (svg) {
+                    svg.querySelectorAll('path').forEach(path => {
+                        path.setAttribute('stroke', '#013927');
+                    });
+                }
+            }
+        });
+    });
+}
+
+// Wyświetl szablony zadań
+function displayTaskTemplates() {
+    const templatesList = document.getElementById('templates-list');
+    
+    if (allTaskTemplates.length === 0) {
+        templatesList.innerHTML = '<p>Brak szablonów zadań. Dodaj pierwszy szablon!</p>';
+        return;
+    }
+    
+    templatesList.innerHTML = `
+        <div class="templates-grid">
+            ${allTaskTemplates.map(template => {
+                return `
+                    <div class="template-card" onclick="editTemplate('${template.id}')" style="cursor: pointer;">
+                        <h4>${template.title || 'Bez nazwy'}</h4>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+}
+
+// Usuń dzień kalendarza (dostępne globalnie)
+// Zapisz imię użytkownika
+window.saveUserName = async function(userId) {
+    const userCard = document.querySelector(`.user-card[data-user-id="${userId}"]`);
+    if (!userCard) return;
+    
+    const nameInput = userCard.querySelector('.user-name-input');
+    const saveBtn = userCard.querySelector('.save-name-btn');
+    
+    if (!nameInput) return;
+    
+    const displayName = nameInput.value.trim();
+    
+    try {
+        const { error } = await supabase
+            .from('profiles')
+            .update({ display_name: displayName || null })
+            .eq('id', userId);
+        
+        if (error) throw error;
+        
+        // Aktualizuj lokalne dane
+        const user = allUsers.find(u => u.id === userId);
+        if (user) {
+            user.display_name = displayName || null;
+        }
+        
+        // Ukryj przycisk zapisu
+        if (saveBtn) {
+            saveBtn.style.display = 'none';
+        }
+        
+        // Zaktualizuj oryginalną wartość
+        nameInput.dataset.originalValue = displayName;
+        
+        showNotification('Imię użytkownika zostało zapisane', 'success');
+        
+    } catch (error) {
+        console.error('Błąd zapisywania imienia:', error);
+        showNotification('Błąd zapisywania: ' + (error.message || 'Nieznany błąd'), 'error');
+    }
+};
+
+// Zapisz informacje o dniu (państwo i ciekawostka)
+window.saveDayInfo = async function(dayId) {
+    const dayCard = document.querySelector(`.day-card[data-day-id="${dayId}"]`);
+    if (!dayCard) return;
+    
+    const countrySelect = dayCard.querySelector('.day-country-select');
+    const customInput = dayCard.querySelector('.day-country-custom-input');
+    const funFactInput = dayCard.querySelector('.day-funfact-input');
+    
+    let country = null;
+    
+    // Sprawdź czy wybrano "Inne państwo"
+    if (countrySelect?.value === '__OTHER__') {
+        country = customInput?.value?.trim() || null;
+        if (!country) {
+            showNotification('Wpisz nazwę państwa w polu tekstowym', 'error');
+            return;
+        }
+    } else {
+        country = countrySelect?.value?.trim() || null;
+    }
+    
+    const funFact = funFactInput?.value?.trim() || null;
+    
+    if (!country) {
+        showNotification('Wybierz państwo z listy lub wpisz niestandardowe', 'error');
+        return;
+    }
+    
+    try {
+        // Pobierz współrzędne dla wybranego państwa (jeśli jest na liście)
+        const coordinates = getCoordinatesForCountry(country);
+        
+        const updateData = {
+            country: country,
+            fun_fact: funFact || null
+        };
+        
+        // Jeśli znaleziono współrzędne, zapisz je również
+        // Jeśli nie, użyj domyślnych współrzędnych (centrum świata) lub pozostaw null
+        if (coordinates) {
+            updateData.coordinates = coordinates;
+        } else {
+            // Domyślne współrzędne (centrum świata) dla niestandardowych państw
+            // Można później zaktualizować ręcznie w bazie danych
+            updateData.coordinates = [20, 0]; // Centrum świata
+        }
+        
+        const { error } = await supabase
+            .from('calendar_days')
+            .update(updateData)
+            .eq('id', dayId);
+        
+        if (error) throw error;
+        
+        const message = coordinates 
+            ? 'Informacje o dniu zostały zapisane' 
+            : `Państwo "${country}" zostało zapisane. Ustawiono domyślne współrzędne (20, 0). Możesz je zaktualizować w bazie danych.`;
+        showNotification(message, 'success');
+        
+        // Wyłącz tryb edycji po zapisaniu
+        const dayCard = document.querySelector(`.day-card[data-day-id="${dayId}"]`);
+        if (dayCard) {
+            dayCard.dataset.editMode = 'false';
+            const countrySelect = dayCard.querySelector('.day-country-select');
+            const customInput = dayCard.querySelector('.day-country-custom-input');
+            const funFactInput = dayCard.querySelector('.day-funfact-input');
+            const actionsDiv = dayCard.querySelector('.day-actions');
+            const editBtn = dayCard.querySelector('.edit-day-btn');
+            
+            if (countrySelect) {
+                countrySelect.disabled = true;
+                countrySelect.style.background = '#f5f5f7';
+                countrySelect.style.cursor = 'not-allowed';
+            }
+            if (customInput) {
+                customInput.disabled = true;
+                customInput.style.background = '#f5f5f7';
+                customInput.style.cursor = 'not-allowed';
+            }
+            if (funFactInput) {
+                funFactInput.disabled = true;
+                funFactInput.style.background = '#f5f5f7';
+                funFactInput.style.cursor = 'not-allowed';
+            }
+            if (actionsDiv) actionsDiv.style.display = 'none';
+            if (editBtn) editBtn.style.color = '#6e6e73';
+        }
+        
+        await loadAllData();
+        
+    } catch (error) {
+        console.error('Błąd zapisywania dnia:', error);
+        showNotification('Błąd zapisywania: ' + (error.message || 'Nieznany błąd'), 'error');
+    }
+};
+
+// Edytuj szablon zadania - otwiera modal edycji (dostępne globalnie)
+window.editTemplate = function(templateId) {
+    const template = allTaskTemplates.find(t => t.id === templateId);
+    if (!template) {
+        showNotification('Nie znaleziono szablonu', 'error');
+        return;
+    }
+    
+    // Ustaw tryb edycji
+    document.getElementById('template-modal-title').textContent = 'Edytuj szablon zadania';
+    document.getElementById('template-submit-btn').textContent = 'Zapisz zmiany';
+    document.getElementById('template-id').value = template.id;
+    
+    // Wypełnij formularz danymi szablonu
+    document.getElementById('template-day').value = template.calendar_day_id;
+    document.getElementById('template-title').value = template.title || '';
+    document.getElementById('template-description').value = template.description || '';
+    document.getElementById('template-type').value = template.task_type || 'text_response';
+    
+    // Obsłuż quiz (metadata)
+    if (template.task_type === 'quiz' && template.metadata) {
+        let metadata;
+        try {
+            metadata = typeof template.metadata === 'string' 
+                ? JSON.parse(template.metadata) 
+                : template.metadata;
+        } catch (e) {
+            console.error('Błąd parsowania metadata:', e);
+            metadata = null;
+        }
+        
+        if (metadata && metadata.questions && Array.isArray(metadata.questions)) {
+            loadQuizQuestions(metadata.questions);
+        } else {
+            clearQuizQuestions();
+        }
+    } else {
+        clearQuizQuestions();
+    }
+    
+    // Pokaż/ukryj sekcję quizu
+    toggleQuizSection();
+    
+    // Otwórz modal
+    document.getElementById('add-template-modal').style.display = 'block';
+};
+
+// Załaduj pytania quizowe do formularza
+function loadQuizQuestions(questions) {
+    const container = document.getElementById('quiz-questions-container');
+    container.innerHTML = '';
+    
+    questions.forEach((question, index) => {
+        addQuestionToForm(question, index);
+    });
+}
+
+// Wyczyść pytania quizowe
+function clearQuizQuestions() {
+    document.getElementById('quiz-questions-container').innerHTML = '';
+}
+
+// Dodaj pytanie do formularza
+function addQuestionToForm(question = null, index = null) {
+    const container = document.getElementById('quiz-questions-container');
+    const questionIndex = index !== null ? index : container.children.length;
+    
+    const questionDiv = document.createElement('div');
+    questionDiv.className = 'quiz-question-item';
+    questionDiv.style.cssText = `
+        margin-bottom: 24px;
+        padding: 24px;
+        background: #ffffff;
+        border-radius: 12px;
+        border: 1px solid #e8e8ed;
+        transition: all 0.2s ease;
+    `;
+    
+    questionDiv.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #e8e8ed;">
+            <h4 style="margin: 0; font-size: 1rem; font-weight: 600; color: #1d1d1f; letter-spacing: -0.2px;">Pytanie ${questionIndex + 1}</h4>
+            <button type="button" class="btn btn-small" onclick="removeQuestion(this)" style="background: transparent; color: #6e6e73; border: 1px solid #d2d2d7; padding: 6px 12px; font-size: 0.875rem; min-height: 32px;">
+                Usuń
+            </button>
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label style="display: block; font-size: 0.875rem; font-weight: 500; color: #1d1d1f; margin-bottom: 8px;">Treść pytania</label>
+            <input type="text" class="question-text" value="${question?.question || ''}" placeholder="Np. Ile dni ma adwent?" required style="width: 100%; padding: 12px 16px; border: 1px solid #d2d2d7; border-radius: 8px; font-size: 0.9375rem; transition: all 0.2s ease; min-height: 44px;">
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label style="display: block; font-size: 0.875rem; font-weight: 500; color: #1d1d1f; margin-bottom: 8px;">Opcje odpowiedzi</label>
+            <div style="color: #6e6e73; font-size: 0.8125rem; margin-bottom: 8px;">Jedna linia = jedna opcja</div>
+            <textarea class="question-options" rows="4" placeholder="Opcja 1&#10;Opcja 2&#10;Opcja 3&#10;Opcja 4" required style="width: 100%; padding: 12px 16px; border: 1px solid #d2d2d7; border-radius: 8px; font-size: 0.9375rem; font-family: inherit; line-height: 1.5; resize: vertical; transition: all 0.2s ease; min-height: 100px;">${question?.options ? question.options.join('\n') : ''}</textarea>
+        </div>
+        
+        <div class="form-group">
+            <label style="display: block; font-size: 0.875rem; font-weight: 500; color: #1d1d1f; margin-bottom: 8px;">Poprawna odpowiedź</label>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <input type="number" class="question-correct" value="${question?.correct_answer !== undefined && question.correct_answer !== null ? (question.correct_answer + 1) : ''}" min="1" required style="width: 80px; padding: 12px 16px; border: 1px solid #d2d2d7; border-radius: 8px; font-size: 0.9375rem; text-align: center; transition: all 0.2s ease; min-height: 44px;">
+                <span style="color: #6e6e73; font-size: 0.8125rem;">Wpisz numer opcji (1, 2, 3...)</span>
+            </div>
+        </div>
+    `;
+    
+    // Dodaj hover effect
+    questionDiv.addEventListener('mouseenter', function() {
+        this.style.borderColor = '#013927';
+        this.style.boxShadow = '0 2px 8px rgba(26, 93, 26, 0.08)';
+    });
+    
+    questionDiv.addEventListener('mouseleave', function() {
+        this.style.borderColor = '#e8e8ed';
+        this.style.boxShadow = 'none';
+    });
+    
+    // Dodaj focus states dla inputów
+    const inputs = questionDiv.querySelectorAll('input, textarea');
+    inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            this.style.borderColor = '#013927';
+            this.style.boxShadow = '0 0 0 3px rgba(26, 93, 26, 0.1)';
+        });
+        
+        input.addEventListener('blur', function() {
+            this.style.borderColor = '#d2d2d7';
+            this.style.boxShadow = 'none';
+        });
+    });
+    
+    container.appendChild(questionDiv);
+}
+
+// Usuń pytanie (dostępne globalnie dla onclick)
+window.removeQuestion = function(button) {
+    if (confirm('Czy na pewno chcesz usunąć to pytanie?')) {
+        button.closest('.quiz-question-item').remove();
+        // Renumeruj pytania
+        const questions = document.querySelectorAll('.quiz-question-item');
+        questions.forEach((q, index) => {
+            q.querySelector('h4').textContent = `Pytanie ${index + 1}`;
+        });
+    }
+};
+
+// Pokaż/ukryj sekcję quizu w zależności od typu zadania
+function toggleQuizSection() {
+    const taskType = document.getElementById('template-type').value;
+    const quizSection = document.getElementById('quiz-section');
+    
+    if (taskType === 'quiz') {
+        quizSection.style.display = 'block';
+    } else {
+        quizSection.style.display = 'none';
+    }
+}
+
+// Konfiguracja eventów
+function setupEventListeners() {
+    // Formularz przypisywania zadania (stary - może nie istnieć)
+    const oldAssignForm = document.getElementById('assign-task-form');
+    if (oldAssignForm) {
+        oldAssignForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await assignTask();
+        });
+    }
+    
+    // Auto-wypełnianie dnia przy wyborze zadania (stary - może nie istnieć)
+    const oldAssignTask = document.getElementById('assign-task');
+    if (oldAssignTask) {
+        oldAssignTask.addEventListener('change', (e) => {
+            const selectedOption = e.target.options[e.target.selectedIndex];
+            if (selectedOption.dataset.dayId) {
+                const day = allCalendarDays.find(d => d.id == selectedOption.dataset.dayId);
+                if (day) {
+                    const assignDayInput = document.getElementById('assign-day');
+                    if (assignDayInput) {
+                        assignDayInput.value = day.day_number;
+                    }
+                }
+            }
+        });
+    }
+    
+    // Przycisk dodawania szablonu
+    document.getElementById('add-template-btn').addEventListener('click', () => {
+        openAddTemplateModal();
+    });
+    
+    // Przycisk dodawania użytkownika
+    document.getElementById('add-user-btn').addEventListener('click', () => {
+        openAddUserModal();
+    });
+    
+    // Formularz dodawania użytkownika
+    document.getElementById('add-user-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await addNewUser();
+    });
+    
+    // Formularz dodawania dnia (może nie istnieć jeśli modal został usunięty)
+    const addDayForm = document.getElementById('add-day-form');
+    if (addDayForm) {
+        addDayForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await addNewDay();
+        });
+    }
+    
+    // Formularz dodawania/edycji szablonu
+    document.getElementById('add-template-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await addNewTemplate();
+    });
+    
+    // Zmiana typu zadania - pokaż/ukryj sekcję quizu
+    document.getElementById('template-type').addEventListener('change', toggleQuizSection);
+    
+    // Przycisk dodawania pytania quizowego
+    document.getElementById('add-question-btn').addEventListener('click', () => {
+        addQuestionToForm();
+    });
+    
+    // Zamykanie modali (sprawdzamy czy istnieją)
+    const closeDayModal = document.getElementById('close-day-modal');
+    if (closeDayModal) {
+        closeDayModal.addEventListener('click', closeAddDayModal);
+    }
+    
+    const cancelDayBtn = document.getElementById('cancel-day-btn');
+    if (cancelDayBtn) {
+        cancelDayBtn.addEventListener('click', closeAddDayModal);
+    }
+    
+    const closeTemplateModal = document.getElementById('close-template-modal');
+    if (closeTemplateModal) {
+        closeTemplateModal.addEventListener('click', closeAddTemplateModal);
+    }
+    
+    const cancelTemplateBtn = document.getElementById('cancel-template-btn');
+    if (cancelTemplateBtn) {
+        cancelTemplateBtn.addEventListener('click', closeAddTemplateModal);
+    }
+    
+    // Zamykanie modali po kliknięciu poza nimi
+    const addDayModal = document.getElementById('add-day-modal');
+    if (addDayModal) {
+        addDayModal.addEventListener('click', (e) => {
+            if (e.target.id === 'add-day-modal') {
+                closeAddDayModal();
+            }
+        });
+    }
+    
+    const addTemplateModal = document.getElementById('add-template-modal');
+    if (addTemplateModal) {
+        addTemplateModal.addEventListener('click', (e) => {
+            if (e.target.id === 'add-template-modal') {
+                closeAddTemplateModal();
+            }
+        });
+    }
+    
+    // Zamykanie modalu użytkownika
+    const closeUserModal = document.getElementById('close-user-modal');
+    if (closeUserModal) {
+        closeUserModal.addEventListener('click', closeAddUserModal);
+    }
+    
+    const cancelUserBtn = document.getElementById('cancel-user-btn');
+    if (cancelUserBtn) {
+        cancelUserBtn.addEventListener('click', closeAddUserModal);
+    }
+    
+    const addUserModal = document.getElementById('add-user-modal');
+    if (addUserModal) {
+        addUserModal.addEventListener('click', (e) => {
+            if (e.target.id === 'add-user-modal') {
+                closeAddUserModal();
+            }
+        });
+    }
+    
+    // Przyciski tabeli zadań
+    document.getElementById('assign-bulk-btn')?.addEventListener('click', () => {
+        openAssignTaskModal();
+    });
+    
+    // Menu nawigacyjne - przełączanie sekcji
+    document.querySelectorAll('.admin-nav-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const section = this.dataset.section;
+            switchSection(section);
+        });
+    });
+    
+    // Formularz przypisywania zadania (nowy modal w assign-task-modal)
+    const newAssignTaskForm = document.querySelector('#assign-task-modal form#assign-task-form');
+    if (newAssignTaskForm) {
+        newAssignTaskForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await assignTaskFromModal();
+        });
+    }
+    
+    // Checkbox "przypisz do wszystkich"
+    document.getElementById('assign-to-all')?.addEventListener('change', (e) => {
+        const userSelectGroup = document.getElementById('assign-user-select-group');
+        if (e.target.checked) {
+            userSelectGroup.style.display = 'none';
+        } else {
+            userSelectGroup.style.display = 'block';
+        }
+    });
+    
+    // Zamykanie modalu przypisywania
+    document.getElementById('close-assign-modal')?.addEventListener('click', closeAssignTaskModal);
+    document.getElementById('cancel-assign-btn')?.addEventListener('click', closeAssignTaskModal);
+    
+    document.getElementById('assign-task-modal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'assign-task-modal') {
+            closeAssignTaskModal();
+        }
+    });
+}
+
+// Otwórz modal dodawania dnia
+function openAddDayModal() {
+    document.getElementById('add-day-modal').style.display = 'block';
+    document.getElementById('day-number').value = '';
+}
+
+// Zamknij modal dodawania dnia
+function closeAddDayModal() {
+    document.getElementById('add-day-modal').style.display = 'none';
+    document.getElementById('add-day-form').reset();
+}
+
+// Otwórz modal dodawania szablonu
+function openAddTemplateModal() {
+    // Ustaw tryb dodawania
+    document.getElementById('template-modal-title').textContent = 'Dodaj szablon zadania';
+    document.getElementById('template-submit-btn').textContent = 'Dodaj szablon';
+    document.getElementById('template-id').value = '';
+    
+    // Wypełnij select z dniami
+    const daySelect = document.getElementById('template-day');
+    daySelect.innerHTML = '<option value="">Wybierz dzień...</option>';
+    allCalendarDays.forEach(day => {
+        const option = document.createElement('option');
+        option.value = day.id;
+        option.textContent = `Dzień ${day.day_number}`;
+        daySelect.appendChild(option);
+    });
+    
+    // Wyczyść formularz
+    document.getElementById('add-template-form').reset();
+    clearQuizQuestions();
+    toggleQuizSection();
+    
+    document.getElementById('add-template-modal').style.display = 'block';
+}
+
+// Zamknij modal dodawania/edycji szablonu
+function closeAddTemplateModal() {
+    document.getElementById('add-template-modal').style.display = 'none';
+    document.getElementById('add-template-form').reset();
+    document.getElementById('template-id').value = '';
+    clearQuizQuestions();
+}
+
+// Otwórz modal dodawania użytkownika
+function openAddUserModal() {
+    document.getElementById('add-user-modal').style.display = 'block';
+    document.getElementById('user-email').value = '';
+}
+
+// Zamknij modal dodawania użytkownika
+function closeAddUserModal() {
+    document.getElementById('add-user-modal').style.display = 'none';
+    document.getElementById('add-user-form').reset();
+}
+
+// Dodaj nowego użytkownika
+async function addNewUser() {
+    const email = document.getElementById('user-email').value.trim();
+    const defaultPassword = 'Adwent2025';
+    
+    if (!email) {
+        showNotification('Podaj adres email', 'error');
+        return;
+    }
+    
+    // Walidacja emaila
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        showNotification('Podaj poprawny adres email', 'error');
+        return;
+    }
+    
+    try {
+        // ZAPISZ SESJĘ ADMINA PRZED UTWORZENIEM UŻYTKOWNIKA
+        // Supabase signUp() zmienia aktualną sesję, więc musimy ją zachować
+        const { data: { session: adminSession } } = await supabase.auth.getSession();
+        if (!adminSession) {
+            showNotification('Błąd: Brak aktywnej sesji admina', 'error');
+            return;
+        }
+        
+        // Zapisz refresh token admina do przywrócenia sesji później
+        const adminRefreshToken = adminSession.refresh_token;
+        const adminUserId = adminSession.user.id; // Do weryfikacji
+        
+        console.log('🔐 Zapisano sesję admina przed utworzeniem użytkownika');
+        
+        // Sprawdź czy użytkownik już istnieje
+        const { data: existingUsers, error: checkError } = await supabase
+            .from('profiles')
+            .select('id, email')
+            .eq('email', email.toLowerCase())
+            .limit(1);
+        
+        if (checkError && checkError.code !== 'PGRST116') {
+            throw checkError;
+        }
+        
+        if (existingUsers && existingUsers.length > 0) {
+            showNotification('Użytkownik o tym adresie email już istnieje', 'error');
+            return;
+        }
+        
+        // Utwórz użytkownika w Supabase Auth
+        // UWAGA: To zmieni aktualną sesję na sesję nowego użytkownika
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+            email: email.toLowerCase(),
+            password: defaultPassword,
+            options: {
+                emailRedirectTo: undefined,
+                data: {
+                    display_name: '',
+                    role: 'user'
+                }
+            }
+        });
+        
+        if (authError) {
+            // Jeśli użytkownik już istnieje w Auth (ale nie w profiles)
+            if (authError.message && authError.message.includes('already registered')) {
+                showNotification('Użytkownik o tym adresie email już istnieje w systemie', 'error');
+                return;
+            }
+            throw authError;
+        }
+        
+        if (!authData.user) {
+            throw new Error('Nie udało się utworzyć użytkownika');
+        }
+        
+        console.log('✅ Użytkownik utworzony w Auth:', authData.user.id);
+        
+        // NATYCHMIAST PRZYWRÓĆ SESJĘ ADMINA
+        // Wyloguj się z sesji nowego użytkownika
+        await supabase.auth.signOut();
+        
+        // Przywróć sesję admina używając refresh token
+        console.log('🔄 Przywracanie sesji admina...');
+        const { data: restoreData, error: restoreError } = await supabase.auth.refreshSession({
+            refresh_token: adminRefreshToken
+        });
+        
+        if (restoreError || !restoreData?.session) {
+            console.error('❌ Błąd przywracania sesji admina:', restoreError);
+            // Spróbuj zalogować się ponownie używając access token (może działać jeśli token jest jeszcze ważny)
+            // Jeśli nie zadziała, użytkownik będzie musiał się ponownie zalogować
+            showNotification('Użytkownik został utworzony, ale wystąpił problem z sesją. Odśwież stronę.', 'warning');
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+            return;
+        }
+        
+        // Zaktualizuj currentUser po przywróceniu sesji
+        currentUser = restoreData.session.user;
+        console.log('✅ Sesja admina przywrócona pomyślnie, użytkownik:', currentUser.email);
+        
+        // Weryfikuj, że przywrócona sesja należy do admina
+        if (currentUser.id !== adminUserId) {
+            console.error('❌ Błąd: Przywrócona sesja należy do innego użytkownika!');
+            showNotification('Użytkownik został utworzony, ale wystąpił problem z sesją. Odśwież stronę.', 'warning');
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+            return;
+        }
+        
+        // Poczekaj chwilę, aby trigger handle_new_user mógł utworzyć profil
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Sprawdź czy profil został utworzony
+        const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', authData.user.id)
+            .single();
+        
+        if (profileError || !profile) {
+            // Jeśli profil nie został utworzony przez trigger, utwórz go ręcznie
+            const { error: insertError } = await supabase
+                .from('profiles')
+                .insert({
+                    id: authData.user.id,
+                    email: email.toLowerCase(),
+                    display_name: '',
+                    role: 'user'
+                });
+            
+            if (insertError) {
+                console.error('Błąd tworzenia profilu:', insertError);
+                showNotification('Użytkownik został utworzony, ale wystąpił problem z profilem. Sprawdź w bazie danych.', 'error');
+                return;
+            }
+        }
+        
+        console.log('✅ Profil utworzony lub już istnieje');
+        
+        showNotification(`Użytkownik ${email} został utworzony! Hasło: ${defaultPassword}`, 'success');
+        closeAddUserModal();
+        
+        // Odśwież listę użytkowników
+        console.log('🔄 Odświeżanie listy użytkowników...');
+        
+        // Pobierz nowo utworzony profil
+        const { data: newProfile, error: newProfileError } = await supabase
+            .from('profiles')
+            .select('id, email, display_name, role, created_at')
+            .eq('id', authData.user.id)
+            .single();
+        
+        if (!newProfileError && newProfile) {
+            // Dodaj nowego użytkownika na początku listy
+            allUsers.unshift(newProfile);
+            console.log('✅ Dodano nowego użytkownika do listy:', newProfile);
+            
+            // Odśwież tylko wyświetlanie użytkowników i formularz przypisywania
+            displayUsers();
+            populateAssignForm();
+        } else {
+            // Jeśli nie udało się pobrać, odśwież wszystkie dane
+            console.log('⚠️ Nie udało się pobrać nowego profilu, odświeżam wszystkie dane...');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await loadAllData();
+        }
+        
+    } catch (error) {
+        console.error('Błąd dodawania użytkownika:', error);
+        showNotification(error.message || 'Błąd dodawania użytkownika', 'error');
+        
+        // W przypadku błędu, spróbuj przywrócić sesję admina
+        try {
+            const { data: { session: currentSession } } = await supabase.auth.getSession();
+            if (currentSession && currentSession.user.id !== currentUser?.id) {
+                console.log('⚠️ Sesja została zmieniona po błędzie, próba przywrócenia...');
+                await supabase.auth.signOut();
+                // Użytkownik będzie musiał odświeżyć stronę i zalogować się ponownie
+            }
+        } catch (restoreErr) {
+            console.error('Błąd przywracania sesji po błędzie:', restoreErr);
+        }
+    }
+}
+
+// Dodaj nowy dzień
+// UWAGA: Fun fact i państwo są w kodzie (dayToCountry), tutaj tylko tworzymy rekord w bazie
+async function addNewDay() {
+    const dayNumber = document.getElementById('day-number').value;
+    
+    if (!dayNumber) {
+        showNotification('Podaj numer dnia', 'error');
+        return;
+    }
+    
+    const dayNum = parseInt(dayNumber);
+    if (dayNum < 1 || dayNum > 24) {
+        showNotification('Numer dnia musi być między 1 a 24', 'error');
+        return;
+    }
+    
+    try {
+        // Sprawdź czy dzień już istnieje
+        const { data: existing } = await supabase
+            .from('calendar_days')
+            .select('*')
+            .eq('day_number', dayNum)
+            .single();
+        
+        if (existing) {
+            showNotification(`Dzień ${dayNum} już istnieje w bazie`, 'error');
+            return;
+        }
+        
+        // Utwórz dzień w bazie (tylko day_number, fun_fact jest w kodzie)
+        const { error } = await supabase
+            .from('calendar_days')
+            .insert({
+                day_number: dayNum,
+                is_active: true
+            });
+        
+        if (error) throw error;
+        
+        showNotification(`Dzień ${dayNum} został dodany. Państwo i ciekawostka są w kodzie aplikacji.`, 'success');
+        closeAddDayModal();
+        await loadAllData();
+        
+    } catch (error) {
+        console.error('Błąd dodawania dnia:', error);
+        showNotification(error.message || 'Błąd dodawania dnia', 'error');
+    }
+}
+
+// Dodaj/edytuj szablon zadania
+async function addNewTemplate() {
+    const templateId = document.getElementById('template-id').value;
+    const dayId = document.getElementById('template-day').value;
+    const title = document.getElementById('template-title').value;
+    const description = document.getElementById('template-description').value;
+    const taskType = document.getElementById('template-type').value;
+    const isEdit = !!templateId;
+    
+    if (!dayId) {
+        showNotification('Wybierz dzień kalendarza', 'error');
+        return;
+    }
+    
+    const day = allCalendarDays.find(d => d.id == dayId);
+    if (!day) {
+        showNotification('Nie znaleziono dnia kalendarza', 'error');
+        return;
+    }
+    
+    if (!title || !title.trim()) {
+        showNotification('Tytuł nie może być pusty', 'error');
+        return;
+    }
+    
+    if (!taskType) {
+        showNotification('Wybierz typ zadania', 'error');
+        return;
+    }
+    
+    // Przygotuj metadata dla quizu
+    let metadata = null;
+    if (taskType === 'quiz') {
+        const questions = collectQuizQuestions();
+        if (questions.length === 0) {
+            showNotification('Dodaj przynajmniej jedno pytanie do quizu', 'error');
+            return;
+        }
+        metadata = { questions: questions };
+    }
+    
+    try {
+        const dataToSave = {
+            calendar_day_id: day.id,
+            title: title.trim(),
+            description: description.trim() || null,
+            task_type: taskType
+        };
+        
+        // Dodaj metadata tylko jeśli istnieje (Supabase automatycznie konwertuje obiekty JS na JSONB)
+        if (metadata) {
+            dataToSave.metadata = metadata;
+        }
+        
+        if (isEdit) {
+            // Aktualizuj istniejący szablon
+            const { error } = await supabase
+                .from('task_templates')
+                .update(dataToSave)
+                .eq('id', templateId);
+            
+            if (error) throw error;
+            showNotification('Szablon został zaktualizowany', 'success');
+        } else {
+            // Utwórz nowy szablon
+            const { error } = await supabase
+                .from('task_templates')
+                .insert(dataToSave);
+            
+            if (error) throw error;
+            showNotification('Szablon został dodany', 'success');
+        }
+        
+        closeAddTemplateModal();
+        await loadAllData();
+        
+    } catch (error) {
+        console.error('Błąd zapisywania szablonu:', error);
+        showNotification(error.message || 'Błąd zapisywania szablonu', 'error');
+    }
+}
+
+// Zbierz pytania quizowe z formularza
+function collectQuizQuestions() {
+    const questions = [];
+    const questionItems = document.querySelectorAll('.quiz-question-item');
+    
+    questionItems.forEach((item, index) => {
+        const questionText = item.querySelector('.question-text').value.trim();
+        const optionsText = item.querySelector('.question-options').value.trim();
+        const correctAnswer = parseInt(item.querySelector('.question-correct').value) - 1; // -1 bo indeksy od 0
+        
+        if (!questionText || !optionsText || isNaN(correctAnswer)) {
+            return; // Pomiń niekompletne pytania
+        }
+        
+        const options = optionsText.split('\n')
+            .map(opt => opt.trim())
+            .filter(opt => opt.length > 0);
+        
+        if (options.length === 0) {
+            return; // Pomiń jeśli brak opcji
+        }
+        
+        if (correctAnswer < 0 || correctAnswer >= options.length) {
+            showNotification(`Pytanie ${index + 1}: Nieprawidłowy numer poprawnej odpowiedzi`, 'error');
+            return;
+        }
+        
+        questions.push({
+            id: index + 1,
+            question: questionText,
+            options: options,
+            correct_answer: correctAnswer
+        });
+    });
+    
+    return questions;
+}
+
+// Przypisz zadanie użytkownikowi (stara funkcja - może nie być używana)
+async function assignTask() {
+    const userElement = document.getElementById('assign-user');
+    const dayElement = document.getElementById('assign-day');
+    const taskElement = document.getElementById('assign-task');
+    
+    // Sprawdź czy elementy istnieją (stary formularz może nie istnieć)
+    if (!userElement || !dayElement || !taskElement) {
+        console.warn('Stary formularz przypisywania zadań nie istnieje - używaj modala');
+        return;
+    }
+    
+    const userId = userElement.value;
+    const dayNumber = parseInt(dayElement.value);
+    const taskTemplateId = taskElement.value;
+    
+    if (!userId || !dayNumber || !taskTemplateId) {
+        showNotification('Wypełnij wszystkie pola', 'error');
+        return;
+    }
+    
+    // Znajdź calendar_day_id dla wybranego dnia
+    const calendarDay = allCalendarDays.find(d => d.day_number === dayNumber);
+    if (!calendarDay) {
+        showNotification('Nie znaleziono dnia kalendarza', 'error');
+        return;
+    }
+    
+    try {
+        // Sprawdź czy zadanie już istnieje
+        const { data: existing } = await supabase
+            .from('assigned_tasks')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('calendar_day_id', calendarDay.id)
+            .single();
+        
+        if (existing) {
+            // Aktualizuj istniejące zadanie
+            const { error } = await supabase
+                .from('assigned_tasks')
+                .update({
+                    task_template_id: taskTemplateId,
+                    assigned_at: new Date().toISOString()
+                })
+                .eq('id', existing.id);
+            
+            if (error) throw error;
+            showNotification('Zadanie zostało zaktualizowane', 'success');
+        } else {
+            // Utwórz nowe zadanie
+            const { error } = await supabase
+                .from('assigned_tasks')
+                .insert({
+                    user_id: userId,
+                    calendar_day_id: calendarDay.id,
+                    task_template_id: taskTemplateId,
+                    status: 'pending'
+                });
+            
+            if (error) throw error;
+            showNotification('Zadanie zostało przypisane', 'success');
+        }
+        
+        // Wyczyść formularz
+        document.getElementById('assign-task-form').reset();
+        
+        // Odśwież listę zadań
+        if (window.selectedUserId) {
+            await viewUserTasks(window.selectedUserId);
+        }
+        
+    } catch (error) {
+        console.error('Błąd przypisywania zadania:', error);
+        showNotification(error.message || 'Błąd przypisywania zadania', 'error');
+    }
+}
+
+// Zobacz zadania użytkownika (dostępne globalnie)
+window.viewUserTasks = async function(userId, userEmail = '') {
+    window.selectedUserId = userId;
+    
+    try {
+        const { data: tasks, error } = await supabase
+            .from('assigned_tasks')
+            .select(`
+                *,
+                calendar_days (*),
+                task_templates (*)
+            `)
+            .eq('user_id', userId)
+            .order('calendar_days(day_number)', { ascending: true });
+        
+        if (error) throw error;
+        
+        const tasksList = document.getElementById('tasks-list');
+        
+        // Sprawdź czy element istnieje
+        if (!tasksList) {
+            console.warn('Element tasks-list nie istnieje w HTML');
+            return;
+        }
+        
+        if (!tasks || tasks.length === 0) {
+            tasksList.innerHTML = `
+                <p>Użytkownik <strong>${userEmail}</strong> nie ma jeszcze przypisanych zadań.</p>
+            `;
+            return;
+        }
+        
+        tasksList.innerHTML = `
+            <h3>Zadania użytkownika: ${userEmail}</h3>
+            <div class="tasks-grid">
+                ${tasks.map(task => {
+                    const day = task.calendar_days;
+                    const template = task.task_templates;
+                    const statusColors = {
+                        'pending': '#8e8e93',
+                        'in_progress': '#013927',
+                        'completed': '#013927'
+                    };
+                    const statusLabels = {
+                        'pending': 'Oczekujące',
+                        'in_progress': 'W trakcie',
+                        'completed': 'Wykonane'
+                    };
+                    
+                    return `
+                        <div class="task-card">
+                            <div class="task-header">
+                                <h4>Dzień ${day ? day.day_number : '?'} - ${template ? template.title : 'Brak szablonu'}</h4>
+                                <span class="status-badge" style="background: ${statusColors[task.status]}">
+                                    ${statusLabels[task.status]}
+                                </span>
+                            </div>
+                            <div class="task-info">
+                                <p><strong>Typ:</strong> ${template ? template.task_type : 'N/A'}</p>
+                                ${template ? `<p><strong>Opis:</strong> ${template.description || 'Brak opisu'}</p>` : ''}
+                                ${task.response_text ? `<p><strong>Odpowiedź:</strong> ${task.response_text}</p>` : ''}
+                                ${task.completed_at ? `<p><strong>Wykonano:</strong> ${new Date(task.completed_at).toLocaleString('pl-PL')}</p>` : ''}
+                            </div>
+                            ${task.status !== 'completed' ? `
+                                <button class="btn btn-small" onclick="deleteTask('${task.id}')">
+                                    Usuń zadanie
+                                </button>
+                            ` : ''}
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+        
+    } catch (error) {
+        console.error('Błąd ładowania zadań:', error);
+        showNotification('Błąd ładowania zadań', 'error');
+    }
+};
+
+// Usuń zadanie (dostępne globalnie)
+window.deleteTask = async function(taskId) {
+    if (!confirm('Czy na pewno chcesz usunąć to zadanie?')) {
+        return;
+    }
+    
+    try {
+        const { error } = await supabase
+            .from('assigned_tasks')
+            .delete()
+            .eq('id', taskId);
+        
+        if (error) throw error;
+        
+        showNotification('Zadanie zostało usunięte', 'success');
+        
+        // Odśwież listę zadań
+        if (window.selectedUserId) {
+            await viewUserTasks(window.selectedUserId);
+        }
+        
+    } catch (error) {
+        console.error('Błąd usuwania zadania:', error);
+        showNotification('Błąd usuwania zadania', 'error');
+    }
+};
+
+// Wyświetl tabelę zadań dla wszystkich użytkowników
+async function displayTasksTable() {
+    console.log('🔄 Wyświetlanie tabeli zadań...');
+    const tbody = document.getElementById('tasks-table-body');
+    const thead = document.getElementById('tasks-table-header');
+    
+    if (!tbody || !thead) {
+        console.error('❌ Nie znaleziono tbody lub thead dla tabeli zadań');
+        return;
+    }
+    
+    // Filtruj tylko użytkowników (bez adminów)
+    const regularUsers = allUsers.filter(u => u.role !== 'admin');
+    
+    console.log('✅ Tbody znalezione, użytkowników:', regularUsers.length);
+    
+    if (regularUsers.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="100" style="text-align: center; padding: 20px; color: #6e6e73;">Brak użytkowników</td></tr>';
+        return;
+    }
+    
+    // Załaduj wszystkie przypisane zadania
+    try {
+        const { data: allTasks, error: tasksError } = await supabase
+            .from('assigned_tasks')
+            .select(`
+                *,
+                calendar_days (day_number),
+                task_templates (title, task_type)
+            `);
+        
+        if (tasksError) {
+            console.error('Błąd ładowania zadań:', tasksError);
+            tbody.innerHTML = '<tr><td colspan="100" style="text-align: center; padding: 20px; color: #d32f2f;">Błąd ładowania zadań</td></tr>';
+            return;
+        }
+        
+        // Utwórz mapę zadań: userId -> dayNumber -> task
+        const tasksMap = {};
+        allTasks?.forEach(task => {
+            if (!tasksMap[task.user_id]) {
+                tasksMap[task.user_id] = {};
+            }
+            if (task.calendar_days) {
+                tasksMap[task.user_id][task.calendar_days.day_number] = task;
+            }
+        });
+        
+        // Wygeneruj nagłówek z użytkownikami
+        const headerCells = ['<th style="position: sticky; left: 0; background: #f5f5f7; z-index: 10; min-width: 50px; max-width: 50px; width: 50px;">Dzień</th>'];
+        regularUsers.forEach(user => {
+            const userName = (user.display_name || user.email).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            headerCells.push(`
+                <th style="min-width: 200px; max-width: 250px;">
+                    <div style="font-weight: 500; font-size: 0.875rem;">${userName}</div>
+                    <div style="font-size: 0.75rem; color: #6e6e73; margin-top: 2px;">${user.email}</div>
+                </th>
+            `);
+        });
+        thead.innerHTML = `<tr>${headerCells.join('')}</tr>`;
+        
+        // Wygeneruj wiersze dla każdego dnia (1-24)
+        const rows = [];
+        for (let day = 1; day <= 24; day++) {
+            const cells = [];
+            
+            // Komórka z numerem dnia
+            cells.push(`
+                <td style="position: sticky; left: 0; background: #f5f5f7; z-index: 5; font-weight: 600; text-align: center; min-width: 50px; max-width: 50px; width: 50px;">
+                    ${day}
+                </td>
+            `);
+            
+            // Komórki dla każdego użytkownika
+            regularUsers.forEach(user => {
+                const task = tasksMap[user.id]?.[day];
+                if (task) {
+                    const statusClass = task.status === 'completed' ? 'task-cell-completed' : 'task-cell-assigned';
+                    const statusIcon = task.status === 'completed' ? '✓' : '○';
+                    const templateTitle = (task.task_templates?.title || 'Brak tytułu').replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+                    const escapedUserId = String(user.id).replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+                    const escapedTaskId = String(task.id).replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+                    
+                    cells.push(`
+                        <td class="task-cell ${statusClass}" onclick="window.openTaskCell('${escapedUserId}', ${day}, '${escapedTaskId}')" title="Status: ${task.status === 'completed' ? 'Wykonane' : 'Przypisane'}" style="cursor: pointer; padding: 12px; min-width: 200px; max-width: 250px; position: relative;">
+                            <button onclick="event.stopPropagation(); window.deleteAssignedTask('${escapedTaskId}', '${escapedUserId}', ${day})" 
+                                    title="Usuń zadanie" 
+                                    style="position: absolute; top: 6px; right: 6px; background: white; color: #6e6e73; border: 1px solid #d2d2d7; border-radius: 4px; width: 20px; height: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 300; padding: 0; transition: all 0.2s; z-index: 10; opacity: 0.6;"
+                                    onmouseover="this.style.opacity='1'; this.style.borderColor='#d32f2f'; this.style.color='#d32f2f';"
+                                    onmouseout="this.style.opacity='0.6'; this.style.borderColor='#d2d2d7'; this.style.color='#6e6e73';">
+                                ×
+                            </button>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; padding-right: 28px;">
+                                <span style="font-size: 1.2rem;">${statusIcon}</span>
+                                <span style="font-weight: 500; font-size: 0.875rem;">${templateTitle}</span>
+                            </div>
+                            <div style="font-size: 0.75rem; color: #6e6e73; margin-top: 4px;">
+                                ${task.status === 'completed' ? 'Wykonane' : 'Oczekujące'}
+                            </div>
+                        </td>
+                    `);
+                } else {
+                    const escapedUserId = String(user.id).replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+                    cells.push(`
+                        <td class="task-cell task-cell-empty" style="padding: 12px; min-width: 200px; max-width: 250px; text-align: center;">
+                            <button class="task-cell-action" onclick="window.assignTaskToCell('${escapedUserId}', ${day})" title="Przypisz zadanie" type="button" style="cursor: pointer; background: none; border: none; color: #1a5d1a; font-size: 1.5rem; font-weight: 300; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;"
+                                    onmouseover="this.style.transform='scale(1.2)'; this.style.color='#155015';"
+                                    onmouseout="this.style.transform='scale(1)'; this.style.color='#1a5d1a';">
+                                +
+                            </button>
+                        </td>
+                    `);
+                }
+            });
+            
+            rows.push(`<tr>${cells.join('')}</tr>`);
+        }
+        
+        tbody.innerHTML = rows.join('');
+        
+        console.log('✅ Tabela zadań wygenerowana, wierszy:', 24, 'kolumn:', regularUsers.length);
+        
+    } catch (error) {
+        console.error('❌ Błąd wyświetlania tabeli zadań:', error);
+        tbody.innerHTML = '<tr><td colspan="100" style="text-align: center; padding: 20px; color: #d32f2f;">Błąd wyświetlania tabeli: ' + error.message + '</td></tr>';
+    }
+}
+
+// Otwórz modal przypisywania zadania
+function openAssignTaskModal(dayNumber = null, userId = null) {
+    const modal = document.getElementById('assign-task-modal');
+    if (!modal) {
+        console.error('Nie znaleziono modalu assign-task-modal');
+        return;
+    }
+    
+    const dayInput = document.getElementById('assign-day-modal');
+    const userSelect = document.getElementById('assign-user-modal');
+    const assignToAll = document.getElementById('assign-to-all');
+    
+    if (!dayInput || !userSelect || !assignToAll) {
+        console.error('Nie znaleziono elementów formularza w modalu');
+        return;
+    }
+    
+    // Wypełnij select z zadaniami
+    const taskSelect = document.getElementById('assign-task-select-modal');
+    if (!taskSelect) {
+        console.error('Nie znaleziono selecta z zadaniami');
+        return;
+    }
+    
+    taskSelect.innerHTML = '<option value="">Wybierz zadanie...</option>';
+    allTaskTemplates.forEach(template => {
+        const day = allCalendarDays.find(d => d.id === template.calendar_day_id);
+        const option = document.createElement('option');
+        option.value = template.id;
+        option.textContent = `${template.title} (Dzień ${day ? day.day_number : '?'})`;
+        taskSelect.appendChild(option);
+    });
+    
+    // Wypełnij select z użytkownikami
+    userSelect.innerHTML = '<option value="">Wybierz użytkownika...</option>';
+    allUsers.forEach(user => {
+        const option = document.createElement('option');
+        option.value = user.id;
+        option.textContent = `${user.display_name || user.email}`;
+        userSelect.appendChild(option);
+    });
+    
+    // Ustaw wartości jeśli podano
+    if (dayNumber) {
+        dayInput.value = dayNumber;
+    }
+    if (userId) {
+        assignToAll.checked = false;
+        const userSelectGroup = document.getElementById('assign-user-select-group');
+        if (userSelectGroup) {
+            userSelectGroup.style.display = 'block';
+        }
+        userSelect.value = userId;
+    } else {
+        assignToAll.checked = true;
+        const userSelectGroup = document.getElementById('assign-user-select-group');
+        if (userSelectGroup) {
+            userSelectGroup.style.display = 'none';
+        }
+    }
+    
+    modal.style.display = 'block';
+}
+
+// Zamknij modal przypisywania zadania
+function closeAssignTaskModal() {
+    const modal = document.getElementById('assign-task-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    const form = document.querySelector('#assign-task-modal form');
+    if (form) {
+        form.reset();
+    }
+}
+
+// Przypisz zadanie z modala
+async function assignTaskFromModal() {
+    const dayNumber = parseInt(document.getElementById('assign-day-modal').value);
+    const taskTemplateId = document.getElementById('assign-task-select-modal').value;
+    const assignToAll = document.getElementById('assign-to-all').checked;
+    const userId = document.getElementById('assign-user-modal').value;
+    
+    if (!dayNumber || !taskTemplateId) {
+        showNotification('Wypełnij wszystkie pola', 'error');
+        return;
+    }
+    
+    const calendarDay = allCalendarDays.find(d => d.day_number === dayNumber);
+    if (!calendarDay) {
+        showNotification('Nie znaleziono dnia kalendarza', 'error');
+        return;
+    }
+    
+    const usersToAssign = assignToAll ? allUsers.filter(u => u.role !== 'admin') : [allUsers.find(u => u.id === userId)];
+    
+    if (usersToAssign.length === 0) {
+        showNotification('Brak użytkowników do przypisania', 'error');
+        return;
+    }
+    
+    try {
+        let successCount = 0;
+        let errorCount = 0;
+        
+        for (const user of usersToAssign) {
+            // Sprawdź czy zadanie już istnieje
+            const { data: existingTasks, error: checkError } = await supabase
+                .from('assigned_tasks')
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('calendar_day_id', calendarDay.id)
+                .limit(1);
+            
+            const existing = existingTasks && existingTasks.length > 0 ? existingTasks[0] : null;
+            
+            if (existing) {
+                // Aktualizuj istniejące zadanie
+                const { error } = await supabase
+                    .from('assigned_tasks')
+                    .update({
+                        task_template_id: taskTemplateId,
+                        assigned_at: new Date().toISOString()
+                    })
+                    .eq('id', existing.id);
+                
+                if (error) {
+                    errorCount++;
+                    console.error(`Błąd aktualizacji zadania dla ${user.email}:`, error);
+                } else {
+                    successCount++;
+                }
+            } else {
+                // Utwórz nowe zadanie
+                const { error } = await supabase
+                    .from('assigned_tasks')
+                    .insert({
+                        user_id: user.id,
+                        calendar_day_id: calendarDay.id,
+                        task_template_id: taskTemplateId,
+                        status: 'pending'
+                    });
+                
+                if (error) {
+                    errorCount++;
+                    console.error(`Błąd tworzenia zadania dla ${user.email}:`, error);
+                } else {
+                    successCount++;
+                }
+            }
+        }
+        
+        if (successCount > 0) {
+            showNotification(`Zadanie przypisane do ${successCount} użytkowników${errorCount > 0 ? ` (${errorCount} błędów)` : ''}`, 'success');
+            closeAssignTaskModal();
+            await displayTasksTable();
+        } else {
+            showNotification('Nie udało się przypisać zadania', 'error');
+        }
+        
+    } catch (error) {
+        console.error('Błąd przypisywania zadania:', error);
+        showNotification(error.message || 'Błąd przypisywania zadania', 'error');
+    }
+}
+
+// Przypisz zadanie do konkretnej komórki (z tabeli) - dostępne globalnie
+window.assignTaskToCell = function(userId, dayNumber) {
+    console.log('assignTaskToCell wywołane:', userId, dayNumber);
+    try {
+        openAssignTaskModal(dayNumber, userId);
+    } catch (error) {
+        console.error('Błąd w assignTaskToCell:', error);
+        showNotification('Błąd otwierania modalu przypisywania zadania', 'error');
+    }
+};
+
+// Otwórz szczegóły zadania (z tabeli) - dostępne globalnie
+window.openTaskCell = function(userId, dayNumber, taskId) {
+    console.log('openTaskCell wywołane:', userId, dayNumber, taskId);
+    try {
+        const user = allUsers.find(u => u.id === userId);
+        if (user) {
+            viewUserTasks(userId, user.email);
+            // Scroll do sekcji zadań
+            setTimeout(() => {
+                const tasksList = document.getElementById('tasks-list');
+                if (tasksList) {
+                    tasksList.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 100);
+        } else {
+            console.error('Nie znaleziono użytkownika:', userId);
+            showNotification('Nie znaleziono użytkownika', 'error');
+        }
+    } catch (error) {
+        console.error('Błąd w openTaskCell:', error);
+        showNotification('Błąd otwierania szczegółów zadania', 'error');
+    }
+};
+
+// Usuń przypisane zadanie z tabeli - dostępne globalnie
+window.deleteAssignedTask = async function(taskId, userId, dayNumber) {
+    if (!confirm('Czy na pewno chcesz usunąć to zadanie?')) {
+        return;
+    }
+    
+    try {
+        const { error } = await supabase
+            .from('assigned_tasks')
+            .delete()
+            .eq('id', taskId);
+        
+        if (error) throw error;
+        
+        showNotification('Zadanie zostało usunięte', 'success');
+        
+        // Odśwież tabelę zadań
+        await displayTasksTable();
+        
+    } catch (error) {
+        console.error('Błąd usuwania zadania:', error);
+        showNotification('Błąd usuwania zadania: ' + (error.message || 'Nieznany błąd'), 'error');
+    }
+};
+
+// Przełącz sekcję w menu nawigacyjnym
+function switchSection(sectionName) {
+    // Ukryj wszystkie sekcje
+    document.querySelectorAll('.admin-section').forEach(section => {
+        section.style.display = 'none';
+    });
+    
+    // Pokaż wybraną sekcję
+    const targetSection = document.getElementById(`section-${sectionName}`);
+    if (targetSection) {
+        targetSection.style.display = 'block';
+    }
+    
+    // Zaktualizuj aktywne menu
+    document.querySelectorAll('.admin-nav-item').forEach(item => {
+        item.classList.remove('active');
+        if (item.dataset.section === sectionName) {
+            item.classList.add('active');
+        }
+    });
+    
+    // Jeśli przełączamy na sekcję zadań, odśwież tabelę
+    if (sectionName === 'tasks') {
+        setTimeout(async () => {
+            await displayTasksTable();
+        }, 100);
+    }
+}
+
+// Funkcja powiadomień
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 4000);
+}
+

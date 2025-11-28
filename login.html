@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logowanie - Kalendarz Adwentowy</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Quintessential&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="login-styles.css">
+</head>
+<body class="login-body">
+    <!-- Kontener dla płatków śniegu -->
+    <div class="snow-container" aria-hidden="true">
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+        <div class="snowflake"></div>
+    </div>
+    <div class="login-wrapper">
+        <!-- Górna sekcja - biała z logo i nazwą -->
+        <div class="login-top-section">
+            <div class="login-logo">
+                <div class="logo-icon">🎄</div>
+            </div>
+            <h1 class="login-title">Kalendarz Adwentowy 2025</h1>
+        </div>
+        
+        <!-- Separator - efekt podartego papieru -->
+        <div class="torn-paper-divider"></div>
+        
+        <!-- Dolna sekcja - jasnozielona z formularzem -->
+        <div class="login-bottom-section">
+            <div class="login-form-container">
+                <h2 class="login-form-title">Zaloguj się</h2>
+                <p class="login-subtitle">Zaloguj się, aby zapisać swój postęp</p>
+                
+                <!-- Formularz logowania -->
+                <form id="login-form" class="auth-form">
+                    <div class="form-group">
+                        <input type="email" id="email" placeholder="Email" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="password" id="password" placeholder="Hasło" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Zaloguj się</button>
+                    </div>
+                    <p class="login-footer-text">
+                        Konta użytkowników tworzy administrator.
+                    </p>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Renifer na dole strony -->
+    <div class="reindeer-container">
+        <img src="reindeer.png" alt="Renifer" class="reindeer">
+    </div>
+
+    <!-- Konfiguracja Supabase (PRZED Supabase Client) -->
+    <script src="config.js"></script>
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Eksportuj supabase jako supabaseLib dla login-script.js
+        window.supabaseLib = window.supabase;
+    </script>
+    <script src="login-script.js"></script>
+</body>
+</html>

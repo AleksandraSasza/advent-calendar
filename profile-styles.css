@@ -1,0 +1,485 @@
+/* Minimalistyczny design z świątecznymi elementami */
+.profile-body {
+    background: #014a35; /* Jaśniejszy odcień zielonego */
+    min-height: 100vh;
+    font-family: 'Quintessential', cursive;
+    margin: 0;
+    padding: 20px;
+    letter-spacing: 0.5px;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* Świąteczna gałązka w tle - ZACHOWANE (ukryte, można przywrócić) */
+.profile-body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M20,80 Q30,70 40,80 Q50,70 60,80 Q70,70 80,80" stroke="%23e8f5e8" stroke-width="2" fill="none"/><circle cx="25" cy="75" r="2" fill="%23ff6b6b"/><circle cx="45" cy="75" r="2" fill="%23ff6b6b"/><circle cx="65" cy="75" r="2" fill="%23ff6b6b"/></svg>') repeat;
+    background-size: 200px 200px;
+    opacity: 0.1;
+    z-index: -2;
+    pointer-events: none;
+    display: none; /* Ukryte - zmień na 'block' aby przywrócić */
+}
+
+/* NOWE: Delikatny animowany śnieg - kontener */
+.snow-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+}
+
+/* Pojedyncze płatki śniegu - szczegółowe śnieżyki SVG */
+.snowflake {
+    position: absolute;
+    top: -100px;
+    width: 20px;
+    height: 20px;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M50 0 L50 20 M50 80 L50 100 M0 50 L20 50 M80 50 L100 50 M20 20 L35 35 M65 65 L80 80 M20 80 L35 65 M65 35 L80 20" stroke="white" stroke-width="3" stroke-linecap="round" opacity="1"/><circle cx="50" cy="50" r="4" fill="white" opacity="1"/></svg>');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    animation: snowfall 15s linear infinite;
+    user-select: none;
+    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 1)) drop-shadow(0 0 2px rgba(255, 255, 255, 0.8));
+    opacity: 1;
+}
+
+.snowflake:nth-child(1) { left: 5%; animation-delay: 0s; animation-duration: 12s; }
+.snowflake:nth-child(2) { left: 10%; animation-delay: 0.5s; animation-duration: 18s; }
+.snowflake:nth-child(3) { left: 15%; animation-delay: 1s; animation-duration: 15s; }
+.snowflake:nth-child(4) { left: 20%; animation-delay: 0.3s; animation-duration: 14s; }
+.snowflake:nth-child(5) { left: 25%; animation-delay: 1.5s; animation-duration: 16s; }
+.snowflake:nth-child(6) { left: 30%; animation-delay: 0.8s; animation-duration: 13s; }
+.snowflake:nth-child(7) { left: 35%; animation-delay: 2s; animation-duration: 17s; }
+.snowflake:nth-child(8) { left: 40%; animation-delay: 0.6s; animation-duration: 15s; }
+.snowflake:nth-child(9) { left: 45%; animation-delay: 1.2s; animation-duration: 14s; }
+.snowflake:nth-child(10) { left: 50%; animation-delay: 0.4s; animation-duration: 16s; }
+.snowflake:nth-child(11) { left: 55%; animation-delay: 1.8s; animation-duration: 13s; }
+.snowflake:nth-child(12) { left: 60%; animation-delay: 0.7s; animation-duration: 18s; }
+.snowflake:nth-child(13) { left: 65%; animation-delay: 2.3s; animation-duration: 15s; }
+.snowflake:nth-child(14) { left: 70%; animation-delay: 1.1s; animation-duration: 14s; }
+.snowflake:nth-child(15) { left: 75%; animation-delay: 0.2s; animation-duration: 17s; }
+.snowflake:nth-child(16) { left: 80%; animation-delay: 1.7s; animation-duration: 16s; }
+.snowflake:nth-child(17) { left: 85%; animation-delay: 0.9s; animation-duration: 13s; }
+.snowflake:nth-child(18) { left: 90%; animation-delay: 2.1s; animation-duration: 15s; }
+.snowflake:nth-child(19) { left: 95%; animation-delay: 1.4s; animation-duration: 14s; }
+.snowflake:nth-child(20) { left: 2%; animation-delay: 0.1s; animation-duration: 18s; }
+.snowflake:nth-child(21) { left: 7%; animation-delay: 1.3s; animation-duration: 12s; }
+.snowflake:nth-child(22) { left: 12%; animation-delay: 0.5s; animation-duration: 16s; }
+.snowflake:nth-child(23) { left: 17%; animation-delay: 2.2s; animation-duration: 14s; }
+.snowflake:nth-child(24) { left: 22%; animation-delay: 0.8s; animation-duration: 17s; }
+.snowflake:nth-child(25) { left: 27%; animation-delay: 1.6s; animation-duration: 13s; }
+.snowflake:nth-child(26) { left: 32%; animation-delay: 0.4s; animation-duration: 15s; }
+.snowflake:nth-child(27) { left: 37%; animation-delay: 2.4s; animation-duration: 18s; }
+.snowflake:nth-child(28) { left: 42%; animation-delay: 1.0s; animation-duration: 14s; }
+.snowflake:nth-child(29) { left: 47%; animation-delay: 0.6s; animation-duration: 16s; }
+.snowflake:nth-child(30) { left: 52%; animation-delay: 1.9s; animation-duration: 13s; }
+.snowflake:nth-child(31) { left: 57%; animation-delay: 0.3s; animation-duration: 17s; }
+.snowflake:nth-child(32) { left: 62%; animation-delay: 2.5s; animation-duration: 15s; }
+.snowflake:nth-child(33) { left: 67%; animation-delay: 1.2s; animation-duration: 14s; }
+.snowflake:nth-child(34) { left: 72%; animation-delay: 0.7s; animation-duration: 18s; }
+.snowflake:nth-child(35) { left: 77%; animation-delay: 2.0s; animation-duration: 16s; }
+.snowflake:nth-child(36) { left: 82%; animation-delay: 0.9s; animation-duration: 13s; }
+.snowflake:nth-child(37) { left: 87%; animation-delay: 1.5s; animation-duration: 15s; }
+.snowflake:nth-child(38) { left: 92%; animation-delay: 0.2s; animation-duration: 17s; }
+.snowflake:nth-child(39) { left: 97%; animation-delay: 2.3s; animation-duration: 14s; }
+.snowflake:nth-child(40) { left: 3%; animation-delay: 1.1s; animation-duration: 16s; }
+.snowflake:nth-child(41) { left: 8%; animation-delay: 0.4s; animation-duration: 18s; }
+.snowflake:nth-child(42) { left: 13%; animation-delay: 1.8s; animation-duration: 12s; }
+.snowflake:nth-child(43) { left: 18%; animation-delay: 0.7s; animation-duration: 15s; }
+.snowflake:nth-child(44) { left: 23%; animation-delay: 2.1s; animation-duration: 14s; }
+.snowflake:nth-child(45) { left: 28%; animation-delay: 1.3s; animation-duration: 17s; }
+.snowflake:nth-child(46) { left: 33%; animation-delay: 0.5s; animation-duration: 13s; }
+.snowflake:nth-child(47) { left: 38%; animation-delay: 1.7s; animation-duration: 16s; }
+.snowflake:nth-child(48) { left: 43%; animation-delay: 0.9s; animation-duration: 18s; }
+.snowflake:nth-child(49) { left: 48%; animation-delay: 2.4s; animation-duration: 15s; }
+.snowflake:nth-child(50) { left: 53%; animation-delay: 1.0s; animation-duration: 14s; }
+
+@keyframes snowfall {
+    0% {
+        transform: translateY(0) translateX(0) rotate(0deg);
+        opacity: 0;
+    }
+    10% {
+        opacity: 0.7;
+    }
+    90% {
+        opacity: 0.7;
+    }
+    100% {
+        transform: translateY(100vh) translateX(30px) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+/* STARE - ukryte */
+.profile-body::after {
+    display: none;
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(2px 2px at 20% 30%, rgba(255, 255, 255, 0.6), transparent),
+        radial-gradient(2px 2px at 60% 70%, rgba(255, 255, 255, 0.55), transparent),
+        radial-gradient(1px 1px at 50% 50%, rgba(255, 255, 255, 0.6), transparent),
+        radial-gradient(1px 1px at 80% 10%, rgba(255, 255, 255, 0.5), transparent),
+        radial-gradient(2px 2px at 90% 40%, rgba(255, 255, 255, 0.55), transparent),
+        radial-gradient(1px 1px at 33% 60%, rgba(255, 255, 255, 0.6), transparent),
+        radial-gradient(1px 1px at 55% 80%, rgba(255, 255, 255, 0.5), transparent),
+        radial-gradient(2px 2px at 15% 90%, rgba(255, 255, 255, 0.55), transparent),
+        radial-gradient(1px 1px at 75% 20%, rgba(255, 255, 255, 0.6), transparent),
+        radial-gradient(2px 2px at 40% 10%, rgba(255, 255, 255, 0.5), transparent),
+        radial-gradient(1px 1px at 25% 15%, rgba(255, 255, 255, 0.5), transparent),
+        radial-gradient(2px 2px at 70% 25%, rgba(255, 255, 255, 0.55), transparent),
+        radial-gradient(1px 1px at 45% 85%, rgba(255, 255, 255, 0.6), transparent),
+        radial-gradient(2px 2px at 85% 65%, rgba(255, 255, 255, 0.5), transparent),
+        radial-gradient(1px 1px at 35% 45%, rgba(255, 255, 255, 0.55), transparent);
+    background-size: 200% 200%;
+    background-position: 0% 0%, 10% 10%, 20% 20%, 30% 30%, 40% 40%, 50% 50%, 60% 60%, 70% 70%, 80% 80%, 90% 90%, 5% 5%, 15% 15%, 25% 25%, 35% 35%, 45% 45%;
+    animation: snowfall 20s linear infinite;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.8;
+}
+
+@keyframes snowfall {
+    0% {
+        transform: translateY(0) translateX(0) rotate(0deg);
+        opacity: 0;
+    }
+    5% {
+        opacity: 1;
+    }
+    95% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100vh) translateX(30px) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+.profile-container {
+    position: relative;
+    z-index: 10;
+    max-width: 800px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+}
+
+.profile-header {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    padding: 40px 30px;
+    text-align: center;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.profile-header h1 {
+    color: #2d5a87;
+    font-size: 2.5rem;
+    margin: 0 0 10px 0;
+    font-weight: 300;
+}
+
+.profile-header p {
+    color: #6c757d;
+    font-size: 1.1rem;
+    margin: 0 0 20px 0;
+}
+
+.back-link {
+    color: #2d5a87;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.back-link:hover {
+    color: #1a365d;
+    text-decoration: underline;
+}
+
+.profile-content {
+    padding: 30px;
+}
+
+.profile-card {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 25px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+
+.profile-card:hover {
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.profile-card h2 {
+    color: #2d5a87;
+    font-size: 1.5rem;
+    margin: 0 0 20px 0;
+    font-weight: 400;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 10px;
+}
+
+.user-info-display {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.info-item:last-child {
+    border-bottom: none;
+}
+
+.info-item label {
+    font-weight: 600;
+    color: #495057;
+    min-width: 120px;
+}
+
+.info-item span {
+    color: #6c757d;
+    flex: 1;
+    margin-left: 20px;
+}
+
+.btn-small {
+    padding: 5px 12px;
+    font-size: 0.9rem;
+    border-radius: 15px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #495057;
+    font-weight: 500;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: #f8f9fa;
+    box-sizing: border-box;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #2d5a87;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(42, 90, 135, 0.1);
+}
+
+.form-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    border: 1px solid #e9ecef;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #2d5a87;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.account-actions {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 25px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #2d5a87, #1a365d);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #1a365d, #0f2438);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(45, 90, 135, 0.3);
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+    transform: translateY(-2px);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, #c82333, #bd2130);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(220, 53, 69, 0.3);
+}
+
+.btn-danger-outline {
+    background: transparent;
+    color: #dc3545;
+    border: 2px solid #dc3545;
+}
+
+.btn-danger-outline:hover {
+    background: #dc3545;
+    color: white;
+    transform: translateY(-2px);
+}
+
+/* Powiadomienia */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 10px;
+    color: white;
+    font-weight: 600;
+    z-index: 1001;
+    animation: slideInRight 0.3s ease;
+    max-width: 300px;
+}
+
+.notification.success {
+    background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+.notification.error {
+    background: linear-gradient(135deg, #dc3545, #fd7e14);
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Responsywność */
+@media (max-width: 768px) {
+    .profile-body {
+        padding: 10px;
+    }
+    
+    .profile-header {
+        padding: 30px 20px;
+    }
+    
+    .profile-header h1 {
+        font-size: 2rem;
+    }
+    
+    .profile-content {
+        padding: 20px;
+    }
+    
+    .info-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .info-item span {
+        margin-left: 0;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .account-actions {
+        flex-direction: column;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
