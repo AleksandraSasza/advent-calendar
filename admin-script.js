@@ -2192,28 +2192,72 @@ async function loadVerificationTasks() {
     }
     
     try {
-        // Pobierz zadania z odpowiedzią (zdjęciem) które są oznaczone jako completed
-        // ale mogą wymagać weryfikacji - lub zadania ze statusem pending_verification jeśli istnieje
+        // Pobierz zadania ze statusem pending_verification (zadania czekające na weryfikację)
+        // Usunięto warunek o zdjęciu - zadania mogą wymagać weryfikacji bez zdjęcia
+        // Używamy inner join zamiast relacji, bo może nie być foreign key
         const { data: tasks, error } = await supabase
             .from('assigned_tasks')
             .select(`
                 *,
-                calendar_days (day_number),
-                task_templates (title, task_type),
-                profiles (email, display_name)
+                calendar_days!inner(day_number),
+                task_templates!inner(title, task_type)
             `)
-            .not('response_media_url', 'is', null)
-            .eq('status', 'completed')
+            .eq('status', 'pending_verification')
             .order('completed_at', { ascending: false });
         
+        // Pobierz dane użytkowników osobno, bo może nie być foreign key
+        let tasksWithUsers = [];
+        if (tasks && tasks.length > 0) {
+            const userIds = [...new Set(tasks.map(t => t.user_id).filter(id => id))];
+            const { data: users, error: usersError } = await supabase
+                .from('profiles')
+                .select('id, email, display_name')
+                .in('id', userIds);
+            
+            const usersMap = {};
+            if (users) {
+                users.forEach(user => {
+                    usersMap[user.id] = user;
+                });
+            }
+            
+            tasksWithUsers = tasks.map(task => ({
+                ...task,
+                profiles: usersMap[task.user_id] || null
+            }));
+        }
+        
         if (error) {
-            console.error('Błąd ładowania zadań do weryfikacji:', error);
+            console.error('❌ Błąd ładowania zadań do weryfikacji:', error);
+            console.error('❌ Szczegóły błędu:', {
+                message: error.message,
+                code: error.code,
+                details: error.details,
+                hint: error.hint
+            });
             // NIE pokazuj powiadomienia o błędzie - po prostu wyświetl pustą listę
             displayVerificationTasks([]);
             return;
         }
         
-        displayVerificationTasks(tasks || []);
+        console.log('📋 Pobrane zadania do weryfikacji:', tasksWithUsers);
+        console.log('📋 Liczba zadań:', tasksWithUsers?.length || 0);
+        
+        // Sprawdź czy zadania mają wszystkie potrzebne dane (joiny)
+        if (tasksWithUsers && tasksWithUsers.length > 0) {
+            tasksWithUsers.forEach((task, index) => {
+                console.log(`📋 Zadanie ${index + 1}:`, {
+                    id: task.id,
+                    status: task.status,
+                    calendar_days: task.calendar_days,
+                    task_templates: task.task_templates,
+                    profiles: task.profiles,
+                    response_media_url: task.response_media_url
+                });
+            });
+        }
+        
+        displayVerificationTasks(tasksWithUsers || []);
     } catch (error) {
         console.error('Błąd w loadVerificationTasks:', error);
         // NIE pokazuj powiadomienia o błędzie - po prostu wyświetl pustą listę
@@ -2253,11 +2297,43 @@ function displayVerificationTasks(tasks) {
                                 ${task.completed_at ? `<p style="color: #6e6e73; font-size: 0.8125rem; margin-top: 2px;">Przesłano: ${new Date(task.completed_at).toLocaleString('pl-PL')}</p>` : ''}
                             </div>
                         </div>
-                        ${photoUrl ? `
+                        ${photoUrl ? (() => {
+                            // Spróbuj naprawić URL jeśli jest niepoprawny
+                            let fixedUrl = photoUrl;
+                            
+                            // Jeśli URL nie zawiera pełnej ścieżki do storage, spróbuj go naprawić
+                            if (!fixedUrl.includes('/storage/v1/object/public/')) {
+                                // Wyciągnij ścieżkę pliku z URL (jeśli istnieje)
+                                const pathMatch = fixedUrl.match(/task-responses\/(.+)$/);
+                                if (pathMatch) {
+                                    const filePath = pathMatch[1];
+                                    const projectUrl = window.SUPABASE_CONFIG?.URL || '';
+                                    if (projectUrl) {
+                                        const baseUrl = projectUrl.replace(/\/$/, '');
+                                        fixedUrl = `${baseUrl}/storage/v1/object/public/task-responses/${filePath}`;
+                                    }
+                                }
+                            }
+                            
+                            return `
                             <div class="verification-photo-container" style="margin-top: 16px;">
-                                <img src="${photoUrl}" alt="Zdjęcie zadania" style="max-width: 100%; max-height: 400px; border-radius: 8px; border: 1px solid #e8e8ed; cursor: pointer;" onclick="window.open('${photoUrl}', '_blank')">
+                                <a href="${fixedUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 6px; margin-bottom: 12px; color: #1a5d1a; text-decoration: none; font-size: 0.875rem; font-weight: 500; padding: 8px 12px; border: 1px solid #1a5d1a; border-radius: 6px; transition: all 0.2s;" 
+                                   onmouseover="this.style.background='#1a5d1a'; this.style.color='white';"
+                                   onmouseout="this.style.background='transparent'; this.style.color='#1a5d1a';">
+                                    🔗 Otwórz zdjęcie w nowej karcie
+                                </a>
+                                <div style="margin-top: 8px;">
+                                    <img src="${fixedUrl}" alt="Zdjęcie zadania" style="max-width: 100%; max-height: 400px; border-radius: 8px; border: 1px solid #e8e8ed; cursor: pointer; display: block;" 
+                                         onclick="window.open('${fixedUrl}', '_blank')" 
+                                         onerror="this.style.display='none'; this.parentElement.querySelector('.photo-error').style.display='block';">
+                                    <p class="photo-error" style="display: none; color: #d32f2f; margin-top: 8px; font-size: 0.875rem; padding: 12px; background: #ffebee; border-radius: 6px; border: 1px solid #ffcdd2;">
+                                        ⚠️ Nie można załadować zdjęcia. <a href="${fixedUrl}" target="_blank" rel="noopener noreferrer" style="color: #1a5d1a; font-weight: 500;">Kliknij tutaj, aby otworzyć link bezpośrednio</a>
+                                        <br><small style="color: #6e6e73; margin-top: 4px; display: block;">URL: ${fixedUrl}</small>
+                                    </p>
+                                </div>
                             </div>
-                        ` : '<p style="color: #d32f2f; margin-top: 16px;">⚠️ Brak zdjęcia</p>'}
+                            `;
+                        })() : '<p style="color: #6e6e73; margin-top: 16px; font-size: 0.875rem;">📝 Zadanie bez załącznika</p>'}
                         <div class="verification-actions" style="margin-top: 16px; display: flex; gap: 12px;">
                             <button class="btn btn-primary" onclick="acceptVerificationTask('${task.id}')" style="flex: 1;">
                                 ✅ Zaakceptuj

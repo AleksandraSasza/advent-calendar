@@ -151,6 +151,14 @@
         </div>
     </div>
 
+    <!-- Konfiguracja Supabase (PRZED Supabase Client) -->
+    <script src="config.js"></script>
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Eksportuj supabase jako supabaseLib dla profile-script.js
+        window.supabaseLib = window.supabase;
+    </script>
     <script src="profile-script.js"></script>
 </body>
 </html>

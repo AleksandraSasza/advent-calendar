@@ -463,11 +463,45 @@ function openTaskModal(day) {
                         viewPhotoLinkContainer.style.display = 'block';
                     }
                     if (viewPhotoLink) {
-                        viewPhotoLink.href = taskData.response_media_url;
+                        const photoUrl = taskData.response_media_url;
+                        console.log('🔗 URL zdjęcia:', photoUrl);
+                        
+                        viewPhotoLink.href = photoUrl;
                         viewPhotoLink.target = '_blank';
-                        viewPhotoLink.onclick = function(e) {
+                        viewPhotoLink.onclick = async function(e) {
                             e.preventDefault();
-                            window.open(taskData.response_media_url, '_blank');
+                            
+                            try {
+                                // Sprawdź czy URL jest poprawny
+                                if (!photoUrl || !photoUrl.startsWith('http')) {
+                                    console.error('❌ Nieprawidłowy URL zdjęcia:', photoUrl);
+                                    showNotification('Błąd: Nieprawidłowy URL zdjęcia', 'error');
+                                    return;
+                                }
+                                
+                                console.log('🔗 Próba otwarcia zdjęcia:', photoUrl);
+                                
+                                // Spróbuj otworzyć zdjęcie w nowym oknie
+                                const newWindow = window.open(photoUrl, '_blank', 'noopener,noreferrer');
+                                
+                                // Jeśli okno zostało zablokowane, pokaż zdjęcie w modalu
+                                if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
+                                    console.warn('⚠️ Popup zablokowany, pokazuję zdjęcie w modalu');
+                                    showPhotoInModal(photoUrl);
+                                } else {
+                                    // Sprawdź po chwili czy okno się otworzyło
+                                    setTimeout(() => {
+                                        if (newWindow.closed) {
+                                            console.warn('⚠️ Okno zostało zamknięte, pokazuję zdjęcie w modalu');
+                                            showPhotoInModal(photoUrl);
+                                        }
+                                    }, 500);
+                                }
+                            } catch (error) {
+                                console.error('❌ Błąd otwierania zdjęcia:', error);
+                                // W przypadku błędu, spróbuj pokazać w modalu
+                                showPhotoInModal(photoUrl);
+                            }
                         };
                     }
                 } else {
@@ -584,6 +618,54 @@ function closeModal() {
     document.getElementById('task-modal').style.display = 'none';
 }
 
+// Pokaż zdjęcie w modalu
+function showPhotoInModal(photoUrl) {
+    // Utwórz modal do wyświetlenia zdjęcia
+    let photoModal = document.getElementById('photo-modal');
+    
+    if (!photoModal) {
+        // Utwórz modal jeśli nie istnieje
+        photoModal = document.createElement('div');
+        photoModal.id = 'photo-modal';
+        photoModal.className = 'modal';
+        photoModal.style.display = 'none';
+        photoModal.innerHTML = `
+            <div class="modal-content" style="max-width: 90vw; max-height: 90vh; padding: 20px;">
+                <span class="close" id="close-photo-modal" style="position: absolute; top: 10px; right: 20px; font-size: 28px; font-weight: bold; cursor: pointer; color: #1a5d1a;">&times;</span>
+                <div style="text-align: center;">
+                    <img id="modal-photo-img" src="" alt="Zdjęcie zadania" style="max-width: 100%; max-height: 85vh; border-radius: 8px; border: 1px solid #e8e8ed;">
+                </div>
+            </div>
+        `;
+        document.body.appendChild(photoModal);
+        
+        // Obsługa zamykania modala
+        document.getElementById('close-photo-modal').addEventListener('click', () => {
+            photoModal.style.display = 'none';
+        });
+        
+        // Zamknij przy kliknięciu poza modalem
+        photoModal.addEventListener('click', (e) => {
+            if (e.target === photoModal) {
+                photoModal.style.display = 'none';
+            }
+        });
+    }
+    
+    // Ustaw zdjęcie i pokaż modal
+    const photoImg = document.getElementById('modal-photo-img');
+    if (photoImg) {
+        photoImg.src = photoUrl;
+        photoImg.onerror = function() {
+            console.error('❌ Błąd ładowania zdjęcia:', photoUrl);
+            showNotification('Błąd: Nie można załadować zdjęcia. Sprawdź czy masz dostęp do tego pliku.', 'error');
+            photoModal.style.display = 'none';
+        };
+    }
+    
+    photoModal.style.display = 'block';
+}
+
 // Oznaczanie zadania jako wykonane
 async function markTaskCompleted() {
     if (!supabase || !currentUser) {
@@ -652,6 +734,7 @@ async function markTaskCompleted() {
                     console.log('✅ Plik przesłany:', uploadData);
                     
                     // Pobierz publiczny URL zdjęcia
+                    // Używamy getPublicUrl z pełną ścieżką
                     const { data: urlData } = supabase.storage
                         .from('task-responses')
                         .getPublicUrl(fileName);
@@ -662,8 +745,24 @@ async function markTaskCompleted() {
                         return;
                     }
                     
-                    mediaUrl = urlData.publicUrl;
+                    // Sprawdź czy URL jest poprawny
+                    let finalUrl = urlData.publicUrl;
+                    
+                    // Jeśli URL nie zawiera pełnej ścieżki, dodaj ją
+                    if (!finalUrl.includes('/task-responses/')) {
+                        // Pobierz URL projektu z konfiguracji
+                        const projectUrl = window.SUPABASE_CONFIG?.SUPABASE_URL || '';
+                        if (projectUrl) {
+                            // Usuń końcowy slash jeśli istnieje
+                            const baseUrl = projectUrl.replace(/\/$/, '');
+                            finalUrl = `${baseUrl}/storage/v1/object/public/task-responses/${fileName}`;
+                        }
+                    }
+                    
+                    mediaUrl = finalUrl;
                     console.log('✅ Zdjęcie przesłane, URL:', mediaUrl);
+                    console.log('📁 Nazwa pliku:', fileName);
+                    console.log('🔗 Pełny URL:', mediaUrl);
                 } catch (uploadErr) {
                     console.error('❌ Błąd przesyłania zdjęcia (catch):', uploadErr);
                     showNotification('Błąd przesyłania zdjęcia: ' + (uploadErr.message || 'Nieznany błąd'), 'error');
@@ -1183,28 +1282,6 @@ async function logout() {
     } catch (error) {
         console.error('Błąd wylogowania:', error);
         showNotification('Błąd wylogowania', 'error');
-    }
-}
-
-// Ładowanie postępu użytkownika
-async function loadUserProgress() {
-    if (!authToken) return;
-    
-    try {
-        const response = await fetch('/api/progress', {
-            headers: {
-                'Authorization': `Bearer ${authToken}`
-            }
-        });
-        
-        if (response.ok) {
-            const data = await response.json();
-            completedDays = new Set(data.completedDays || []);
-            updateProgress();
-            updateAllMarkers();
-        }
-    } catch (error) {
-        console.error('Błąd ładowania postępu:', error);
     }
 }
 

@@ -223,7 +223,7 @@
 /* Górna sekcja - biała z logo */
 .login-top-section {
     background: var(--color-surface);
-    padding: var(--spacing-3xl) var(--spacing-xl) var(--spacing-2xl);
+    padding: var(--spacing-2xl) var(--spacing-xl) var(--spacing-xl);
     text-align: center;
     flex-shrink: 0;
     position: relative;
@@ -390,12 +390,13 @@
 .login-bottom-section {
     background: linear-gradient(135deg, #b8d5c5 0%, #c5e5d0 50%, #d2f5db 100%);
     flex: 1;
-    padding: var(--spacing-3xl) var(--spacing-xl) var(--spacing-2xl);
+    padding: var(--spacing-xl) var(--spacing-xl) var(--spacing-2xl);
+    padding-top: var(--spacing-2xl);
     position: relative;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
-    min-height: 50vh;
+    min-height: auto;
 }
 
 /* Tekstura chmur w dolnej sekcji */
@@ -631,7 +632,9 @@
     }
     
     .login-bottom-section {
-        padding: var(--spacing-2xl) var(--spacing-lg);
+        padding: var(--spacing-xl) var(--spacing-lg);
+        padding-top: var(--spacing-2xl);
+        align-items: flex-start;
     }
     
     .login-form-title {
