@@ -2298,22 +2298,52 @@ function displayVerificationTasks(tasks) {
                             </div>
                         </div>
                         ${photoUrl ? (() => {
-                            // Spróbuj naprawić URL jeśli jest niepoprawny
-                            let fixedUrl = photoUrl;
-                            
-                            // Jeśli URL nie zawiera pełnej ścieżki do storage, spróbuj go naprawić
-                            if (!fixedUrl.includes('/storage/v1/object/public/')) {
-                                // Wyciągnij ścieżkę pliku z URL (jeśli istnieje)
-                                const pathMatch = fixedUrl.match(/task-responses\/(.+)$/);
-                                if (pathMatch) {
-                                    const filePath = pathMatch[1];
-                                    const projectUrl = window.SUPABASE_CONFIG?.URL || '';
-                                    if (projectUrl) {
-                                        const baseUrl = projectUrl.replace(/\/$/, '');
-                                        fixedUrl = `${baseUrl}/storage/v1/object/public/task-responses/${filePath}`;
+                            // Funkcja do naprawienia URL zdjęcia
+                            function fixPhotoUrl(url) {
+                                if (!url) return null;
+                                
+                                // Jeśli URL już jest poprawny (zawiera /storage/v1/object/public/)
+                                if (url.includes('/storage/v1/object/public/task-responses/')) {
+                                    return url;
+                                }
+                                
+                                // Pobierz URL projektu z konfiguracji
+                                const projectUrl = window.SUPABASE_CONFIG?.URL || '';
+                                if (!projectUrl) {
+                                    console.warn('⚠️ Brak SUPABASE_URL w konfiguracji');
+                                    return url; // Zwróć oryginalny URL
+                                }
+                                
+                                const baseUrl = projectUrl.replace(/\/$/, '');
+                                
+                                // Jeśli URL zawiera tylko ścieżkę (np. user_id/task_id/file.jpg)
+                                if (!url.startsWith('http')) {
+                                    // To jest ścieżka względna - dodaj pełny URL
+                                    return `${baseUrl}/storage/v1/object/public/task-responses/${url}`;
+                                }
+                                
+                                // Jeśli URL zawiera task-responses ale nie pełną ścieżkę
+                                if (url.includes('task-responses')) {
+                                    const pathMatch = url.match(/task-responses[\/]?(.+)$/);
+                                    if (pathMatch) {
+                                        const filePath = pathMatch[1].replace(/^\/+/, ''); // Usuń wiodące slashe
+                                        return `${baseUrl}/storage/v1/object/public/task-responses/${filePath}`;
                                     }
                                 }
+                                
+                                // Jeśli URL zawiera tylko część ścieżki (np. zaczyna się od user_id)
+                                // Załóżmy że to ścieżka w bucket task-responses
+                                if (url.match(/^[a-f0-9-]+\//)) {
+                                    return `${baseUrl}/storage/v1/object/public/task-responses/${url}`;
+                                }
+                                
+                                // Jeśli nic nie pasuje, zwróć oryginalny URL
+                                return url;
                             }
+                            
+                            const fixedUrl = fixPhotoUrl(photoUrl);
+                            console.log('🔗 Oryginalny URL:', photoUrl);
+                            console.log('🔗 Naprawiony URL:', fixedUrl);
                             
                             return `
                             <div class="verification-photo-container" style="margin-top: 16px;">
@@ -2328,7 +2358,8 @@ function displayVerificationTasks(tasks) {
                                          onerror="this.style.display='none'; this.parentElement.querySelector('.photo-error').style.display='block';">
                                     <p class="photo-error" style="display: none; color: #d32f2f; margin-top: 8px; font-size: 0.875rem; padding: 12px; background: #ffebee; border-radius: 6px; border: 1px solid #ffcdd2;">
                                         ⚠️ Nie można załadować zdjęcia. <a href="${fixedUrl}" target="_blank" rel="noopener noreferrer" style="color: #1a5d1a; font-weight: 500;">Kliknij tutaj, aby otworzyć link bezpośrednio</a>
-                                        <br><small style="color: #6e6e73; margin-top: 4px; display: block;">URL: ${fixedUrl}</small>
+                                        <br><small style="color: #6e6e73; margin-top: 4px; display: block;">Oryginalny URL: ${photoUrl}</small>
+                                        <br><small style="color: #6e6e73; margin-top: 4px; display: block;">Naprawiony URL: ${fixedUrl}</small>
                                     </p>
                                 </div>
                             </div>

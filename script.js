@@ -883,12 +883,11 @@ async function markTaskCompleted() {
 
 // Aktualizacja paska postępu
 function updateProgress() {
-    const progress = (completedDays.size / 24) * 100;
-    document.getElementById('progress-fill').style.width = `${progress}%`;
-    
-    // Aktualizuj licznik dni
+    // Aktualizuj tylko licznik dni (bez paska postępu)
     const currentDayElement = document.getElementById('current-day');
-    currentDayElement.textContent = completedDays.size;
+    if (currentDayElement) {
+        currentDayElement.textContent = completedDays.size;
+    }
 }
 
 // Pokazywanie powiadomienia

@@ -2,6 +2,9 @@
   "name": "advent-calendar",
   "version": "1.0.0",
   "description": "Interaktywny kalendarz adwentowy z mapą świata - statyczna aplikacja z Supabase",
+  "scripts": {
+    "build": "node scripts/inject-config.js"
+  },
   "keywords": [
     "advent",
     "calendar",
