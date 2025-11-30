@@ -108,6 +108,24 @@
     </div>
 
     <!-- Konfiguracja Supabase (PRZED Supabase Client) -->
+    <script>
+        // Inline script - wykonywany synchronicznie przed wszystkimi innymi skryptami
+        // Sprawdza meta tagi wstrzyknięte podczas build na Vercel
+        (function() {
+            if (!window.SUPABASE_CONFIG) {
+                const metaUrl = document.querySelector('meta[name="supabase-url"]');
+                const metaKey = document.querySelector('meta[name="supabase-anon-key"]');
+                
+                if (metaUrl && metaKey) {
+                    window.SUPABASE_CONFIG = {
+                        URL: metaUrl.getAttribute('content'),
+                        ANON_KEY: metaKey.getAttribute('content')
+                    };
+                    console.log('✅ Konfiguracja załadowana z meta tagów (Vercel)');
+                }
+            }
+        })();
+    </script>
     <script src="config.js"></script>
     <script src="vercel-config.js"></script>
     <!-- Supabase Client -->

@@ -2175,7 +2175,7 @@ window.loadSignedUrl = async function(imgElement, filePath) {
         
         // Spróbuj pobrać signed URL
         const { data, error } = await window.supabase.storage
-            .from('task-responses')
+            .from('TASK-RESPONSES')
             .createSignedUrl(filePath, 3600); // URL ważny przez 1 godzinę
         
         if (error) {
@@ -2336,14 +2336,14 @@ function displayVerificationTasks(tasks) {
                                         
                                         // Wyciągnij ścieżkę pliku
                                         let filePath = url;
-                                        if (url.includes('task-responses/')) {
-                                            const match = url.match(/task-responses[\/]?(.+)$/);
+                                        if (url.includes('TASK-RESPONSES/')) {
+                                            const match = url.match(/TASK-RESPONSES[\/]?(.+)$/);
                                             if (match) filePath = match[1].replace(/^\/+/, '');
                                         } else if (!url.startsWith('http')) {
                                             filePath = url;
                                         }
                                         
-                                        finalUrl = `${baseUrl}/storage/v1/object/public/task-responses/${filePath}`;
+                                        finalUrl = `${baseUrl}/storage/v1/object/public/TASK-RESPONSES/${filePath}`;
                                     }
                                 }
                                 
@@ -2357,20 +2357,20 @@ function displayVerificationTasks(tasks) {
                                 if (projectUrl) {
                                     const baseUrl = projectUrl.replace(/\/$/, '');
                                     let filePath = photoUrl;
-                                    if (photoUrl.includes('task-responses/')) {
-                                        const match = photoUrl.match(/task-responses[\/]?(.+)$/);
+                                    if (photoUrl.includes('TASK-RESPONSES/')) {
+                                        const match = photoUrl.match(/TASK-RESPONSES[\/]?(.+)$/);
                                         if (match) filePath = match[1].replace(/^\/+/, '');
                                     } else if (!photoUrl.startsWith('http')) {
                                         filePath = photoUrl;
                                     }
-                                    finalUrl = `${baseUrl}/storage/v1/object/public/task-responses/${filePath}`;
+                                    finalUrl = `${baseUrl}/storage/v1/object/public/TASK-RESPONSES/${filePath}`;
                                 }
                             }
                             
                             // Wyciągnij ścieżkę pliku z URL (bez bucket name)
                             let filePath = finalUrl;
-                            if (finalUrl.includes('/task-responses/')) {
-                                const match = finalUrl.match(/task-responses\/(.+)$/);
+                            if (finalUrl.includes('/TASK-RESPONSES/')) {
+                                const match = finalUrl.match(/TASK-RESPONSES\/(.+)$/);
                                 if (match) filePath = match[1];
                             }
                             
@@ -2453,11 +2453,11 @@ window.rejectVerificationTask = async function(taskId) {
         if (task?.response_media_url) {
             try {
                 // Wyciągnij ścieżkę z URL
-                const urlParts = task.response_media_url.split('/task-responses/');
+                const urlParts = task.response_media_url.split('/TASK-RESPONSES/');
                 if (urlParts.length > 1) {
                     const filePath = urlParts[1].split('?')[0];
                     const { error: deleteError } = await supabase.storage
-                        .from('task-responses')
+                        .from('TASK-RESPONSES')
                         .remove([filePath]);
                     
                     if (deleteError) {

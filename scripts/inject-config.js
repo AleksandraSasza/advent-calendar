@@ -42,32 +42,47 @@ htmlFiles.forEach(file => {
             `<meta name="supabase-anon-key" content="${supabaseAnonKey}">`
         );
     } else {
-        // Dodaj inline script z konfiguracją PRZED vercel-config.js
-        // To zapewni, że konfiguracja jest dostępna natychmiast
+        // Dodaj meta tagi w <head> (najbardziej niezawodne)
+        const metaTags = `    <meta name="supabase-url" content="${supabaseUrl}">
+    <meta name="supabase-anon-key" content="${supabaseAnonKey}">`;
+        
+        // Dodaj meta tagi przed zamknięciem </head>
+        if (content.includes('</head>')) {
+            content = content.replace('</head>', `${metaTags}\n</head>`);
+        } else {
+            // Jeśli nie ma </head>, dodaj na początku <body>
+            if (content.includes('<body')) {
+                content = content.replace('<body', `${metaTags}\n<body`);
+            } else {
+                // Ostateczność: dodaj przed pierwszym <script>
+                content = content.replace(/(<script)/, `${metaTags}\n$1`);
+            }
+        }
+        
+        // Dodaj również inline script z konfiguracją PRZED vercel-config.js (backup)
         const configScript = `    <script>
-        // Konfiguracja Supabase wstrzyknięta podczas build
+        // Konfiguracja Supabase wstrzyknięta podczas build (backup)
         if (!window.SUPABASE_CONFIG) {
             window.SUPABASE_CONFIG = {
                 URL: ${JSON.stringify(supabaseUrl)},
                 ANON_KEY: ${JSON.stringify(supabaseAnonKey)}
             };
+            console.log('✅ Konfiguracja załadowana z inline script (build)');
         }
     </script>`;
         
-        // Dodaj przed vercel-config.js lub przed pierwszym <script>
+        // Dodaj przed vercel-config.js
         if (content.includes('vercel-config.js')) {
             content = content.replace(
                 /<script src="vercel-config\.js"><\/script>/,
                 `${configScript}\n    <script src="vercel-config.js"></script>`
             );
         } else if (content.includes('config.js')) {
+            // Jeśli nie ma vercel-config.js, dodaj po config.js
             content = content.replace(
                 /<script src="config\.js"><\/script>/,
                 `<script src="config.js"></script>\n${configScript}`
             );
-        } else {
-            // Jeśli nie ma żadnego z tych skryptów, dodaj przed pierwszym <script>
-            content = content.replace(/(<script)/, `${configScript}\n$1`);
         }
     }
     

@@ -738,7 +738,7 @@ async function markTaskCompleted() {
                     // Prześlij plik do Supabase Storage
                     // Uwaga: folder musi zaczynać się od user_id dla RLS
                     const { data: uploadData, error: uploadError } = await supabase.storage
-                        .from('task-responses')
+                        .from('TASK-RESPONSES')
                         .upload(fileName, file, {
                             cacheControl: '3600',
                             upsert: false
@@ -760,7 +760,7 @@ async function markTaskCompleted() {
                     // Pobierz publiczny URL zdjęcia
                     // Używamy getPublicUrl z pełną ścieżką
                     const { data: urlData } = supabase.storage
-                        .from('task-responses')
+                        .from('TASK-RESPONSES')
                         .getPublicUrl(fileName);
                     
                     if (!urlData || !urlData.publicUrl) {
@@ -773,13 +773,13 @@ async function markTaskCompleted() {
                     let finalUrl = urlData.publicUrl;
                     
                     // Jeśli URL nie zawiera pełnej ścieżki, dodaj ją
-                    if (!finalUrl.includes('/task-responses/')) {
+                    if (!finalUrl.includes('/TASK-RESPONSES/')) {
                         // Pobierz URL projektu z konfiguracji
                         const projectUrl = window.SUPABASE_CONFIG?.SUPABASE_URL || '';
                         if (projectUrl) {
                             // Usuń końcowy slash jeśli istnieje
                             const baseUrl = projectUrl.replace(/\/$/, '');
-                            finalUrl = `${baseUrl}/storage/v1/object/public/task-responses/${fileName}`;
+                            finalUrl = `${baseUrl}/storage/v1/object/public/TASK-RESPONSES/${fileName}`;
                         }
                     }
                     
