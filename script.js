@@ -223,6 +223,14 @@ document.addEventListener('DOMContentLoaded', async function() {
     updateProgress();
     setupModalEvents();
     setupLogoutEvent();
+    
+    // Automatyczne odświeżanie danych przy powrocie do zakładki (np. po edycji w panelu admina)
+    document.addEventListener('visibilitychange', async () => {
+        if (!document.hidden && currentUser) {
+            // Odśwież dane dni kalendarza (ciekawostki)
+            await loadCalendarDays();
+        }
+    });
 });
 
 // Tworzenie mapy świata z Leaflet
@@ -268,14 +276,12 @@ function addAdventMarkers() {
         const defaultData = dayToCountry[dayString];
         
         // Użyj danych z bazy, jeśli istnieją, w przeciwnym razie użyj domyślnych
-        const country = dbData?.country || defaultData?.country || 'Brak państwa';
+        const country = defaultData?.country || 'Brak państwa';
         const funFact = dbData?.fun_fact || defaultData?.funFact || 'Brak ciekawostki';
         
-        // Współrzędne: najpierw z bazy, potem z mapowania państwa, na końcu domyślne
+        // Współrzędne: najpierw z mapowania państwa, potem domyślne
         let coordinates = null;
-        if (dbData?.coordinates && Array.isArray(dbData.coordinates) && dbData.coordinates.length === 2) {
-            coordinates = dbData.coordinates;
-        } else if (getCoordinatesForCountry(country)) {
+        if (getCoordinatesForCountry(country)) {
             coordinates = getCoordinatesForCountry(country);
         } else if (defaultData?.coordinates) {
             coordinates = defaultData.coordinates;
@@ -339,6 +345,24 @@ function addAdventMarkers() {
     }
 }
 
+// Odśwież markery na mapie po załadowaniu nowych danych
+function refreshMapMarkers() {
+    // Usuń wszystkie istniejące markery
+    if (markers) {
+        Object.values(markers).forEach(marker => {
+            if (marker && map) {
+                map.removeLayer(marker);
+            }
+        });
+        markers = {};
+    }
+    
+    // Dodaj markery ponownie z zaktualizowanymi danymi
+    if (map) {
+        addAdventMarkers();
+    }
+}
+
 // Sprawdzanie czy dzień jest zablokowany
 function isDayLocked(day) {
     const dayNumber = parseInt(day);
@@ -391,7 +415,7 @@ function openTaskModal(day) {
     // Pobierz dane z bazy lub użyj domyślnych
     const dbData = calendarDaysData[dayNumber];
     const defaultData = dayToCountry[day];
-    const country = dbData?.country || defaultData?.country || 'Brak państwa';
+    const country = defaultData?.country || 'Brak państwa';
     const funFact = dbData?.fun_fact || defaultData?.funFact || 'Brak ciekawostki';
     
     // Użyj dayNumber (liczba) jako klucza, bo w loadUserTasks zadania są zapisywane z kluczem liczbowym
@@ -1001,7 +1025,7 @@ async function loadCalendarDays() {
     try {
         const { data, error } = await supabase
             .from('calendar_days')
-            .select('day_number, country, fun_fact, coordinates')
+            .select('day_number, fun_fact')
             .order('day_number', { ascending: true });
         
         if (error) {
@@ -1014,14 +1038,17 @@ async function loadCalendarDays() {
         if (data && data.length > 0) {
             data.forEach(day => {
                 calendarDaysData[day.day_number] = {
-                    country: day.country || null,
-                    fun_fact: day.fun_fact || null,
-                    coordinates: day.coordinates || null
+                    fun_fact: day.fun_fact || null
                 };
             });
         }
         
         console.log('✅ Załadowano dane dni kalendarza z bazy:', Object.keys(calendarDaysData).length, 'dni');
+        
+        // Odśwież markery na mapie jeśli mapa już istnieje
+        if (map && markers) {
+            refreshMapMarkers();
+        }
     } catch (error) {
         console.error('Błąd ładowania dni kalendarza:', error);
     }
@@ -1314,7 +1341,7 @@ function updateMarkerAppearance(day) {
         // Pobierz dane z bazy lub użyj domyślnych
         const dbData = calendarDaysData[dayNumber];
         const defaultData = dayToCountry[day];
-        const country = dbData?.country || defaultData?.country || 'Brak państwa';
+        const country = defaultData?.country || 'Brak państwa';
         const funFact = dbData?.fun_fact || defaultData?.funFact || 'Brak ciekawostki';
         
         let popupContent;

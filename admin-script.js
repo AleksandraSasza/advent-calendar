@@ -768,23 +768,10 @@ window.saveDayInfo = async function(dayId) {
     }
     
     try {
-        // Pobierz współrzędne dla wybranego państwa (jeśli jest na liście)
-        const coordinates = getCoordinatesForCountry(country);
-        
+        // Zapisz tylko fun_fact (kolumny country i coordinates nie istnieją w schemacie)
         const updateData = {
-            country: country,
             fun_fact: funFact || null
         };
-        
-        // Jeśli znaleziono współrzędne, zapisz je również
-        // Jeśli nie, użyj domyślnych współrzędnych (centrum świata) lub pozostaw null
-        if (coordinates) {
-            updateData.coordinates = coordinates;
-        } else {
-            // Domyślne współrzędne (centrum świata) dla niestandardowych państw
-            // Można później zaktualizować ręcznie w bazie danych
-            updateData.coordinates = [20, 0]; // Centrum świata
-        }
         
         const { error } = await supabase
             .from('calendar_days')
@@ -793,10 +780,7 @@ window.saveDayInfo = async function(dayId) {
         
         if (error) throw error;
         
-        const message = coordinates 
-            ? 'Informacje o dniu zostały zapisane' 
-            : `Państwo "${country}" zostało zapisane. Ustawiono domyślne współrzędne (20, 0). Możesz je zaktualizować w bazie danych.`;
-        showNotification(message, 'success');
+        showNotification('Ciekawostka została zapisana', 'success');
         
         // Wyłącz tryb edycji po zapisaniu
         const dayCard = document.querySelector(`.day-card[data-day-id="${dayId}"]`);
@@ -2181,6 +2165,45 @@ function switchSection(sectionName) {
     }
 }
 
+// Funkcja pomocnicza do ładowania zdjęcia z signed URL (jeśli publiczny nie działa)
+window.loadSignedUrl = async function(imgElement, filePath) {
+    try {
+        if (!window.supabase || !filePath) {
+            console.error('❌ Brak supabase lub ścieżki pliku');
+            return;
+        }
+        
+        // Spróbuj pobrać signed URL
+        const { data, error } = await window.supabase.storage
+            .from('task-responses')
+            .createSignedUrl(filePath, 3600); // URL ważny przez 1 godzinę
+        
+        if (error) {
+            console.error('❌ Błąd generowania signed URL:', error);
+            imgElement.style.display = 'none';
+            const errorDiv = imgElement.parentElement.querySelector('.photo-error');
+            if (errorDiv) errorDiv.style.display = 'block';
+            return;
+        }
+        
+        if (data && data.signedUrl) {
+            console.log('✅ Użyto signed URL:', data.signedUrl);
+            imgElement.src = data.signedUrl;
+            imgElement.style.display = 'block';
+            // Zaktualizuj też link
+            const link = imgElement.parentElement.parentElement.querySelector('a');
+            if (link) {
+                link.href = data.signedUrl;
+            }
+        }
+    } catch (err) {
+        console.error('❌ Błąd w loadSignedUrl:', err);
+        imgElement.style.display = 'none';
+        const errorDiv = imgElement.parentElement.querySelector('.photo-error');
+        if (errorDiv) errorDiv.style.display = 'block';
+    }
+};
+
 // Załaduj zadania do weryfikacji
 async function loadVerificationTasks() {
     const listContainer = document.getElementById('verification-tasks-list');
@@ -2298,68 +2321,73 @@ function displayVerificationTasks(tasks) {
                             </div>
                         </div>
                         ${photoUrl ? (() => {
-                            // Funkcja do naprawienia URL zdjęcia
-                            function fixPhotoUrl(url) {
+                            // Funkcja do wygenerowania signed URL (jeśli publiczny nie działa)
+                            async function getPhotoUrl(url) {
                                 if (!url) return null;
                                 
-                                // Jeśli URL już jest poprawny (zawiera /storage/v1/object/public/)
-                                if (url.includes('/storage/v1/object/public/task-responses/')) {
-                                    return url;
-                                }
+                                // Najpierw spróbuj użyć publicznego URL
+                                let finalUrl = url;
                                 
-                                // Pobierz URL projektu z konfiguracji
-                                const projectUrl = window.SUPABASE_CONFIG?.URL || '';
-                                if (!projectUrl) {
-                                    console.warn('⚠️ Brak SUPABASE_URL w konfiguracji');
-                                    return url; // Zwróć oryginalny URL
-                                }
-                                
-                                const baseUrl = projectUrl.replace(/\/$/, '');
-                                
-                                // Jeśli URL zawiera tylko ścieżkę (np. user_id/task_id/file.jpg)
-                                if (!url.startsWith('http')) {
-                                    // To jest ścieżka względna - dodaj pełny URL
-                                    return `${baseUrl}/storage/v1/object/public/task-responses/${url}`;
-                                }
-                                
-                                // Jeśli URL zawiera task-responses ale nie pełną ścieżkę
-                                if (url.includes('task-responses')) {
-                                    const pathMatch = url.match(/task-responses[\/]?(.+)$/);
-                                    if (pathMatch) {
-                                        const filePath = pathMatch[1].replace(/^\/+/, ''); // Usuń wiodące slashe
-                                        return `${baseUrl}/storage/v1/object/public/task-responses/${filePath}`;
+                                // Jeśli URL nie zawiera pełnej ścieżki, spróbuj go naprawić
+                                if (!finalUrl.includes('/storage/v1/object/public/')) {
+                                    const projectUrl = window.SUPABASE_CONFIG?.URL || '';
+                                    if (projectUrl) {
+                                        const baseUrl = projectUrl.replace(/\/$/, '');
+                                        
+                                        // Wyciągnij ścieżkę pliku
+                                        let filePath = url;
+                                        if (url.includes('task-responses/')) {
+                                            const match = url.match(/task-responses[\/]?(.+)$/);
+                                            if (match) filePath = match[1].replace(/^\/+/, '');
+                                        } else if (!url.startsWith('http')) {
+                                            filePath = url;
+                                        }
+                                        
+                                        finalUrl = `${baseUrl}/storage/v1/object/public/task-responses/${filePath}`;
                                     }
                                 }
                                 
-                                // Jeśli URL zawiera tylko część ścieżki (np. zaczyna się od user_id)
-                                // Załóżmy że to ścieżka w bucket task-responses
-                                if (url.match(/^[a-f0-9-]+\//)) {
-                                    return `${baseUrl}/storage/v1/object/public/task-responses/${url}`;
-                                }
-                                
-                                // Jeśli nic nie pasuje, zwróć oryginalny URL
-                                return url;
+                                return finalUrl;
                             }
                             
-                            const fixedUrl = fixPhotoUrl(photoUrl);
-                            console.log('🔗 Oryginalny URL:', photoUrl);
-                            console.log('🔗 Naprawiony URL:', fixedUrl);
+                            // Wygeneruj URL (synchronizacja dla template string)
+                            let finalUrl = photoUrl;
+                            if (!finalUrl.includes('/storage/v1/object/public/')) {
+                                const projectUrl = window.SUPABASE_CONFIG?.URL || '';
+                                if (projectUrl) {
+                                    const baseUrl = projectUrl.replace(/\/$/, '');
+                                    let filePath = photoUrl;
+                                    if (photoUrl.includes('task-responses/')) {
+                                        const match = photoUrl.match(/task-responses[\/]?(.+)$/);
+                                        if (match) filePath = match[1].replace(/^\/+/, '');
+                                    } else if (!photoUrl.startsWith('http')) {
+                                        filePath = photoUrl;
+                                    }
+                                    finalUrl = `${baseUrl}/storage/v1/object/public/task-responses/${filePath}`;
+                                }
+                            }
+                            
+                            // Wyciągnij ścieżkę pliku z URL (bez bucket name)
+                            let filePath = finalUrl;
+                            if (finalUrl.includes('/task-responses/')) {
+                                const match = finalUrl.match(/task-responses\/(.+)$/);
+                                if (match) filePath = match[1];
+                            }
                             
                             return `
-                            <div class="verification-photo-container" style="margin-top: 16px;">
-                                <a href="${fixedUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 6px; margin-bottom: 12px; color: #1a5d1a; text-decoration: none; font-size: 0.875rem; font-weight: 500; padding: 8px 12px; border: 1px solid #1a5d1a; border-radius: 6px; transition: all 0.2s;" 
+                            <div class="verification-photo-container" style="margin-top: 16px;" data-file-path="${filePath}">
+                                <a href="${finalUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 6px; margin-bottom: 12px; color: #1a5d1a; text-decoration: none; font-size: 0.875rem; font-weight: 500; padding: 8px 12px; border: 1px solid #1a5d1a; border-radius: 6px; transition: all 0.2s;" 
                                    onmouseover="this.style.background='#1a5d1a'; this.style.color='white';"
                                    onmouseout="this.style.background='transparent'; this.style.color='#1a5d1a';">
                                     🔗 Otwórz zdjęcie w nowej karcie
                                 </a>
                                 <div style="margin-top: 8px;">
-                                    <img src="${fixedUrl}" alt="Zdjęcie zadania" style="max-width: 100%; max-height: 400px; border-radius: 8px; border: 1px solid #e8e8ed; cursor: pointer; display: block;" 
-                                         onclick="window.open('${fixedUrl}', '_blank')" 
-                                         onerror="this.style.display='none'; this.parentElement.querySelector('.photo-error').style.display='block';">
+                                    <img src="${finalUrl}" alt="Zdjęcie zadania" style="max-width: 100%; max-height: 400px; border-radius: 8px; border: 1px solid #e8e8ed; cursor: pointer; display: block;" 
+                                         onclick="window.open('${finalUrl}', '_blank')" 
+                                         onerror="loadSignedUrl(this, '${filePath}');">
                                     <p class="photo-error" style="display: none; color: #d32f2f; margin-top: 8px; font-size: 0.875rem; padding: 12px; background: #ffebee; border-radius: 6px; border: 1px solid #ffcdd2;">
-                                        ⚠️ Nie można załadować zdjęcia. <a href="${fixedUrl}" target="_blank" rel="noopener noreferrer" style="color: #1a5d1a; font-weight: 500;">Kliknij tutaj, aby otworzyć link bezpośrednio</a>
-                                        <br><small style="color: #6e6e73; margin-top: 4px; display: block;">Oryginalny URL: ${photoUrl}</small>
-                                        <br><small style="color: #6e6e73; margin-top: 4px; display: block;">Naprawiony URL: ${fixedUrl}</small>
+                                        ⚠️ Nie można załadować zdjęcia. <a href="${finalUrl}" target="_blank" rel="noopener noreferrer" style="color: #1a5d1a; font-weight: 500;">Kliknij tutaj, aby otworzyć link bezpośrednio</a>
+                                        <br><small style="color: #6e6e73; margin-top: 4px; display: block;">Ścieżka pliku: ${filePath}</small>
                                     </p>
                                 </div>
                             </div>

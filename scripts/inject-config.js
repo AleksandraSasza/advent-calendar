@@ -42,15 +42,32 @@ htmlFiles.forEach(file => {
             `<meta name="supabase-anon-key" content="${supabaseAnonKey}">`
         );
     } else {
-        // Dodaj meta tagi przed zamknięciem </head>
-        const metaTags = `    <meta name="supabase-url" content="${supabaseUrl}">
-    <meta name="supabase-anon-key" content="${supabaseAnonKey}">`;
+        // Dodaj inline script z konfiguracją PRZED vercel-config.js
+        // To zapewni, że konfiguracja jest dostępna natychmiast
+        const configScript = `    <script>
+        // Konfiguracja Supabase wstrzyknięta podczas build
+        if (!window.SUPABASE_CONFIG) {
+            window.SUPABASE_CONFIG = {
+                URL: ${JSON.stringify(supabaseUrl)},
+                ANON_KEY: ${JSON.stringify(supabaseAnonKey)}
+            };
+        }
+    </script>`;
         
-        if (content.includes('</head>')) {
-            content = content.replace('</head>', `${metaTags}\n</head>`);
+        // Dodaj przed vercel-config.js lub przed pierwszym <script>
+        if (content.includes('vercel-config.js')) {
+            content = content.replace(
+                /<script src="vercel-config\.js"><\/script>/,
+                `${configScript}\n    <script src="vercel-config.js"></script>`
+            );
+        } else if (content.includes('config.js')) {
+            content = content.replace(
+                /<script src="config\.js"><\/script>/,
+                `<script src="config.js"></script>\n${configScript}`
+            );
         } else {
-            // Jeśli nie ma </head>, dodaj przed pierwszym <script>
-            content = content.replace(/(<script)/, `${metaTags}\n$1`);
+            // Jeśli nie ma żadnego z tych skryptów, dodaj przed pierwszym <script>
+            content = content.replace(/(<script)/, `${configScript}\n$1`);
         }
     }
     
