@@ -26,14 +26,14 @@ try {
 // Dzień 1-24 → Państwo + Współrzędne + Ciekawostka
 const dayToCountry = {
     1: {
-        country: "Polska",
-        funFact: "🎄 W Polsce Wigilia to najważniejszy dzień świąt! Tradycyjnie jemy 12 potraw i dzielimy się opłatkiem.",
-        coordinates: [52.2297, 21.0122] // Warszawa
-    },
-    2: {
         country: "Niemcy",
         funFact: "🎅 W Niemczech tradycja jarmarków bożonarodzeniowych sięga średniowiecza! Słynne są pierniki norymberskie.",
         coordinates: [51.1657, 10.4515] // Berlin
+    },
+    2: {
+        country: "Finlandia",
+        funFact: "🎅 W Finlandii Święty Mikołaj mieszka w Rovaniemi na kole podbiegunowym! Można go odwiedzić przez cały rok w Wiosce Świętego Mikołaja.",
+        coordinates: [60.1699, 24.9384] // Helsinki
     },
     3: {
         country: "Francja",
@@ -157,6 +157,7 @@ let calendarDaysData = {}; // { day_number: { country, fun_fact, coordinates } }
 const countriesList = [
     { name: "Polska", coordinates: [52.2297, 21.0122] },
     { name: "Niemcy", coordinates: [51.1657, 10.4515] },
+    { name: "Finlandia", coordinates: [60.1699, 24.9384] },
     { name: "Francja", coordinates: [46.2276, 2.2137] },
     { name: "Włochy", coordinates: [41.9028, 12.4964] },
     { name: "Hiszpania", coordinates: [40.4637, -3.7492] },
@@ -490,41 +491,62 @@ function openTaskModal(day) {
                         const photoUrl = taskData.response_media_url;
                         console.log('🔗 URL zdjęcia:', photoUrl);
                         
-                        viewPhotoLink.href = photoUrl;
-                        viewPhotoLink.target = '_blank';
+                        // Sprawdź dostępność URL przed ustawieniem
+                        viewPhotoLink.href = '#';
                         viewPhotoLink.onclick = async function(e) {
                             e.preventDefault();
                             
                             try {
                                 // Sprawdź czy URL jest poprawny
-                                if (!photoUrl || !photoUrl.startsWith('http')) {
+                                if (!photoUrl) {
                                     console.error('❌ Nieprawidłowy URL zdjęcia:', photoUrl);
                                     showNotification('Błąd: Nieprawidłowy URL zdjęcia', 'error');
                                     return;
                                 }
                                 
-                                console.log('🔗 Próba otwarcia zdjęcia:', photoUrl);
+                                console.log('🔗 Próba wyświetlenia zdjęcia:', photoUrl);
                                 
-                                // Spróbuj otworzyć zdjęcie w nowym oknie
-                                const newWindow = window.open(photoUrl, '_blank', 'noopener,noreferrer');
+                                // Najpierw spróbuj użyć publicznego URL
+                                let finalUrl = photoUrl;
                                 
-                                // Jeśli okno zostało zablokowane, pokaż zdjęcie w modalu
-                                if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
-                                    console.warn('⚠️ Popup zablokowany, pokazuję zdjęcie w modalu');
-                                    showPhotoInModal(photoUrl);
-                                } else {
-                                    // Sprawdź po chwili czy okno się otworzyło
-                                    setTimeout(() => {
-                                        if (newWindow.closed) {
-                                            console.warn('⚠️ Okno zostało zamknięte, pokazuję zdjęcie w modalu');
-                                            showPhotoInModal(photoUrl);
+                                // Jeśli URL nie zawiera pełnej ścieżki, spróbuj go naprawić
+                                if (!finalUrl.includes('/storage/v1/object/public/')) {
+                                    const projectUrl = window.SUPABASE_CONFIG?.URL || SUPABASE_URL || '';
+                                    if (projectUrl) {
+                                        const baseUrl = projectUrl.replace(/\/$/, '');
+                                        let filePath = photoUrl;
+                                        if (photoUrl.includes('task-responses/')) {
+                                            const match = photoUrl.match(/task-responses[\/]?(.+)$/);
+                                            if (match) filePath = match[1].replace(/^\/+/, '');
+                                        } else if (!photoUrl.startsWith('http')) {
+                                            filePath = photoUrl;
                                         }
-                                    }, 500);
+                                        finalUrl = `${baseUrl}/storage/v1/object/public/task-responses/${filePath}`;
+                                    }
+                                }
+                                
+                                // Sprawdź dostępność publicznego URL
+                                try {
+                                    const response = await fetch(finalUrl, { method: 'HEAD' });
+                                    if (response.ok) {
+                                        await showPhotoInModal(finalUrl);
+                                        return;
+                                    }
+                                } catch (fetchError) {
+                                    console.warn('⚠️ Publiczny URL nie działa, próbuję signed URL');
+                                }
+                                
+                                // Jeśli publiczny URL nie działa, użyj signed URL
+                                const signedUrl = await loadSignedUrlForPhoto(finalUrl || photoUrl);
+                                if (signedUrl) {
+                                    await showPhotoInModal(signedUrl);
+                                } else {
+                                    // Spróbuj jeszcze raz z oryginalnym URL
+                                    await showPhotoInModal(finalUrl || photoUrl);
                                 }
                             } catch (error) {
                                 console.error('❌ Błąd otwierania zdjęcia:', error);
-                                // W przypadku błędu, spróbuj pokazać w modalu
-                                showPhotoInModal(photoUrl);
+                                showNotification('Błąd: Nie można wyświetlić zdjęcia', 'error');
                             }
                         };
                     }
@@ -553,9 +575,40 @@ function openTaskModal(day) {
                 
                 // Jeśli zdjęcie już zostało przesłane (ale zadanie nie jest wykonane), pokaż podgląd
                 if (taskData.response_media_url) {
-                    uploadedPhoto.src = taskData.response_media_url;
+                    const photoUrl = taskData.response_media_url;
+                    
+                    // Jeśli URL nie zawiera pełnej ścieżki, spróbuj go naprawić
+                    let finalUrl = photoUrl;
+                    if (!finalUrl.includes('/storage/v1/object/public/')) {
+                        const projectUrl = window.SUPABASE_CONFIG?.URL || SUPABASE_URL || '';
+                        if (projectUrl) {
+                            const baseUrl = projectUrl.replace(/\/$/, '');
+                            let filePath = photoUrl;
+                            if (photoUrl.includes('task-responses/')) {
+                                const match = photoUrl.match(/task-responses[\/]?(.+)$/);
+                                if (match) filePath = match[1].replace(/^\/+/, '');
+                            } else if (!photoUrl.startsWith('http')) {
+                                filePath = photoUrl;
+                            }
+                            finalUrl = `${baseUrl}/storage/v1/object/public/task-responses/${filePath}`;
+                        }
+                    }
+                    
+                    uploadedPhoto.src = finalUrl;
                     uploadedPhotoContainer.style.display = 'block';
                     photoPreviewContainer.style.display = 'none';
+                    
+                    // Obsługa błędu ładowania - użyj signed URL jako fallback
+                    uploadedPhoto.onerror = async function() {
+                        console.warn('⚠️ Błąd ładowania przesłanego zdjęcia publicznym URL, próbuję signed URL');
+                        const signedUrl = await loadSignedUrlForPhoto(finalUrl || photoUrl);
+                        if (signedUrl) {
+                            uploadedPhoto.src = signedUrl;
+                        } else {
+                            console.error('❌ Nie udało się załadować zdjęcia nawet z signed URL');
+                            uploadedPhotoContainer.style.display = 'none';
+                        }
+                    };
                 } else {
                     uploadedPhotoContainer.style.display = 'none';
                 }
@@ -642,8 +695,64 @@ function closeModal() {
     document.getElementById('task-modal').style.display = 'none';
 }
 
+// Funkcja pomocnicza do generowania signed URL jako fallback
+async function loadSignedUrlForPhoto(photoUrl) {
+    try {
+        if (!supabase || !photoUrl) {
+            console.error('❌ Brak supabase lub URL zdjęcia');
+            return null;
+        }
+        
+        // Wyciągnij ścieżkę pliku z URL
+        let filePath = photoUrl;
+        
+        // Jeśli URL zawiera /task-responses/, wyciągnij ścieżkę po tym
+        if (photoUrl.includes('/task-responses/')) {
+            const match = photoUrl.match(/task-responses\/(.+?)(\?|$)/);
+            if (match) {
+                filePath = match[1];
+            }
+        } else if (photoUrl.includes('task-responses/')) {
+            const match = photoUrl.match(/task-responses[\/]?(.+?)(\?|$)/);
+            if (match) {
+                filePath = match[1].replace(/^\/+/, '');
+            }
+        } else if (!photoUrl.startsWith('http')) {
+            // Jeśli to już sama ścieżka
+            filePath = photoUrl;
+        }
+        
+        if (!filePath || filePath === photoUrl) {
+            console.warn('⚠️ Nie udało się wyciągnąć ścieżki pliku z URL:', photoUrl);
+            return null;
+        }
+        
+        console.log('🔐 Generowanie signed URL dla ścieżki:', filePath);
+        
+        // Generuj signed URL ważny przez 1 godzinę
+        const { data, error } = await supabase.storage
+            .from('task-responses')
+            .createSignedUrl(filePath, 3600);
+        
+        if (error) {
+            console.error('❌ Błąd generowania signed URL:', error);
+            return null;
+        }
+        
+        if (data && data.signedUrl) {
+            console.log('✅ Wygenerowano signed URL');
+            return data.signedUrl;
+        }
+        
+        return null;
+    } catch (err) {
+        console.error('❌ Błąd w loadSignedUrlForPhoto:', err);
+        return null;
+    }
+}
+
 // Pokaż zdjęcie w modalu
-function showPhotoInModal(photoUrl) {
+async function showPhotoInModal(photoUrl) {
     // Utwórz modal do wyświetlenia zdjęcia
     let photoModal = document.getElementById('photo-modal');
     
@@ -680,10 +789,23 @@ function showPhotoInModal(photoUrl) {
     const photoImg = document.getElementById('modal-photo-img');
     if (photoImg) {
         photoImg.src = photoUrl;
-        photoImg.onerror = function() {
-            console.error('❌ Błąd ładowania zdjęcia:', photoUrl);
-            showNotification('Błąd: Nie można załadować zdjęcia. Sprawdź czy masz dostęp do tego pliku.', 'error');
-            photoModal.style.display = 'none';
+        photoImg.onerror = async function() {
+            console.error('❌ Błąd ładowania zdjęcia publicznym URL:', photoUrl);
+            
+            // Spróbuj użyć signed URL jako fallback
+            const signedUrl = await loadSignedUrlForPhoto(photoUrl);
+            if (signedUrl) {
+                console.log('✅ Używam signed URL jako fallback');
+                photoImg.src = signedUrl;
+                photoImg.onerror = function() {
+                    console.error('❌ Błąd ładowania zdjęcia signed URL');
+                    showNotification('Błąd: Nie można załadować zdjęcia. Sprawdź czy masz dostęp do tego pliku.', 'error');
+                    photoModal.style.display = 'none';
+                };
+            } else {
+                showNotification('Błąd: Nie można załadować zdjęcia. Sprawdź czy masz dostęp do tego pliku.', 'error');
+                photoModal.style.display = 'none';
+            }
         };
     }
     
@@ -727,10 +849,45 @@ async function markTaskCompleted() {
                 try {
                     console.log('📤 Przesyłanie zdjęcia:', file.name, file.size, 'bytes');
                     
+                    let fileToUpload = file;
+                    let fileExt = file.name.split('.').pop().toLowerCase();
+                    
+                    // Sprawdź czy to plik HEIC/HEIF i skonwertuj na JPEG
+                    const isHeic = file.name.toLowerCase().endsWith('.heic') || 
+                                   file.name.toLowerCase().endsWith('.heif') ||
+                                   file.type === 'image/heic' || 
+                                   file.type === 'image/heif';
+                    
+                    if (isHeic && typeof heic2any !== 'undefined') {
+                        console.log('🔄 Konwertowanie HEIC na JPEG przed uploadem...');
+                        
+                        try {
+                            // Konwertuj HEIC na JPEG
+                            const convertedBlob = await heic2any({
+                                blob: file,
+                                toType: 'image/jpeg',
+                                quality: 0.9
+                            });
+                            
+                            // heic2any zwraca tablicę, weź pierwszy element
+                            const convertedFile = convertedBlob instanceof Array ? convertedBlob[0] : convertedBlob;
+                            
+                            // Utwórz nowy plik JPEG
+                            const jpegFileName = file.name.replace(/\.(heic|heif)$/i, '.jpg');
+                            fileToUpload = new File([convertedFile], jpegFileName, { type: 'image/jpeg' });
+                            fileExt = 'jpg';
+                            
+                            console.log('✅ Skonwertowano HEIC na JPEG');
+                        } catch (conversionError) {
+                            console.error('❌ Błąd konwersji HEIC:', conversionError);
+                            showNotification('Błąd: Nie można przekonwertować pliku HEIC. Spróbuj użyć innego formatu.', 'error');
+                            return;
+                        }
+                    }
+                    
                     // Utwórz unikalną nazwę pliku
                     // Format: {user_id}/{task_id}/{timestamp}.{ext}
                     // To pozwala RLS sprawdzić uprawnienia użytkownika
-                    const fileExt = file.name.split('.').pop();
                     const fileName = `${currentUser.id}/${taskData.id}/${Date.now()}.${fileExt}`;
                     
                     console.log('📁 Nazwa pliku:', fileName);
@@ -738,8 +895,8 @@ async function markTaskCompleted() {
                     // Prześlij plik do Supabase Storage
                     // Uwaga: folder musi zaczynać się od user_id dla RLS
                     const { data: uploadData, error: uploadError } = await supabase.storage
-                        .from('TASK-RESPONSES')
-                        .upload(fileName, file, {
+                        .from('task-responses')
+                        .upload(fileName, fileToUpload, {
                             cacheControl: '3600',
                             upsert: false
                         });
@@ -760,7 +917,7 @@ async function markTaskCompleted() {
                     // Pobierz publiczny URL zdjęcia
                     // Używamy getPublicUrl z pełną ścieżką
                     const { data: urlData } = supabase.storage
-                        .from('TASK-RESPONSES')
+                        .from('task-responses')
                         .getPublicUrl(fileName);
                     
                     if (!urlData || !urlData.publicUrl) {
@@ -773,13 +930,13 @@ async function markTaskCompleted() {
                     let finalUrl = urlData.publicUrl;
                     
                     // Jeśli URL nie zawiera pełnej ścieżki, dodaj ją
-                    if (!finalUrl.includes('/TASK-RESPONSES/')) {
+                    if (!finalUrl.includes('/task-responses/')) {
                         // Pobierz URL projektu z konfiguracji
                         const projectUrl = window.SUPABASE_CONFIG?.SUPABASE_URL || '';
                         if (projectUrl) {
                             // Usuń końcowy slash jeśli istnieje
                             const baseUrl = projectUrl.replace(/\/$/, '');
-                            finalUrl = `${baseUrl}/storage/v1/object/public/TASK-RESPONSES/${fileName}`;
+                            finalUrl = `${baseUrl}/storage/v1/object/public/task-responses/${fileName}`;
                         }
                     }
                     
@@ -958,7 +1115,7 @@ function setupModalEvents() {
     
     // Obsługa zmiany zdjęcia
     if (photoInput) {
-        photoInput.addEventListener('change', function(e) {
+        photoInput.addEventListener('change', async function(e) {
             const file = e.target.files[0];
             if (file) {
                 const photoFilename = document.getElementById('photo-filename');
@@ -966,16 +1123,60 @@ function setupModalEvents() {
                 const photoPreviewContainer = document.getElementById('photo-preview-container');
                 const uploadedPhotoContainer = document.getElementById('uploaded-photo-container');
                 
-                photoFilename.textContent = file.name;
                 uploadedPhotoContainer.style.display = 'none';
                 
-                // Pokaż podgląd
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    photoPreview.src = e.target.result;
-                    photoPreviewContainer.style.display = 'block';
-                };
-                reader.readAsDataURL(file);
+                // Sprawdź czy to plik HEIC/HEIF
+                const isHeic = file.name.toLowerCase().endsWith('.heic') || 
+                               file.name.toLowerCase().endsWith('.heif') ||
+                               file.type === 'image/heic' || 
+                               file.type === 'image/heif';
+                
+                try {
+                    let fileToPreview = file;
+                    let fileName = file.name;
+                    
+                    // Jeśli to HEIC, skonwertuj na JPEG
+                    if (isHeic && typeof heic2any !== 'undefined') {
+                        photoFilename.textContent = 'Konwertowanie HEIC...';
+                        
+                        // Konwertuj HEIC na JPEG
+                        const convertedBlob = await heic2any({
+                            blob: file,
+                            toType: 'image/jpeg',
+                            quality: 0.9
+                        });
+                        
+                        // heic2any zwraca tablicę, weź pierwszy element
+                        const convertedFile = convertedBlob instanceof Array ? convertedBlob[0] : convertedBlob;
+                        
+                        // Utwórz nowy plik z nową nazwą
+                        fileName = file.name.replace(/\.(heic|heif)$/i, '.jpg');
+                        fileToPreview = new File([convertedFile], fileName, { type: 'image/jpeg' });
+                        
+                        // Zastąp plik w input
+                        const dataTransfer = new DataTransfer();
+                        dataTransfer.items.add(fileToPreview);
+                        photoInput.files = dataTransfer.files;
+                        
+                        photoFilename.textContent = fileName;
+                        console.log('✅ Skonwertowano HEIC na JPEG');
+                    } else {
+                        photoFilename.textContent = fileName;
+                    }
+                    
+                    // Pokaż podgląd
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        photoPreview.src = e.target.result;
+                        photoPreviewContainer.style.display = 'block';
+                    };
+                    reader.readAsDataURL(fileToPreview);
+                } catch (error) {
+                    console.error('❌ Błąd konwersji HEIC:', error);
+                    showNotification('Błąd: Nie można przekonwertować pliku HEIC. Spróbuj użyć innego formatu.', 'error');
+                    photoInput.value = '';
+                    photoFilename.textContent = '';
+                }
             }
         });
     }

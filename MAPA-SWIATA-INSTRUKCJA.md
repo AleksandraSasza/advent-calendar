@@ -23,8 +23,8 @@
 ## 🗺️ **Lokalizacje markerów:**
 
 ### **Europa (dni 1-6):**
-1. **Polska** - Warszawa (52.2297, 21.0122)
-2. **Niemcy** - Berlin (51.1657, 10.4515)
+1. **Niemcy** - Berlin (51.1657, 10.4515)
+2. **Finlandia** - Helsinki (60.1699, 24.9384)
 3. **Francja** - Paryż (46.2276, 2.2137)
 4. **Włochy** - Rzym (41.9028, 12.4964)
 5. **Hiszpania** - Madryt (40.4637, -3.7492)

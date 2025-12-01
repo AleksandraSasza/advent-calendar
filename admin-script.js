@@ -2165,42 +2165,193 @@ function switchSection(sectionName) {
     }
 }
 
+// Funkcja do wyświetlania zdjęcia w modalu w panelu admina
+window.showAdminPhotoModal = async function(photoUrl, filePath) {
+    // Utwórz modal do wyświetlenia zdjęcia
+    let photoModal = document.getElementById('admin-photo-modal');
+    
+    if (!photoModal) {
+        // Utwórz modal jeśli nie istnieje
+        photoModal = document.createElement('div');
+        photoModal.id = 'admin-photo-modal';
+        photoModal.className = 'modal';
+        photoModal.style.display = 'none';
+        photoModal.innerHTML = `
+            <div class="modal-content" style="max-width: 90vw; max-height: 90vh; padding: 20px; position: relative;">
+                <span class="close" id="close-admin-photo-modal" style="position: absolute; top: 10px; right: 20px; font-size: 28px; font-weight: bold; cursor: pointer; color: #1a5d1a; z-index: 10;">&times;</span>
+                <div style="text-align: center;">
+                    <div id="admin-photo-loading" style="padding: 40px; color: #6e6e73;">Ładowanie zdjęcia...</div>
+                    <img id="admin-modal-photo-img" src="" alt="Zdjęcie zadania" style="max-width: 100%; max-height: 85vh; border-radius: 8px; border: 1px solid #e8e8ed; display: none;">
+                    <div id="admin-photo-error" style="display: none; padding: 40px; color: #d32f2f;">
+                        <p>⚠️ Nie można załadować zdjęcia</p>
+                        <button onclick="this.closest('.modal').style.display='none'" class="btn btn-secondary" style="margin-top: 16px;">Zamknij</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(photoModal);
+        
+        // Obsługa zamykania modala
+        document.getElementById('close-admin-photo-modal').addEventListener('click', () => {
+            photoModal.style.display = 'none';
+        });
+        
+        // Zamknij przy kliknięciu poza modalem
+        photoModal.addEventListener('click', (e) => {
+            if (e.target === photoModal) {
+                photoModal.style.display = 'none';
+            }
+        });
+    }
+    
+    // Pokaż modal
+    photoModal.style.display = 'block';
+    
+    // Pokaż loading
+    const loadingDiv = document.getElementById('admin-photo-loading');
+    const photoImg = document.getElementById('admin-modal-photo-img');
+    const errorDiv = document.getElementById('admin-photo-error');
+    
+    if (loadingDiv) loadingDiv.style.display = 'block';
+    if (photoImg) photoImg.style.display = 'none';
+    if (errorDiv) errorDiv.style.display = 'none';
+    
+    // Walidacja parametrów
+    if (!photoUrl) {
+        console.error('❌ Brak URL zdjęcia');
+        if (loadingDiv) loadingDiv.style.display = 'none';
+        if (errorDiv) errorDiv.style.display = 'block';
+        return;
+    }
+    
+    // Załaduj zdjęcie - najpierw spróbuj publicznego URL
+    if (photoImg) {
+        photoImg.onload = function() {
+            if (loadingDiv) loadingDiv.style.display = 'none';
+            photoImg.style.display = 'block';
+        };
+        
+        photoImg.onerror = async function() {
+            console.warn('⚠️ Błąd ładowania zdjęcia publicznym URL, próbuję signed URL');
+            
+            // Spróbuj użyć signed URL jako fallback
+            if (filePath && window.supabase) {
+                try {
+                    // Wyciągnij ścieżkę z URL jeśli filePath nie jest podane
+                    let pathToUse = filePath;
+                    if (!pathToUse && photoUrl.includes('/task-responses/')) {
+                        const match = photoUrl.match(/task-responses\/(.+?)(\?|$)/);
+                        if (match) {
+                            pathToUse = match[1];
+                        }
+                    }
+                    
+                    if (pathToUse) {
+                        const { data, error } = await window.supabase.storage
+                            .from('task-responses')
+                            .createSignedUrl(pathToUse, 3600);
+                        
+                        if (!error && data && data.signedUrl) {
+                            console.log('✅ Używam signed URL');
+                            photoImg.src = data.signedUrl;
+                            return;
+                        }
+                    }
+                } catch (signedError) {
+                    console.error('❌ Błąd generowania signed URL:', signedError);
+                }
+            }
+            
+            // Jeśli wszystko zawiodło, pokaż błąd
+            if (loadingDiv) loadingDiv.style.display = 'none';
+            if (errorDiv) errorDiv.style.display = 'block';
+            photoImg.style.display = 'none';
+        };
+        
+        // Spróbuj załadować zdjęcie
+        photoImg.src = photoUrl;
+    }
+};
+
 // Funkcja pomocnicza do ładowania zdjęcia z signed URL (jeśli publiczny nie działa)
-window.loadSignedUrl = async function(imgElement, filePath) {
+window.loadSignedUrl = async function(imgElement, filePathOrUrl) {
     try {
-        if (!window.supabase || !filePath) {
+        if (!window.supabase || !filePathOrUrl) {
             console.error('❌ Brak supabase lub ścieżki pliku');
             return;
         }
         
+        // Wyciągnij ścieżkę pliku z URL lub użyj bezpośrednio
+        let filePath = filePathOrUrl;
+        
+        // Jeśli to URL, wyciągnij ścieżkę
+        if (filePathOrUrl.includes('/task-responses/')) {
+            const match = filePathOrUrl.match(/task-responses\/(.+?)(\?|$)/);
+            if (match) {
+                filePath = match[1];
+            }
+        } else if (filePathOrUrl.includes('task-responses/')) {
+            const match = filePathOrUrl.match(/task-responses[\/]?(.+?)(\?|$)/);
+            if (match) {
+                filePath = match[1].replace(/^\/+/, '');
+            }
+        }
+        
+        // Usuń query string jeśli istnieje
+        if (filePath.includes('?')) {
+            filePath = filePath.split('?')[0];
+        }
+        
+        if (!filePath || filePath === filePathOrUrl && filePathOrUrl.startsWith('http')) {
+            console.warn('⚠️ Nie udało się wyciągnąć ścieżki pliku z:', filePathOrUrl);
+            // Spróbuj użyć całości jako ścieżki (może być już ścieżką)
+            filePath = filePathOrUrl;
+        }
+        
+        console.log('🔐 Generowanie signed URL dla ścieżki:', filePath);
+        
         // Spróbuj pobrać signed URL
         const { data, error } = await window.supabase.storage
-            .from('TASK-RESPONSES')
+            .from('task-responses')
             .createSignedUrl(filePath, 3600); // URL ważny przez 1 godzinę
         
         if (error) {
             console.error('❌ Błąd generowania signed URL:', error);
+            console.error('❌ Używana ścieżka:', filePath);
             imgElement.style.display = 'none';
-            const errorDiv = imgElement.parentElement.querySelector('.photo-error');
-            if (errorDiv) errorDiv.style.display = 'block';
+            const errorDiv = imgElement.parentElement?.querySelector('.photo-error');
+            if (errorDiv) {
+                errorDiv.style.display = 'block';
+            }
             return;
         }
         
         if (data && data.signedUrl) {
-            console.log('✅ Użyto signed URL:', data.signedUrl);
+            console.log('✅ Użyto signed URL');
             imgElement.src = data.signedUrl;
             imgElement.style.display = 'block';
-            // Zaktualizuj też link
-            const link = imgElement.parentElement.parentElement.querySelector('a');
+            imgElement.onerror = null; // Reset error handler
+            
+            // Zaktualizuj też link jeśli istnieje
+            const link = imgElement.closest('.verification-photo-container')?.querySelector('a');
             if (link) {
                 link.href = data.signedUrl;
+            }
+        } else {
+            console.error('❌ Brak signed URL w odpowiedzi');
+            imgElement.style.display = 'none';
+            const errorDiv = imgElement.parentElement?.querySelector('.photo-error');
+            if (errorDiv) {
+                errorDiv.style.display = 'block';
             }
         }
     } catch (err) {
         console.error('❌ Błąd w loadSignedUrl:', err);
         imgElement.style.display = 'none';
-        const errorDiv = imgElement.parentElement.querySelector('.photo-error');
-        if (errorDiv) errorDiv.style.display = 'block';
+        const errorDiv = imgElement.parentElement?.querySelector('.photo-error');
+        if (errorDiv) {
+            errorDiv.style.display = 'block';
+        }
     }
 };
 
@@ -2336,14 +2487,14 @@ function displayVerificationTasks(tasks) {
                                         
                                         // Wyciągnij ścieżkę pliku
                                         let filePath = url;
-                                        if (url.includes('TASK-RESPONSES/')) {
-                                            const match = url.match(/TASK-RESPONSES[\/]?(.+)$/);
+                                        if (url.includes('task-responses/')) {
+                                            const match = url.match(/task-responses[\/]?(.+)$/);
                                             if (match) filePath = match[1].replace(/^\/+/, '');
                                         } else if (!url.startsWith('http')) {
                                             filePath = url;
                                         }
                                         
-                                        finalUrl = `${baseUrl}/storage/v1/object/public/TASK-RESPONSES/${filePath}`;
+                                        finalUrl = `${baseUrl}/storage/v1/object/public/task-responses/${filePath}`;
                                     }
                                 }
                                 
@@ -2357,39 +2508,42 @@ function displayVerificationTasks(tasks) {
                                 if (projectUrl) {
                                     const baseUrl = projectUrl.replace(/\/$/, '');
                                     let filePath = photoUrl;
-                                    if (photoUrl.includes('TASK-RESPONSES/')) {
-                                        const match = photoUrl.match(/TASK-RESPONSES[\/]?(.+)$/);
+                                    if (photoUrl.includes('task-responses/')) {
+                                        const match = photoUrl.match(/task-responses[\/]?(.+)$/);
                                         if (match) filePath = match[1].replace(/^\/+/, '');
                                     } else if (!photoUrl.startsWith('http')) {
                                         filePath = photoUrl;
                                     }
-                                    finalUrl = `${baseUrl}/storage/v1/object/public/TASK-RESPONSES/${filePath}`;
+                                    finalUrl = `${baseUrl}/storage/v1/object/public/task-responses/${filePath}`;
                                 }
                             }
                             
-                            // Wyciągnij ścieżkę pliku z URL (bez bucket name)
+                            // Wyciągnij ścieżkę pliku z URL (bez bucket name i query string)
                             let filePath = finalUrl;
-                            if (finalUrl.includes('/TASK-RESPONSES/')) {
-                                const match = finalUrl.match(/TASK-RESPONSES\/(.+)$/);
-                                if (match) filePath = match[1];
+                            if (finalUrl.includes('/task-responses/')) {
+                                const match = finalUrl.match(/task-responses\/(.+?)(\?|$)/);
+                                if (match) {
+                                    filePath = match[1];
+                                }
                             }
+                            // Usuń query string jeśli istnieje
+                            if (filePath.includes('?')) {
+                                filePath = filePath.split('?')[0];
+                            }
+                            
+                            // Escapowanie dla JavaScript string w onclick
+                            const escapedFinalUrl = finalUrl.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                            const escapedFilePath = filePath.replace(/'/g, "\\'").replace(/"/g, '&quot;');
                             
                             return `
                             <div class="verification-photo-container" style="margin-top: 16px;" data-file-path="${filePath}">
-                                <a href="${finalUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 6px; margin-bottom: 12px; color: #1a5d1a; text-decoration: none; font-size: 0.875rem; font-weight: 500; padding: 8px 12px; border: 1px solid #1a5d1a; border-radius: 6px; transition: all 0.2s;" 
-                                   onmouseover="this.style.background='#1a5d1a'; this.style.color='white';"
-                                   onmouseout="this.style.background='transparent'; this.style.color='#1a5d1a';">
-                                    🔗 Otwórz zdjęcie w nowej karcie
-                                </a>
-                                <div style="margin-top: 8px;">
-                                    <img src="${finalUrl}" alt="Zdjęcie zadania" style="max-width: 100%; max-height: 400px; border-radius: 8px; border: 1px solid #e8e8ed; cursor: pointer; display: block;" 
-                                         onclick="window.open('${finalUrl}', '_blank')" 
-                                         onerror="loadSignedUrl(this, '${filePath}');">
-                                    <p class="photo-error" style="display: none; color: #d32f2f; margin-top: 8px; font-size: 0.875rem; padding: 12px; background: #ffebee; border-radius: 6px; border: 1px solid #ffcdd2;">
-                                        ⚠️ Nie można załadować zdjęcia. <a href="${finalUrl}" target="_blank" rel="noopener noreferrer" style="color: #1a5d1a; font-weight: 500;">Kliknij tutaj, aby otworzyć link bezpośrednio</a>
-                                        <br><small style="color: #6e6e73; margin-top: 4px; display: block;">Ścieżka pliku: ${filePath}</small>
-                                    </p>
-                                </div>
+                                <button onclick="showAdminPhotoModal('${escapedFinalUrl}', '${escapedFilePath}')" 
+                                        class="btn btn-secondary" 
+                                        style="display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; font-size: 0.875rem; font-weight: 500; border: 2px solid #1a5d1a; background: white; color: #1a5d1a; cursor: pointer; border-radius: 6px; transition: all 0.2s;"
+                                        onmouseover="this.style.background='#1a5d1a'; this.style.color='white';"
+                                        onmouseout="this.style.background='white'; this.style.color='#1a5d1a';">
+                                    📷 Zobacz zdjęcie
+                                </button>
                             </div>
                             `;
                         })() : '<p style="color: #6e6e73; margin-top: 16px; font-size: 0.875rem;">📝 Zadanie bez załącznika</p>'}
@@ -2453,11 +2607,11 @@ window.rejectVerificationTask = async function(taskId) {
         if (task?.response_media_url) {
             try {
                 // Wyciągnij ścieżkę z URL
-                const urlParts = task.response_media_url.split('/TASK-RESPONSES/');
+                const urlParts = task.response_media_url.split('/task-responses/');
                 if (urlParts.length > 1) {
                     const filePath = urlParts[1].split('?')[0];
                     const { error: deleteError } = await supabase.storage
-                        .from('TASK-RESPONSES')
+                        .from('task-responses')
                         .remove([filePath]);
                     
                     if (deleteError) {

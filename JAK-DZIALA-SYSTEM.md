@@ -97,7 +97,7 @@ CREATE TABLE assigned_tasks (
 
 2. **Utwórz szablon zadania**:
    - Panel admina → "Szablony zadań" → "Dodaj szablon"
-   - Wybierz dzień (np. Dzień 1 - Polska)
+   - Wybierz dzień (np. Dzień 1 - Niemcy)
    - Wpisz tytuł i opis zadania
    - Wybierz typ zadania
    - Zapisz

@@ -322,13 +322,13 @@ COMMENT ON COLUMN assigned_tasks.response_metadata IS 'JSONB: odpowiedzi quizowe
 -- =========================================================
 
 -- WAŻNE: Najpierw utwórz bucket w Supabase Dashboard:
--- Storage → Create bucket → Nazwa: "TASK-RESPONSES", Public: true
+-- Storage → Create bucket → Nazwa: "task-responses", Public: true
 
 -- Polityka: Użytkownicy mogą uploadować pliki do swoich folderów
 CREATE POLICY IF NOT EXISTS "Users can upload their own task responses"
 ON storage.objects FOR INSERT
 WITH CHECK (
-  bucket_id = 'TASK-RESPONSES' 
+  bucket_id = 'task-responses' 
   AND (storage.foldername(name))[1] = auth.uid()::text
 );
 
@@ -336,7 +336,7 @@ WITH CHECK (
 CREATE POLICY IF NOT EXISTS "Users can read their own task responses"
 ON storage.objects FOR SELECT
 USING (
-  bucket_id = 'TASK-RESPONSES' 
+  bucket_id = 'task-responses' 
   AND (storage.foldername(name))[1] = auth.uid()::text
 );
 
@@ -344,7 +344,7 @@ USING (
 CREATE POLICY IF NOT EXISTS "Users can delete their own task responses"
 ON storage.objects FOR DELETE
 USING (
-  bucket_id = 'TASK-RESPONSES' 
+  bucket_id = 'task-responses' 
   AND (storage.foldername(name))[1] = auth.uid()::text
 );
 
@@ -352,7 +352,7 @@ USING (
 CREATE POLICY IF NOT EXISTS "Admins can read all task responses"
 ON storage.objects FOR SELECT
 USING (
-  bucket_id = 'TASK-RESPONSES' 
+  bucket_id = 'task-responses' 
   AND EXISTS (
     SELECT 1 FROM profiles p 
     WHERE p.id = auth.uid() AND p.role = 'admin'
@@ -366,7 +366,7 @@ USING (
 -- UWAGI:
 -- 1. Po wykonaniu tego skryptu, utwórz bucket w Supabase Storage:
 --    - Przejdź do: Storage → Create bucket
---    - Nazwa: "TASK-RESPONSES"
+--    - Nazwa: "task-responses"
 --    - Public: true (lub false jeśli chcesz prywatne linki)
 --    - File size limit: 5MB (lub inny limit)
 --    - Allowed MIME types: image/*
