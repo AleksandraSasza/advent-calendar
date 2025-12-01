@@ -85,22 +85,23 @@
             <div id="world-map"></div>
         </div>
         
-        <!-- Panel użytkownika -->
-        <div id="user-info" class="user-info" style="display: none;">
-            <div class="user-welcome">
-                Witaj, <span id="user-email"></span>!
-            </div>
-            <div class="user-actions">
-                <a href="ranking.html" class="btn btn-secondary">🏆 Ranking</a>
-                <a href="admin.html" id="admin-link" class="btn btn-secondary" style="display: none;">Panel Admina</a>
-                <button id="logout-btn" class="logout-btn">Wyloguj się</button>
-            </div>
+        <!-- Przycisk Zobacz ranking -->
+        <div class="ranking-button-container">
+            <a href="ranking.html" class="ranking-link">
+                🏆 Zobacz ranking
+                <span class="ranking-link-underline"></span>
+            </a>
         </div>
-
-        <div class="info-panel">
-            <div class="day-counter">
-                <span id="current-day">0</span> / 24 dni adwentu
-            </div>
+        
+        <!-- Przyciski w prawym górnym rogu -->
+        <div class="top-right-buttons" id="top-right-buttons" style="display: none;">
+            <a href="admin.html" id="admin-link" class="icon-button" style="display: none;" title="Panel Admina">
+                ⚙️
+            </a>
+            <button id="logout-btn" class="logout-text-button" title="Wyloguj się">
+                wyloguj
+                <span class="logout-underline"></span>
+            </button>
         </div>
     </div>
 

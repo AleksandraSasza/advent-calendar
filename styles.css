@@ -71,6 +71,9 @@ body {
     -moz-osx-font-smoothing: grayscale;
     position: relative;
     overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 /* Świąteczne tło z choinkami - ZACHOWANE (ukryte, można przywrócić) */
@@ -104,15 +107,15 @@ body::before {
 .snowflake {
     position: absolute;
     top: -100px;
-    width: 20px;
-    height: 20px;
+    width: 14px;
+    height: 14px;
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M50 0 L50 20 M50 80 L50 100 M0 50 L20 50 M80 50 L100 50 M20 20 L35 35 M65 65 L80 80 M20 80 L35 65 M65 35 L80 20" stroke="white" stroke-width="3" stroke-linecap="round" opacity="1"/><circle cx="50" cy="50" r="4" fill="white" opacity="1"/></svg>');
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
     animation: snowfall 15s linear infinite;
     user-select: none;
-    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 1)) drop-shadow(0 0 2px rgba(255, 255, 255, 0.8));
+    filter: drop-shadow(0 0 3px rgba(255, 255, 255, 1)) drop-shadow(0 0 1px rgba(255, 255, 255, 0.8));
     opacity: 1;
 }
 
@@ -187,15 +190,16 @@ body::before {
 .container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: var(--spacing-2xl) var(--spacing-lg);
+    padding: var(--spacing-lg) var(--spacing-lg);
     position: relative;
     z-index: 10;
+    width: 100%;
 }
 
 /* Header */
 header {
     text-align: center;
-    margin-bottom: var(--spacing-2xl);
+    margin-bottom: var(--spacing-lg);
     color: white;
 }
 
@@ -304,23 +308,138 @@ header p {
     border: 1px solid rgba(1, 57, 39, 0.15);
 }
 
-/* Info Panel */
-.info-panel {
-    background: var(--color-surface);
-    border-radius: var(--radius-lg);
-    padding: var(--spacing-lg);
-    box-shadow: 0 2px 4px rgba(1, 57, 39, 0.1);
+/* Przycisk Zobacz ranking */
+.ranking-button-container {
     text-align: center;
-    border: 1px solid rgba(1, 57, 39, 0.2);
+    margin-top: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
 }
 
-.day-counter {
+.ranking-link {
+    position: relative;
+    display: inline-block;
+    color: #fbbf24;
+    font-weight: 500;
     font-size: var(--font-size-2xl);
-    font-weight: 600;
-    color: var(--color-primary);
-    margin-bottom: var(--spacing-md);
-    letter-spacing: -0.3px;
-    line-height: 1.2;
+    text-decoration: none;
+    transition: color var(--transition-base);
+    font-family: inherit;
+    padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.ranking-link:hover {
+    color: #fcd34d;
+}
+
+.ranking-link-underline {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 0;
+    height: 2px;
+    background: #fcd34d;
+    transition: width 0.3s ease;
+}
+
+.ranking-link:hover .ranking-link-underline {
+    width: 100%;
+}
+
+/* Przyciski w prawym górnym rogu */
+.top-right-buttons {
+    position: fixed;
+    top: var(--spacing-lg);
+    right: var(--spacing-lg);
+    display: flex;
+    gap: var(--spacing-md);
+    z-index: 100;
+    align-items: center;
+}
+
+.icon-button {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(1, 57, 39, 0.2);
+    border-radius: var(--radius-md);
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: var(--font-size-xl);
+    text-decoration: none;
+    transition: all var(--transition-base);
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(10px);
+}
+
+.icon-button:hover {
+    background: rgba(255, 255, 255, 1);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-primary);
+}
+
+.icon-button:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-sm);
+}
+
+.icon-button:focus {
+    outline: none;
+    box-shadow: var(--shadow-md), 0 0 0 3px rgba(1, 57, 39, 0.2);
+}
+
+/* Przycisk wyloguj - tekstowy, delikatny */
+.logout-text-button {
+    position: relative;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    width: auto;
+    height: auto;
+    padding: var(--spacing-sm);
+    font-size: var(--font-size-lg);
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 400;
+    line-height: 1.5;
+    cursor: pointer;
+    font-family: inherit;
+    text-decoration: none;
+    transition: color var(--transition-base);
+}
+
+.logout-text-button:hover {
+    background: transparent !important;
+    color: rgba(255, 255, 255, 1);
+    transform: none !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+.logout-text-button:active {
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.logout-text-button:focus {
+    outline: none;
+    box-shadow: none !important;
+}
+
+.logout-underline {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 0;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.9);
+    transition: width 0.3s ease;
+}
+
+.logout-text-button:hover .logout-underline {
+    width: 100%;
 }
 
 
@@ -395,10 +514,10 @@ header p {
 }
 
 .task-content p {
-    font-size: var(--font-size-base);
+    font-size: var(--font-size-lg);
     line-height: 1.6;
     margin-bottom: var(--spacing-lg);
-    color: var(--color-text-secondary);
+    color: var(--color-text);
 }
 
 .task-actions {

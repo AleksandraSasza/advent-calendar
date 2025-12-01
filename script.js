@@ -905,13 +905,10 @@ async function markTaskCompleted() {
     }
 }
 
-// Aktualizacja paska postępu
+// Aktualizacja paska postępu (nieużywane - pasek został usunięty)
 function updateProgress() {
-    // Aktualizuj tylko licznik dni (bez paska postępu)
-    const currentDayElement = document.getElementById('current-day');
-    if (currentDayElement) {
-        currentDayElement.textContent = completedDays.size;
-    }
+    // Funkcja zachowana dla kompatybilności, ale nie wykonuje żadnych działań
+    // Pasek z postępami został usunięty z interfejsu
 }
 
 // Pokazywanie powiadomienia
@@ -1252,7 +1249,10 @@ async function checkAuth() {
 
 // Pokazywanie przycisku logowania (nie używane - przekierowujemy do login.html)
 function showLoginButton() {
-    document.getElementById('user-info').style.display = 'none';
+    const topRightButtons = document.getElementById('top-right-buttons');
+    if (topRightButtons) {
+        topRightButtons.style.display = 'none';
+    }
     document.getElementById('auth-buttons').style.display = 'block';
 }
 
@@ -1260,9 +1260,11 @@ function showLoginButton() {
 function showUserInfo() {
     if (!currentUser) return;
     
-    const userEmail = currentUser.email || currentUser.display_name || 'Użytkownik';
-    document.getElementById('user-email').textContent = userEmail;
-    document.getElementById('user-info').style.display = 'flex';
+    // Pokaż przyciski w prawym górnym rogu
+    const topRightButtons = document.getElementById('top-right-buttons');
+    if (topRightButtons) {
+        topRightButtons.style.display = 'flex';
+    }
     
     // Ukryj przycisk logowania dla zalogowanych użytkowników
     document.getElementById('auth-buttons').style.display = 'none';
@@ -1270,7 +1272,7 @@ function showUserInfo() {
     // Pokaż link do panelu admina jeśli użytkownik jest adminem
     const adminLink = document.getElementById('admin-link');
     if (adminLink && currentUser.role === 'admin') {
-        adminLink.style.display = 'inline-block';
+        adminLink.style.display = 'inline-flex';
     }
 }
 
