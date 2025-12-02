@@ -98,11 +98,12 @@ document.addEventListener('DOMContentLoaded', async function() {
 });
 
 // Obsługa logowania
+// Zwraca true przy sukcesie, false przy błędzie
 async function handleLogin(email, password) {
     try {
         if (!supabase) {
             showNotification('Błąd konfiguracji Supabase. Sprawdź ustawienia.', 'error');
-            return;
+            return false;
         }
         
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -130,7 +131,7 @@ async function handleLogin(email, password) {
                 showNotification(error.message || 'Błąd logowania', 'error');
             }
             console.error('Błąd logowania:', error);
-            return;
+            return false;
         }
         
         if (data.session) {
@@ -160,14 +161,14 @@ async function handleLogin(email, password) {
                     if (profileError.code === 'PGRST116' || profileError.message?.includes('row-level security')) {
                         console.log('⚠️ Problem z RLS - sprawdź polityki bezpieczeństwa w Supabase');
                         showNotification('Błąd: Polityki RLS blokują dostęp do profilu. Uruchom skrypt napraw-rls-admin.sql w Supabase.', 'error');
-                        return;
+                        return false;
                     }
                     
                     // W razie błędu przekieruj do kalendarza
                     showNotification('Zalogowano, ale wystąpił problem z profilem. Przekierowanie...', 'warning');
                     sessionStorage.setItem('redirecting', 'true');
                     window.location.href = 'index.html';
-                    return;
+                    return true; // Przekierowanie w toku, nie przywracaj przycisku
                 }
                 
                 if (!profile) {
@@ -175,7 +176,7 @@ async function handleLogin(email, password) {
                     showNotification('Profil użytkownika nie istnieje. Przekierowanie...', 'warning');
                     sessionStorage.setItem('redirecting', 'true');
                     window.location.href = 'index.html';
-                    return;
+                    return true; // Przekierowanie w toku, nie przywracaj przycisku
                 }
                 
                 console.log('✅ Profil znaleziony:', profile);
@@ -225,11 +226,17 @@ async function handleLogin(email, password) {
                 showNotification('Zalogowano, ale wystąpił błąd. Przekierowanie...', 'warning');
                 sessionStorage.setItem('redirecting', 'true');
                 window.location.href = 'index.html';
+                return true; // Przekierowanie w toku, nie przywracaj przycisku
             }
+            
+            return true; // Sukces - przekierowanie nastąpi
         }
+        
+        return false; // Brak sesji
     } catch (error) {
         console.error('Błąd logowania:', error);
         showNotification('Błąd połączenia z serwerem', 'error');
+        return false;
     }
 }
 
@@ -276,7 +283,13 @@ function setupAuthEvents() {
             submitBtn.textContent = 'Logowanie...';
             
             try {
-                await handleLogin(email, password);
+                const success = await handleLogin(email, password);
+                // Jeśli logowanie nie powiodło się, przywróć przycisk
+                if (!success) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                }
+                // Jeśli sukces, przycisk pozostanie zablokowany (nastąpi przekierowanie)
             } catch (error) {
                 console.error('❌ Błąd w handleLogin:', error);
                 // Przywróć przycisk w przypadku błędu
@@ -293,6 +306,66 @@ function setupAuthEvents() {
         e.stopImmediatePropagation();
         return false;
     }, true);
+    
+    // Obsługa naciśnięcia Enter w polach formularza
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    
+    if (emailInput && passwordInput) {
+        // Funkcja pomocnicza do obsługi logowania
+        const triggerLogin = async () => {
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+            
+            if (!email || !password) {
+                showNotification('Wypełnij wszystkie pola', 'error');
+                return;
+            }
+            
+            // Wyłącz przycisk submit, aby zapobiec wielokrotnemu kliknięciu
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                const originalText = submitBtn.textContent;
+                submitBtn.textContent = 'Logowanie...';
+                
+                try {
+                    const success = await handleLogin(email, password);
+                    // Jeśli logowanie nie powiodło się, przywróć przycisk
+                    if (!success) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = originalText;
+                    }
+                    // Jeśli sukces, przycisk pozostanie zablokowany (nastąpi przekierowanie)
+                } catch (error) {
+                    console.error('❌ Błąd w handleLogin:', error);
+                    // Przywróć przycisk w przypadku błędu
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                }
+            }
+        };
+        
+        // Dodaj obsługę Enter w polu email
+        emailInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                // Przenieś fokus na pole hasła lub zaloguj jeśli hasło jest już wypełnione
+                if (passwordInput.value.trim()) {
+                    triggerLogin();
+                } else {
+                    passwordInput.focus();
+                }
+            }
+        });
+        
+        // Dodaj obsługę Enter w polu hasła
+        passwordInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                triggerLogin();
+            }
+        });
+    }
 }
 
 // Funkcja powiadomień
