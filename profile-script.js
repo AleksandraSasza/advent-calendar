@@ -189,8 +189,28 @@ function setupEventListeners() {
     // Wylogowanie
     document.getElementById('logout-btn').addEventListener('click', async () => {
         if (supabase) {
-            await supabase.auth.signOut();
+            try {
+                // Sprawdź czy sesja istnieje przed próbą wylogowania
+                const { data: { session } } = await supabase.auth.getSession();
+                
+                if (session) {
+                    const { error } = await supabase.auth.signOut();
+                    if (error) {
+                        // Nie wyświetlaj błędu jeśli sesja już nie istnieje
+                        if (error.message && !error.message.includes('Auth session missing')) {
+                            console.error('Błąd wylogowania:', error);
+                        }
+                    }
+                }
+            } catch (error) {
+                // Ignoruj błąd jeśli sesja nie istnieje
+                if (!error.message?.includes('Auth session missing')) {
+                    console.error('Błąd wylogowania:', error);
+                }
+            }
         }
+        
+        // Zawsze przekieruj, nawet jeśli wystąpił błąd
         window.location.href = 'login.html';
     });
     
@@ -316,7 +336,17 @@ async function deleteAccount() {
         }
         
         // Wyloguj użytkownika
-        await supabase.auth.signOut();
+        try {
+            const { error: signOutError } = await supabase.auth.signOut();
+            if (signOutError && !signOutError.message?.includes('Auth session missing')) {
+                console.error('Błąd wylogowania:', signOutError);
+            }
+        } catch (error) {
+            // Ignoruj błąd jeśli sesja już nie istnieje
+            if (!error.message?.includes('Auth session missing')) {
+                console.error('Błąd wylogowania:', error);
+            }
+        }
         
         showNotification('Konto zostało usunięte', 'success');
         setTimeout(() => {

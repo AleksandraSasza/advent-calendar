@@ -894,6 +894,17 @@ header p {
     }
 }
 
+/* Ukryj popupy Leaflet na urządzeniach mobilnych */
+@media (max-width: 768px) {
+    .leaflet-popup {
+        display: none !important;
+    }
+    
+    .leaflet-popup-content-wrapper {
+        display: none !important;
+    }
+}
+
 @media (max-width: 480px) {
     header h1 {
         font-size: var(--font-size-2xl);

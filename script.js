@@ -320,7 +320,27 @@ function addAdventMarkers() {
         const marker = L.marker(coordinates, { icon: customIcon })
             .addTo(map);
         
-        // Dodaj popup z ciekawostką lub informacją o blokadzie
+        // Funkcja do otwierania ciekawostki (modal na mobile, popup na desktop)
+        const openFunFact = (e) => {
+            if (isMobileDevice()) {
+                // Na urządzeniach mobilnych - otwórz modal i zablokuj domyślne zachowanie
+                if (e.originalEvent) {
+                    e.originalEvent.preventDefault();
+                    e.originalEvent.stopPropagation();
+                }
+                // Zamknij popup jeśli jest otwarty
+                marker.closePopup();
+                openFunFactModal(dayNumber, country, funFact, isLocked);
+            }
+            // Na desktop - popup otworzy się automatycznie przez Leaflet
+        };
+        
+        // Dodaj obsługę kliknięcia (tylko dla mobile, desktop używa popupu)
+        if (isMobileDevice()) {
+            marker.on('click', openFunFact);
+        }
+        
+        // Dodaj popup z ciekawostką lub informacją o blokadzie (tylko dla desktop)
         let popupContent;
         if (isLocked) {
             popupContent = `
@@ -339,17 +359,20 @@ function addAdventMarkers() {
             `;
         }
         
-        marker.bindPopup(popupContent, {
-            maxWidth: 400,
-            className: 'advent-popup-container',
-            autoPan: true,
-            autoPanPadding: [100, 50],
-            autoPanPaddingTopLeft: [100, 50],
-            autoPanPaddingBottomRight: [100, 50],
-            keepInView: true,
-            closeOnClick: false,
-            autoClose: false
-        });
+        // Bind popup tylko dla desktop (na mobile będzie modal)
+        if (!isMobileDevice()) {
+            marker.bindPopup(popupContent, {
+                maxWidth: 400,
+                className: 'advent-popup-container',
+                autoPan: true,
+                autoPanPadding: [100, 50],
+                autoPanPaddingTopLeft: [100, 50],
+                autoPanPaddingBottomRight: [100, 50],
+                keepInView: true,
+                closeOnClick: false,
+                autoClose: false
+            });
+        }
         
         // Zapisz marker w obiekcie markers
         markers[dayString] = marker;
@@ -397,6 +420,64 @@ function isDayLocked(day) {
     // Jeśli jest grudzień 2025, sprawdź czy dzisiejszy dzień >= numer dnia kalendarza
     // Dzień 1 jest odblokowany 1 grudnia, dzień 2 - 2 grudnia, itd.
     return currentDay < dayNumber;
+}
+
+// Funkcja wykrywania urządzeń mobilnych
+function isMobileDevice() {
+    return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+// Otwieranie modala z ciekawostką (dla urządzeń mobilnych)
+function openFunFactModal(day, country, funFact, isLocked) {
+    const modal = document.getElementById('funfact-modal');
+    const modalDay = document.getElementById('funfact-modal-day');
+    const modalCountry = document.getElementById('funfact-country');
+    const modalText = document.getElementById('funfact-text');
+    const openTaskBtn = document.getElementById('funfact-open-task-btn');
+    const closeBtn = document.getElementById('funfact-close-btn');
+    const closeX = document.querySelector('.funfact-close');
+    
+    if (!modal) return;
+    
+    if (isLocked) {
+        modalDay.textContent = `🔒 Dzień ${day} - Zablokowany`;
+        modalCountry.textContent = `🔒 Dzień ${day} - Zablokowany`;
+        modalText.textContent = `Ten dzień będzie dostępny ${day} grudnia 2025!`;
+        modalText.style.fontStyle = 'normal';
+        openTaskBtn.style.display = 'none';
+    } else {
+        modalDay.textContent = `Dzień ${day}`;
+        modalCountry.textContent = `📍 Dzień ${day} - ${country}`;
+        modalText.textContent = funFact;
+        modalText.style.fontStyle = 'italic';
+        openTaskBtn.style.display = 'inline-flex';
+        openTaskBtn.onclick = () => {
+            closeFunFactModal();
+            openTaskModal(day);
+        };
+    }
+    
+    // Obsługa zamykania
+    closeBtn.onclick = closeFunFactModal;
+    closeX.onclick = closeFunFactModal;
+    modal.onclick = (e) => {
+        if (e.target === modal) {
+            closeFunFactModal();
+        }
+    };
+    
+    // Otwórz modal
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+
+// Zamykanie modala z ciekawostką
+function closeFunFactModal() {
+    const modal = document.getElementById('funfact-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
 }
 
 // Otwieranie modala z zadaniem (duży popup)
@@ -1498,36 +1579,60 @@ function showUserInfo() {
 async function logout() {
     if (!supabase) {
         console.error('Supabase nie jest zainicjalizowany');
+        // Nawet bez Supabase, wyczyść dane lokalne i przekieruj
+        localStorage.removeItem('supabase_session');
+        currentUser = null;
+        completedDays.clear();
+        updateProgress();
+        window.location.href = 'login.html';
         return;
     }
     
     try {
-        // Wyloguj z Supabase
-        const { error } = await supabase.auth.signOut();
+        // Sprawdź czy sesja istnieje przed próbą wylogowania
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
-        if (error) {
-            console.error('Błąd wylogowania:', error);
-            showNotification('Błąd wylogowania', 'error');
-            return;
+        // Jeśli sesja istnieje, wyloguj się
+        if (session) {
+            const { error } = await supabase.auth.signOut();
+            
+            if (error) {
+                // Nie wyświetlaj błędu jeśli sesja już nie istnieje (częsty przypadek na Vercel)
+                if (error.message && error.message.includes('Auth session missing')) {
+                    console.log('Sesja już nie istnieje, kontynuuję wylogowanie...');
+                } else {
+                    console.error('Błąd wylogowania:', error);
+                    // Nie przerywaj procesu wylogowania nawet przy błędzie
+                }
+            }
+        } else {
+            console.log('Brak aktywnej sesji, kontynuuję wylogowanie...');
         }
-        
-        // Wyczyść dane lokalne
-        localStorage.removeItem('supabase_session');
-    currentUser = null;
-    completedDays.clear();
-    updateProgress();
-        
-        showNotification('Wylogowano pomyślnie', 'success');
-        
-        // Przekieruj do strony logowania
-        setTimeout(() => {
-            window.location.href = 'login.html';
-        }, 1000);
-        
     } catch (error) {
-        console.error('Błąd wylogowania:', error);
-        showNotification('Błąd wylogowania', 'error');
+        // Ignoruj błąd jeśli sesja nie istnieje
+        if (error.message && error.message.includes('Auth session missing')) {
+            console.log('Sesja już nie istnieje, kontynuuję wylogowanie...');
+        } else {
+            console.error('Błąd wylogowania:', error);
+        }
     }
+    
+    // Zawsze wyczyść dane lokalne niezależnie od stanu sesji
+    try {
+        localStorage.removeItem('supabase_session');
+        currentUser = null;
+        completedDays.clear();
+        updateProgress();
+    } catch (error) {
+        console.error('Błąd czyszczenia danych lokalnych:', error);
+    }
+    
+    showNotification('Wylogowano pomyślnie', 'success');
+    
+    // Zawsze przekieruj do strony logowania
+    setTimeout(() => {
+        window.location.href = 'login.html';
+    }, 1000);
 }
 
 // Aktualizacja wyglądu markera

@@ -1271,7 +1271,17 @@ async function addNewUser() {
         
         // NATYCHMIAST PRZYWRÓĆ SESJĘ ADMINA
         // Wyloguj się z sesji nowego użytkownika
-        await supabase.auth.signOut();
+        try {
+            const { error: signOutError } = await supabase.auth.signOut();
+            if (signOutError && !signOutError.message?.includes('Auth session missing')) {
+                console.error('Błąd wylogowania z sesji nowego użytkownika:', signOutError);
+            }
+        } catch (error) {
+            // Ignoruj błąd jeśli sesja już nie istnieje
+            if (!error.message?.includes('Auth session missing')) {
+                console.error('Błąd wylogowania z sesji nowego użytkownika:', error);
+            }
+        }
         
         // Przywróć sesję admina używając refresh token
         console.log('🔄 Przywracanie sesji admina...');
@@ -1371,7 +1381,17 @@ async function addNewUser() {
             const { data: { session: currentSession } } = await supabase.auth.getSession();
             if (currentSession && currentSession.user.id !== currentUser?.id) {
                 console.log('⚠️ Sesja została zmieniona po błędzie, próba przywrócenia...');
-                await supabase.auth.signOut();
+                try {
+                    const { error: signOutError } = await supabase.auth.signOut();
+                    if (signOutError && !signOutError.message?.includes('Auth session missing')) {
+                        console.error('Błąd wylogowania:', signOutError);
+                    }
+                } catch (signOutErr) {
+                    // Ignoruj błąd jeśli sesja już nie istnieje
+                    if (!signOutErr.message?.includes('Auth session missing')) {
+                        console.error('Błąd wylogowania:', signOutErr);
+                    }
+                }
                 // Użytkownik będzie musiał odświeżyć stronę i zalogować się ponownie
             }
         } catch (restoreErr) {
