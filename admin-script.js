@@ -687,17 +687,75 @@ function displayTaskTemplates() {
         return;
     }
     
-    templatesList.innerHTML = `
-        <div class="templates-grid">
-            ${allTaskTemplates.map(template => {
-                return `
-                    <div class="template-card" onclick="editTemplate('${template.id}')" style="cursor: pointer;">
-                        <h4>${template.title || 'Bez nazwy'}</h4>
-                    </div>
-                `;
-            }).join('')}
-        </div>
-    `;
+    // Mapowanie typów zadań na polskie nazwy
+    const taskTypeLabels = {
+        'text_response': 'Odpowiedź tekstowa',
+        'quiz': 'Quiz',
+        'photo_upload': 'Dodaj zdjęcie'
+    };
+    
+    // Podziel szablony na dwie grupy: bez przypisania i z przypisaniem
+    const unassignedTemplates = allTaskTemplates.filter(t => !t.calendar_day_id);
+    const assignedTemplates = allTaskTemplates.filter(t => t.calendar_day_id);
+    
+    // Sortuj przypisane według numeru dnia
+    const sortedAssignedTemplates = [...assignedTemplates].sort((a, b) => {
+        const dayA = allCalendarDays.find(d => d.id === a.calendar_day_id);
+        const dayB = allCalendarDays.find(d => d.id === b.calendar_day_id);
+        const dayNumberA = dayA ? dayA.day_number : 999;
+        const dayNumberB = dayB ? dayB.day_number : 999;
+        return dayNumberA - dayNumberB;
+    });
+    
+    // Funkcja renderująca pojedynczy szablon
+    const renderTemplate = (template) => {
+        const day = allCalendarDays.find(d => d.id === template.calendar_day_id);
+        const dayNumber = day ? day.day_number : '—';
+        const taskTypeLabel = taskTypeLabels[template.task_type] || template.task_type || 'Nieznany typ';
+        const hasDay = !!day;
+        
+        return `
+            <div class="template-card" onclick="editTemplate('${template.id}')" style="cursor: pointer; flex-direction: column; align-items: flex-start; padding: 16px; position: relative; overflow: visible;">
+                <div style="position: absolute; top: -12px; right: -12px; width: 28px; height: 28px; border-radius: 50%; background: ${hasDay ? '#013927' : '#6e6e73'}; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+                    ${dayNumber}
+                </div>
+                <h4 style="margin: 0 0 8px 0; font-size: 1rem; font-weight: 600; line-height: 1.3; word-wrap: break-word; width: 100%; text-align: center; padding-top: 8px;">${template.title || 'Bez nazwy'}</h4>
+                <div style="font-size: 0.8125rem; color: #6e6e73; text-align: center; width: 100%;">
+                    ${taskTypeLabel}
+                </div>
+            </div>
+        `;
+    };
+    
+    // Zbuduj HTML z dwoma sekcjami
+    let html = '';
+    
+    // Sekcja zadań nieprzypisanych
+    if (unassignedTemplates.length > 0) {
+        html += `
+            <div class="templates-grid">
+                ${unassignedTemplates.map(renderTemplate).join('')}
+            </div>
+        `;
+    }
+    
+    // Separator (kreska) jeśli są obie grupy
+    if (unassignedTemplates.length > 0 && sortedAssignedTemplates.length > 0) {
+        html += `
+            <div style="margin: 32px 0; border-top: 2px solid #e8e8ed;"></div>
+        `;
+    }
+    
+    // Sekcja zadań przypisanych
+    if (sortedAssignedTemplates.length > 0) {
+        html += `
+            <div class="templates-grid">
+                ${sortedAssignedTemplates.map(renderTemplate).join('')}
+            </div>
+        `;
+    }
+    
+    templatesList.innerHTML = html;
 }
 
 // Usuń dzień kalendarza (dostępne globalnie)
@@ -817,8 +875,29 @@ window.editTemplate = function(templateId) {
     document.getElementById('template-submit-btn').textContent = 'Zapisz zmiany';
     document.getElementById('template-id').value = template.id;
     
+    // Pokaż przycisk usuwania w trybie edycji
+    const deleteBtn = document.getElementById('delete-template-btn');
+    if (deleteBtn) {
+        deleteBtn.style.display = 'block';
+        deleteBtn.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            deleteTemplate(template.id);
+        };
+    }
+    
+    // Wypełnij select z dniami (ważne: musimy wypełnić opcje przed ustawieniem wartości)
+    const daySelect = document.getElementById('template-day');
+    daySelect.innerHTML = '<option value="">Bez przypisania dnia</option>';
+    allCalendarDays.forEach(day => {
+        const option = document.createElement('option');
+        option.value = day.id;
+        option.textContent = `Dzień ${day.day_number}`;
+        daySelect.appendChild(option);
+    });
+    
     // Wypełnij formularz danymi szablonu
-    document.getElementById('template-day').value = template.calendar_day_id;
+    document.getElementById('template-day').value = template.calendar_day_id || '';
     document.getElementById('template-title').value = template.title || '';
     document.getElementById('template-description').value = template.description || '';
     document.getElementById('template-type').value = template.task_type || 'text_response';
@@ -849,6 +928,49 @@ window.editTemplate = function(templateId) {
     
     // Otwórz modal
     document.getElementById('add-template-modal').style.display = 'block';
+};
+
+// Usuń szablon zadania (dostępne globalnie)
+window.deleteTemplate = async function(templateId) {
+    if (!templateId) {
+        showNotification('Brak ID szablonu do usunięcia', 'error');
+        return;
+    }
+    
+    const template = allTaskTemplates.find(t => t.id === templateId);
+    if (!template) {
+        showNotification('Nie znaleziono szablonu', 'error');
+        return;
+    }
+    
+    const confirmMessage = `Czy na pewno chcesz usunąć szablon "${template.title || 'Bez nazwy'}"?\n\nTa operacja jest nieodwracalna.`;
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+    
+    try {
+        const { error } = await supabase
+            .from('task_templates')
+            .delete()
+            .eq('id', templateId);
+        
+        if (error) throw error;
+        
+        // Usuń z lokalnej tablicy
+        allTaskTemplates = allTaskTemplates.filter(t => t.id !== templateId);
+        
+        // Odśwież wyświetlanie
+        displayTaskTemplates();
+        
+        // Zamknij modal
+        closeAddTemplateModal();
+        
+        showNotification('Szablon został usunięty', 'success');
+        
+    } catch (error) {
+        console.error('Błąd usuwania szablonu:', error);
+        showNotification('Błąd usuwania szablonu: ' + (error.message || 'Nieznany błąd'), 'error');
+    }
 };
 
 // Załaduj pytania quizowe do formularza
@@ -1154,9 +1276,15 @@ function openAddTemplateModal() {
     document.getElementById('template-submit-btn').textContent = 'Dodaj szablon';
     document.getElementById('template-id').value = '';
     
+    // Ukryj przycisk usuwania w trybie dodawania
+    const deleteBtn = document.getElementById('delete-template-btn');
+    if (deleteBtn) {
+        deleteBtn.style.display = 'none';
+    }
+    
     // Wypełnij select z dniami
     const daySelect = document.getElementById('template-day');
-    daySelect.innerHTML = '<option value="">Wybierz dzień...</option>';
+    daySelect.innerHTML = '<option value="">Bez przypisania dnia</option>';
     allCalendarDays.forEach(day => {
         const option = document.createElement('option');
         option.value = day.id;
@@ -1458,15 +1586,13 @@ async function addNewTemplate() {
     const taskType = document.getElementById('template-type').value;
     const isEdit = !!templateId;
     
-    if (!dayId) {
-        showNotification('Wybierz dzień kalendarza', 'error');
-        return;
-    }
-    
-    const day = allCalendarDays.find(d => d.id == dayId);
-    if (!day) {
-        showNotification('Nie znaleziono dnia kalendarza', 'error');
-        return;
+    // Sprawdź czy wybrano dzień (jeśli tak, sprawdź czy istnieje)
+    if (dayId) {
+        const day = allCalendarDays.find(d => d.id == dayId);
+        if (!day) {
+            showNotification('Nie znaleziono dnia kalendarza', 'error');
+            return;
+        }
     }
     
     if (!title || !title.trim()) {
@@ -1492,7 +1618,7 @@ async function addNewTemplate() {
     
     try {
         const dataToSave = {
-            calendar_day_id: day.id,
+            calendar_day_id: dayId || null,
             title: title.trim(),
             description: description.trim() || null,
             task_type: taskType

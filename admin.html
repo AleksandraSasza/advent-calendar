@@ -214,9 +214,12 @@
                             
                             <div class="form-group">
                                 <label for="template-day">Dzień kalendarza:</label>
-                                <select id="template-day" required>
-                                    <option value="">Wybierz dzień...</option>
+                                <select id="template-day">
+                                    <option value="">Bez przypisania dnia</option>
                                 </select>
+                                <small style="color: #6e6e73; display: block; margin-top: 4px;">
+                                    Możesz zostawić zadanie bez przypisania do dnia - będzie wyświetlane na górze listy.
+                                </small>
                             </div>
                             
                             <div class="form-group">
@@ -257,9 +260,14 @@
                                 </div>
                             </div>
                             
-                            <div class="form-actions" style="margin-top: 24px;">
-                                <button type="submit" class="btn btn-primary" id="template-submit-btn">Dodaj szablon</button>
-                                <button type="button" class="btn btn-secondary" id="cancel-template-btn">Anuluj</button>
+                            <div class="form-actions" style="margin-top: 24px; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <button type="button" class="btn btn-danger" id="delete-template-btn" style="display: none; background: #d32f2f; color: white; border: none;">Usuń szablon</button>
+                                </div>
+                                <div style="display: flex; gap: 8px;">
+                                    <button type="submit" class="btn btn-primary" id="template-submit-btn">Dodaj szablon</button>
+                                    <button type="button" class="btn btn-secondary" id="cancel-template-btn">Anuluj</button>
+                                </div>
                             </div>
                         </form>
                     </div>

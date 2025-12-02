@@ -260,6 +260,16 @@ function createWorldMap() {
     // Upewnij się, że widok pozostaje w granicach
     map.setMaxBounds(worldBounds);
     
+    // Zamykanie popupów po kliknięciu w mapę (poza markerem)
+    map.on('click', function(e) {
+        // Sprawdź czy kliknięcie było w marker (jeśli tak, nie zamykaj popupu)
+        const clickedMarker = e.originalEvent?.target?.closest('.advent-marker-container');
+        if (!clickedMarker) {
+            // Zamknij wszystkie otwarte popupy
+            map.closePopup();
+        }
+    });
+    
     // Dodaj markery dla każdego dnia
     addAdventMarkers();
 }
@@ -369,8 +379,8 @@ function addAdventMarkers() {
                 autoPanPaddingTopLeft: [100, 50],
                 autoPanPaddingBottomRight: [100, 50],
                 keepInView: true,
-                closeOnClick: false,
-                autoClose: false
+                closeOnClick: true, // Pozwól zamykać popup klikając w mapę
+                autoClose: true // Automatycznie zamykaj popup przy otwarciu innego
             });
         }
         
@@ -460,11 +470,22 @@ function openFunFactModal(day, country, funFact, isLocked) {
     // Obsługa zamykania
     closeBtn.onclick = closeFunFactModal;
     closeX.onclick = closeFunFactModal;
+    
+    // Zamykanie po kliknięciu poza modalem (w tło)
     modal.onclick = (e) => {
+        // Sprawdź czy kliknięcie było w tle modala (nie w modal-content)
         if (e.target === modal) {
             closeFunFactModal();
         }
     };
+    
+    // Zapobiegaj propagacji kliknięć wewnątrz modal-content
+    const modalContent = modal.querySelector('.modal-content');
+    if (modalContent) {
+        modalContent.onclick = (e) => {
+            e.stopPropagation();
+        };
+    }
     
     // Otwórz modal
     modal.style.display = 'block';
