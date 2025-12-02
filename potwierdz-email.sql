@@ -30,3 +30,4 @@ WHERE email = 'twoj-email@example.com';
 -- 5. Spróbuj zalogować się ponownie w aplikacji
 -- =========================================================
 
+

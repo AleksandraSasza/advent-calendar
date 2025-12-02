@@ -15,3 +15,4 @@ CREATE INDEX IF NOT EXISTS idx_calendar_days_country ON calendar_days(country);
 -- Współrzędne są obliczane dynamicznie na podstawie państwa w kodzie JavaScript
 -- =========================================================
 
+

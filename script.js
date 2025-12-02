@@ -339,7 +339,17 @@ function addAdventMarkers() {
             `;
         }
         
-        marker.bindPopup(popupContent);
+        marker.bindPopup(popupContent, {
+            maxWidth: 400,
+            className: 'advent-popup-container',
+            autoPan: true,
+            autoPanPadding: [100, 50],
+            autoPanPaddingTopLeft: [100, 50],
+            autoPanPaddingBottomRight: [100, 50],
+            keepInView: true,
+            closeOnClick: false,
+            autoClose: false
+        });
         
         // Zapisz marker w obiekcie markers
         markers[dayString] = marker;
@@ -456,7 +466,13 @@ function openTaskModal(day) {
     
     // Sprawdź czy zadanie rzeczywiście istnieje i ma tytuł
     if (taskData && taskData.task_title) {
-        taskDescription.innerHTML = `<strong>${taskData.task_title}</strong><br>${taskData.task_description || ''}`;
+        // Wyświetl nazwę zadania w nagłówku razem z "Zadanie:" w tej samej linii
+        const taskTitleNameElement = document.getElementById('task-title-name');
+        if (taskTitleNameElement) {
+            taskTitleNameElement.textContent = taskData.task_title;
+        }
+        // Wyświetl tylko opis w paragrafie
+        taskDescription.innerHTML = taskData.task_description || '';
         
         // Pokaż sekcję uploadu zdjęcia tylko dla zadań typu photo_upload
         const verificationMessage = document.getElementById('verification-message');

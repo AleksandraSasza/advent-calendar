@@ -63,3 +63,4 @@ else
     echo "  - Jesteś zalogowany w Git (git config user.name i user.email)"
 fi
 
+

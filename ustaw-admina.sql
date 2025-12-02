@@ -29,3 +29,4 @@ WHERE email = 'twoj-email@example.com';
 -- 6. Przejdź do /admin - powinieneś mieć dostęp!
 -- =========================================================
 
+

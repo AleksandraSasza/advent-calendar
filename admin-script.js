@@ -23,6 +23,8 @@ try {
         console.error('Supabase library nie jest załadowana!');
         throw new Error('Supabase library not loaded');
     }
+    // Eksportuj supabase do window, aby funkcje globalne (jak showAdminPhotoModal) miały dostęp
+    window.supabase = supabase;
     console.log('Supabase zainicjalizowany pomyślnie');
 } catch (error) {
     console.error('Błąd inicjalizacji Supabase:', error);
@@ -221,7 +223,7 @@ async function loadAllData() {
                 hint: usersError.hint
             });
             
-            // Jeśli błąd RLS, pokaż szczegółową informację
+            // Jeśli błąd RLS, pokaż szczegółową informacjęz
             if (usersError.code === 'PGRST116' || usersError.message?.includes('row-level security')) {
                 showNotification('Błąd RLS: Admin nie może zobaczyć wszystkich użytkowników. Uruchom skrypt napraw-rls-admin.sql w Supabase.', 'error');
             }
@@ -370,8 +372,8 @@ function populateAssignForm() {
 // Mapowanie dni do państw (kopiowane z script.js dla użycia w panelu admina)
 // W produkcji można to załadować z zewnętrznego pliku
 const dayToCountryMap = {
-    1: { country: "Polska", funFact: "🎄 W Polsce Wigilia to najważniejszy dzień świąt! Tradycyjnie jemy 12 potraw i dzielimy się opłatkiem." },
-    2: { country: "Niemcy", funFact: "🎅 W Niemczech tradycja jarmarków bożonarodzeniowych sięga średniowiecza! Słynne są pierniki norymberskie." },
+    1: { country: "Niemcy", funFact: "🎅 W Niemczech tradycja jarmarków bożonarodzeniowych sięga średniowiecza! Słynne są pierniki norymberskie." },
+    2: { country: "Finlandia", funFact: "🎅 W Finlandii Święty Mikołaj mieszka w Rovaniemi na kole podbiegunowym! Można go odwiedzić przez cały rok w Wiosce Świętego Mikołaja." },
     3: { country: "Francja", funFact: "🎁 We Francji prezenty przynosi Père Noël (Ojciec Święty Mikołaj), a dzieci zostawiają mu wino i ciastka!" },
     4: { country: "Włochy", funFact: "🎄 We Włoszech prezenty przynosi Babbo Natale, ale prawdziwa magia dzieje się 6 stycznia - Święto Trzech Króli!" },
     5: { country: "Hiszpania", funFact: "👑 W Hiszpanii główne prezenty przychodzą 6 stycznia od Trzech Króli! Dzieci zostawiają im buty wypełnione słomą dla wielbłądów." },
@@ -400,6 +402,7 @@ const dayToCountryMap = {
 const countriesList = [
     { name: "Polska", coordinates: [52.2297, 21.0122] },
     { name: "Niemcy", coordinates: [51.1657, 10.4515] },
+    { name: "Finlandia", coordinates: [60.1699, 24.9384] },
     { name: "Francja", coordinates: [46.2276, 2.2137] },
     { name: "Włochy", coordinates: [41.9028, 12.4964] },
     { name: "Hiszpania", coordinates: [40.4637, -3.7492] },
@@ -445,8 +448,9 @@ window.toggleEditMode = function(dayId) {
     if (!isEditMode) {
         // Włącz tryb edycji
         dayCard.dataset.editMode = 'true';
-        if (countrySelect) countrySelect.disabled = false;
-        if (customInput) customInput.disabled = false;
+        // Państwo jest zawsze zablokowane - nie można go zmieniać
+        // if (countrySelect) countrySelect.disabled = false;
+        // if (customInput) customInput.disabled = false;
         if (funFactInput) funFactInput.disabled = false;
         if (actionsDiv) {
             actionsDiv.style.display = 'flex';
@@ -460,15 +464,15 @@ window.toggleEditMode = function(dayId) {
             }
         }
         
-        // Zmień style pól na aktywne
-        if (countrySelect) {
-            countrySelect.style.background = 'white';
-            countrySelect.style.cursor = 'pointer';
-        }
-        if (customInput) {
-            customInput.style.background = 'white';
-            customInput.style.cursor = 'text';
-        }
+        // Zmień style pól na aktywne (państwo pozostaje zablokowane)
+        // if (countrySelect) {
+        //     countrySelect.style.background = 'white';
+        //     countrySelect.style.cursor = 'pointer';
+        // }
+        // if (customInput) {
+        //     customInput.style.background = 'white';
+        //     customInput.style.cursor = 'text';
+        // }
         if (funFactInput) {
             funFactInput.style.background = 'white';
             funFactInput.style.cursor = 'text';
@@ -488,7 +492,8 @@ window.cancelEditDay = function(dayId) {
     const day = allCalendarDays.find(d => d.id == dayId);
     if (!day) return;
     
-    const country = day.country || dayToCountryMap[day.day_number]?.country || 'Brak państwa';
+    // Państwo jest zawsze w kodzie (dayToCountryMap), nie w bazie danych
+    const country = dayToCountryMap[day.day_number]?.country || 'Brak państwa';
     const funFact = day.fun_fact || dayToCountryMap[day.day_number]?.funFact || 'Brak ciekawostki';
     const isCustomCountry = !countriesList.find(c => c.name === country) && country;
     
@@ -738,37 +743,17 @@ window.saveUserName = async function(userId) {
     }
 };
 
-// Zapisz informacje o dniu (państwo i ciekawostka)
+// Zapisz informacje o dniu (tylko ciekawostka - państwo jest w kodzie i nie można go zmieniać)
 window.saveDayInfo = async function(dayId) {
     const dayCard = document.querySelector(`.day-card[data-day-id="${dayId}"]`);
     if (!dayCard) return;
     
-    const countrySelect = dayCard.querySelector('.day-country-select');
-    const customInput = dayCard.querySelector('.day-country-custom-input');
     const funFactInput = dayCard.querySelector('.day-funfact-input');
-    
-    let country = null;
-    
-    // Sprawdź czy wybrano "Inne państwo"
-    if (countrySelect?.value === '__OTHER__') {
-        country = customInput?.value?.trim() || null;
-        if (!country) {
-            showNotification('Wpisz nazwę państwa w polu tekstowym', 'error');
-            return;
-        }
-    } else {
-        country = countrySelect?.value?.trim() || null;
-    }
     
     const funFact = funFactInput?.value?.trim() || null;
     
-    if (!country) {
-        showNotification('Wybierz państwo z listy lub wpisz niestandardowe', 'error');
-        return;
-    }
-    
     try {
-        // Zapisz tylko fun_fact (kolumny country i coordinates nie istnieją w schemacie)
+        // Zapisz tylko fun_fact (państwo jest w kodzie dayToCountryMap i nie można go zmieniać)
         const updateData = {
             fun_fact: funFact || null
         };
@@ -2184,6 +2169,7 @@ window.showAdminPhotoModal = async function(photoUrl, filePath) {
                     <img id="admin-modal-photo-img" src="" alt="Zdjęcie zadania" style="max-width: 100%; max-height: 85vh; border-radius: 8px; border: 1px solid #e8e8ed; display: none;">
                     <div id="admin-photo-error" style="display: none; padding: 40px; color: #d32f2f;">
                         <p>⚠️ Nie można załadować zdjęcia</p>
+                        <p id="admin-photo-error-details" style="font-size: 0.875rem; margin-top: 12px; color: #6e6e73;"></p>
                         <button onclick="this.closest('.modal').style.display='none'" class="btn btn-secondary" style="margin-top: 16px;">Zamknij</button>
                     </div>
                 </div>
@@ -2217,6 +2203,9 @@ window.showAdminPhotoModal = async function(photoUrl, filePath) {
     if (errorDiv) errorDiv.style.display = 'none';
     
     // Walidacja parametrów
+    console.log('🔍 showAdminPhotoModal - photoUrl:', photoUrl);
+    console.log('🔍 showAdminPhotoModal - filePath:', filePath);
+    
     if (!photoUrl) {
         console.error('❌ Brak URL zdjęcia');
         if (loadingDiv) loadingDiv.style.display = 'none';
@@ -2224,51 +2213,130 @@ window.showAdminPhotoModal = async function(photoUrl, filePath) {
         return;
     }
     
+    // Wyciągnij ścieżkę pliku z URL jeśli nie została podana
+    let pathToUse = filePath;
+    
+    // Jeśli nie mamy ścieżki, spróbuj wyciągnąć ją z URL
+    if (!pathToUse || pathToUse.trim() === '') {
+        console.log('🔍 Brak ścieżki pliku, próbuję wyciągnąć z URL');
+        
+        if (photoUrl) {
+            // Różne formaty URL
+            if (photoUrl.includes('/task-responses/')) {
+                const match = photoUrl.match(/task-responses\/(.+?)(\?|$)/);
+                if (match) {
+                    pathToUse = match[1];
+                }
+            } else if (photoUrl.includes('task-responses/')) {
+                const match = photoUrl.match(/task-responses[\/]?(.+?)(\?|$)/);
+                if (match) {
+                    pathToUse = match[1].replace(/^\/+/, '');
+                }
+            } else if (!photoUrl.startsWith('http')) {
+                // Może to być już sama ścieżka
+                pathToUse = photoUrl.replace(/^\/+/, '');
+            } else {
+                // Spróbuj wyciągnąć z końca URL
+                const parts = photoUrl.split('/');
+                const lastPart = parts[parts.length - 1];
+                if (lastPart && lastPart !== photoUrl) {
+                    pathToUse = lastPart;
+                }
+            }
+        }
+    }
+    
+    // Usuń query string i fragmenty ze ścieżki
+    if (pathToUse) {
+        pathToUse = pathToUse.split('?')[0].split('#')[0].trim();
+        // Usuń bucket name z początku jeśli jest
+        if (pathToUse.startsWith('task-responses/')) {
+            pathToUse = pathToUse.replace(/^task-responses\//, '');
+        }
+    }
+    
+    console.log('🔍 Wyciągnięta ścieżka pliku:', pathToUse);
+    
     // Załaduj zdjęcie - najpierw spróbuj publicznego URL
     if (photoImg) {
+        let triedSignedUrl = false;
+        
         photoImg.onload = function() {
+            console.log('✅ Zdjęcie załadowane pomyślnie');
             if (loadingDiv) loadingDiv.style.display = 'none';
             photoImg.style.display = 'block';
         };
         
         photoImg.onerror = async function() {
+            if (triedSignedUrl) {
+                // Jeśli już próbowaliśmy signed URL, pokaż błąd
+                console.error('❌ Nie można załadować zdjęcia nawet z signed URL');
+                if (loadingDiv) loadingDiv.style.display = 'none';
+                if (errorDiv) errorDiv.style.display = 'block';
+                photoImg.style.display = 'none';
+                return;
+            }
+            
             console.warn('⚠️ Błąd ładowania zdjęcia publicznym URL, próbuję signed URL');
             
+            // Jeśli URL wygląda na signed URL, nie próbuj generować go ponownie
+            if (photoUrl.includes('?token=') || photoUrl.includes('&token=')) {
+                console.log('⚠️ URL wygląda na signed URL - sprawdzam czy można go użyć');
+                // Spróbuj załadować ponownie (może to problem z CORS lub czasem)
+                photoImg.src = photoUrl + (photoUrl.includes('?') ? '&' : '?') + '_t=' + Date.now();
+                return;
+            }
+            
+            triedSignedUrl = true;
+            
             // Spróbuj użyć signed URL jako fallback
-            if (filePath && window.supabase) {
+            if (pathToUse && pathToUse.trim() !== '' && window.supabase) {
                 try {
-                    // Wyciągnij ścieżkę z URL jeśli filePath nie jest podane
-                    let pathToUse = filePath;
-                    if (!pathToUse && photoUrl.includes('/task-responses/')) {
-                        const match = photoUrl.match(/task-responses\/(.+?)(\?|$)/);
-                        if (match) {
-                            pathToUse = match[1];
-                        }
-                    }
+                    console.log('🔐 Próbuję wygenerować signed URL dla ścieżki:', pathToUse);
                     
-                    if (pathToUse) {
-                        const { data, error } = await window.supabase.storage
-                            .from('task-responses')
-                            .createSignedUrl(pathToUse, 3600);
-                        
-                        if (!error && data && data.signedUrl) {
-                            console.log('✅ Używam signed URL');
-                            photoImg.src = data.signedUrl;
-                            return;
-                        }
+                    const { data, error } = await window.supabase.storage
+                        .from('task-responses')
+                        .createSignedUrl(pathToUse, 3600);
+                    
+                    if (error) {
+                        console.error('❌ Błąd generowania signed URL:', error);
+                    } else if (data && data.signedUrl) {
+                        console.log('✅ Wygenerowano signed URL');
+                        // Resetuj handler błędu aby uniknąć pętli
+                        photoImg.onerror = function() {
+                            console.error('❌ Błąd ładowania signed URL');
+                            if (loadingDiv) loadingDiv.style.display = 'none';
+                            if (errorDiv) errorDiv.style.display = 'block';
+                            photoImg.style.display = 'none';
+                        };
+                        photoImg.src = data.signedUrl;
+                        return;
+                    } else {
+                        console.error('❌ Brak signed URL w odpowiedzi');
                     }
                 } catch (signedError) {
-                    console.error('❌ Błąd generowania signed URL:', signedError);
+                    console.error('❌ Błąd generowania signed URL (catch):', signedError);
                 }
+            } else {
+                console.error('❌ Brak ścieżki pliku lub supabase');
             }
             
             // Jeśli wszystko zawiodło, pokaż błąd
+            const errorDetails = document.getElementById('admin-photo-error-details');
+            if (errorDetails) {
+                let details = 'URL: ' + (photoUrl || 'brak');
+                if (pathToUse) {
+                    details += '<br>Ścieżka: ' + pathToUse;
+                }
+                errorDetails.innerHTML = details;
+            }
             if (loadingDiv) loadingDiv.style.display = 'none';
             if (errorDiv) errorDiv.style.display = 'block';
             photoImg.style.display = 'none';
         };
         
         // Spróbuj załadować zdjęcie
+        console.log('📤 Próbuję załadować zdjęcie z URL:', photoUrl);
         photoImg.src = photoUrl;
     }
 };
@@ -2503,37 +2571,65 @@ function displayVerificationTasks(tasks) {
                             
                             // Wygeneruj URL (synchronizacja dla template string)
                             let finalUrl = photoUrl;
+                            
+                            // Jeśli URL nie zawiera pełnej ścieżki, zbuduj ją
                             if (!finalUrl.includes('/storage/v1/object/public/')) {
                                 const projectUrl = window.SUPABASE_CONFIG?.URL || '';
                                 if (projectUrl) {
                                     const baseUrl = projectUrl.replace(/\/$/, '');
-                                    let filePath = photoUrl;
+                                    
+                                    // Wyciągnij ścieżkę pliku z oryginalnego URL
+                                    let filePathFromUrl = photoUrl;
+                                    
+                                    // Jeśli URL zawiera już część ścieżki, wyciągnij ją
                                     if (photoUrl.includes('task-responses/')) {
-                                        const match = photoUrl.match(/task-responses[\/]?(.+)$/);
-                                        if (match) filePath = match[1].replace(/^\/+/, '');
+                                        const match = photoUrl.match(/task-responses[\/]?(.+?)(\?|$)/);
+                                        if (match) {
+                                            filePathFromUrl = match[1].replace(/^\/+/, '');
+                                        }
                                     } else if (!photoUrl.startsWith('http')) {
-                                        filePath = photoUrl;
+                                        // Jeśli to tylko ścieżka bez http
+                                        filePathFromUrl = photoUrl.replace(/^\/+/, '');
+                                    } else {
+                                        // Jeśli to pełny URL ale bez storage path, spróbuj wyciągnąć ostatnią część
+                                        const parts = photoUrl.split('/');
+                                        filePathFromUrl = parts[parts.length - 1];
                                     }
-                                    finalUrl = `${baseUrl}/storage/v1/object/public/task-responses/${filePath}`;
+                                    
+                                    finalUrl = `${baseUrl}/storage/v1/object/public/task-responses/${filePathFromUrl}`;
                                 }
                             }
                             
-                            // Wyciągnij ścieżkę pliku z URL (bez bucket name i query string)
-                            let filePath = finalUrl;
+                            // Wyciągnij ścieżkę pliku z finalnego URL (bez bucket name i query string)
+                            let filePath = '';
                             if (finalUrl.includes('/task-responses/')) {
                                 const match = finalUrl.match(/task-responses\/(.+?)(\?|$)/);
                                 if (match) {
                                     filePath = match[1];
                                 }
+                            } else if (photoUrl.includes('task-responses/')) {
+                                // Fallback - wyciągnij z oryginalnego URL
+                                const match = photoUrl.match(/task-responses[\/]?(.+?)(\?|$)/);
+                                if (match) {
+                                    filePath = match[1].replace(/^\/+/, '');
+                                }
+                            } else if (!photoUrl.startsWith('http')) {
+                                // Jeśli to tylko ścieżka
+                                filePath = photoUrl.replace(/^\/+/, '');
                             }
+                            
                             // Usuń query string jeśli istnieje
                             if (filePath.includes('?')) {
                                 filePath = filePath.split('?')[0];
                             }
                             
+                            console.log('🔍 displayVerificationTasks - photoUrl:', photoUrl);
+                            console.log('🔍 displayVerificationTasks - finalUrl:', finalUrl);
+                            console.log('🔍 displayVerificationTasks - filePath:', filePath);
+                            
                             // Escapowanie dla JavaScript string w onclick
                             const escapedFinalUrl = finalUrl.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                            const escapedFilePath = filePath.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                            const escapedFilePath = (filePath || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
                             
                             return `
                             <div class="verification-photo-container" style="margin-top: 16px;" data-file-path="${filePath}">

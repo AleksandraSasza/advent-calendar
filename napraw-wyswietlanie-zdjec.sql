@@ -34,3 +34,4 @@ USING (
 -- 3. Jeśli chcesz bardziej bezpieczne rozwiązanie, użyj signed URL-i zamiast publicznych
 -- =========================================================
 
+

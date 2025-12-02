@@ -19,3 +19,4 @@ if (typeof window !== 'undefined') {
     window.SUPABASE_CONFIG = SUPABASE_CONFIG;
 }
 
+

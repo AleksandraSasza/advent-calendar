@@ -173,3 +173,4 @@ Admin musi przypisać zadanie przez panel admina lub bezpośrednio w Supabase.
 4. ✅ Przypisz zadania do użytkowników w `assigned_tasks`
 5. ✅ Przetestuj aplikację - dane powinny się wyświetlać z Supabase!
 
+

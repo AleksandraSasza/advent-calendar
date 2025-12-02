@@ -219,3 +219,4 @@ Oba zadania są dla Dnia 1 (Polska), ale różne treści!
 - Każdy użytkownik może mieć inne zadania
 - Łatwiejsze zarządzanie przez panel admina
 
+

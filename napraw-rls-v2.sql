@@ -42,3 +42,4 @@ SELECT * FROM profiles WHERE id = auth.uid();
 -- 4. Sprawdź konsolę przeglądarki - powinno działać!
 -- =========================================================
 
+

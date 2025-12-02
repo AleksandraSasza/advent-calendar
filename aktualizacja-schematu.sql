@@ -25,3 +25,4 @@ CREATE INDEX IF NOT EXISTS idx_calendar_days_country ON calendar_days(country);
 --     coordinates = '[52.2297, 21.0122]'::jsonb
 -- WHERE day_number = 1;
 
+

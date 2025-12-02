@@ -47,3 +47,4 @@ SELECT * FROM profiles WHERE id = auth.uid();
 -- 4. Jeśli polityki nie działają, może trzeba je naprawić
 -- =========================================================
 
+

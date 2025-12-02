@@ -70,3 +70,4 @@ WHERE tablename = 'profiles';
 -- 4. Spróbuj zalogować się ponownie w aplikacji
 -- =========================================================
 
+

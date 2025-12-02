@@ -51,3 +51,4 @@ WHERE email = 'twoj-email@example.com';
 -- 4. Zaloguj się ponownie - powinieneś być przekierowany do /admin
 -- =========================================================
 
+
