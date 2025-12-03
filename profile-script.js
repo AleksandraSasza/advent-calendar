@@ -88,6 +88,7 @@ async function loadUserProfile() {
         
         displayUserInfo(userData);
         loadUserStats();
+        loadUserQuestions(); // Załaduj pytania przypisane do użytkownika
     } catch (error) {
         console.error('Błąd ładowania profilu:', error);
         showNotification('Błąd ładowania profilu', 'error');
@@ -356,6 +357,170 @@ async function deleteAccount() {
         console.error('Błąd usuwania konta:', error);
         showNotification('Błąd połączenia z serwerem', 'error');
     }
+}
+
+// Ładowanie pytań przypisanych do użytkownika
+async function loadUserQuestions() {
+    if (!supabase) {
+        return;
+    }
+    
+    try {
+        // Pobierz sesję
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError || !session) {
+            return;
+        }
+        
+        // Pobierz pytania przypisane do użytkownika
+        const { data: questions, error } = await supabase
+            .from('user_quiz_questions')
+            .select('*')
+            .eq('target_user_id', session.user.id)
+            .order('created_at', { ascending: false });
+        
+        if (error) {
+            console.error('Błąd ładowania pytań:', error);
+            return;
+        }
+        
+        displayUserQuestions(questions || []);
+    } catch (error) {
+        console.error('Błąd ładowania pytań:', error);
+    }
+}
+
+// Wyświetlanie pytań użytkownika
+function displayUserQuestions(questions) {
+    const container = document.getElementById('user-questions-container');
+    
+    if (!container) {
+        return;
+    }
+    
+    if (questions.length === 0) {
+        container.innerHTML = '<p style="color: #6e6e73; font-style: italic;">Nie masz jeszcze przypisanych pytań. Administrator może dodać pytania w panelu administracyjnym.</p>';
+        return;
+    }
+    
+    container.innerHTML = questions.map((question, index) => {
+        const isAnswered = question.target_user_answer !== null;
+        const answeredText = isAnswered 
+            ? `Odpowiedziałeś: <strong>${question.target_user_answer === 1 ? question.option_1 : question.option_2}</strong>`
+            : '';
+        const answeredDate = isAnswered && question.answered_at
+            ? ` (${new Date(question.answered_at).toLocaleDateString('pl-PL')})`
+            : '';
+        
+        return `
+            <div class="user-question-item" data-question-id="${question.id}" style="
+                margin-bottom: 24px;
+                padding: 20px;
+                background: ${isAnswered ? '#f0f9f0' : '#fff'};
+                border: 1px solid ${isAnswered ? '#1a5d1a' : '#e8e8ed'};
+                border-radius: 8px;
+            ">
+                <div style="margin-bottom: 16px;">
+                    <h4 style="margin: 0 0 8px 0; font-size: 1rem; font-weight: 600; color: #1d1d1f;">Pytanie ${index + 1}</h4>
+                    <p style="margin: 0; font-size: 0.9375rem; color: #1d1d1f; line-height: 1.5;">${escapeHtml(question.question_text)}</p>
+                    ${isAnswered ? `<p style="margin: 8px 0 0 0; font-size: 0.875rem; color: #1a5d1a;">${answeredText}${answeredDate}</p>` : ''}
+                </div>
+                
+                ${!isAnswered ? `
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: flex; align-items: center; padding: 12px; background: white; border: 2px solid #e8e8ed; border-radius: 8px; cursor: pointer; margin-bottom: 8px; transition: all 0.2s ease;">
+                            <input type="radio" name="question-${question.id}" value="1" style="margin-right: 12px; width: 20px; height: 20px; cursor: pointer;">
+                            <span style="font-size: 0.9375rem; color: #1d1d1f;">${escapeHtml(question.option_1)}</span>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 12px; background: white; border: 2px solid #e8e8ed; border-radius: 8px; cursor: pointer; transition: all 0.2s ease;">
+                            <input type="radio" name="question-${question.id}" value="2" style="margin-right: 12px; width: 20px; height: 20px; cursor: pointer;">
+                            <span style="font-size: 0.9375rem; color: #1d1d1f;">${escapeHtml(question.option_2)}</span>
+                        </label>
+                    </div>
+                    <button class="btn btn-primary save-question-btn" data-question-id="${question.id}" style="
+                        padding: 10px 20px;
+                        background: #1a5d1a;
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-size: 0.875rem;
+                        font-weight: 500;
+                        transition: all 0.2s ease;
+                    ">Zapisz odpowiedź</button>
+                ` : ''}
+            </div>
+        `;
+    }).join('');
+    
+    // Dodaj event listenery dla przycisków zapisywania
+    container.querySelectorAll('.save-question-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const questionId = this.dataset.questionId;
+            const questionItem = container.querySelector(`[data-question-id="${questionId}"]`);
+            const selectedOption = questionItem.querySelector(`input[name="question-${questionId}"]:checked`);
+            
+            if (!selectedOption) {
+                showNotification('Wybierz jedną z opcji', 'error');
+                return;
+            }
+            
+            const answer = parseInt(selectedOption.value);
+            await saveUserAnswer(questionId, answer);
+        });
+    });
+    
+    // Dodaj hover effect dla radio buttonów
+    container.querySelectorAll('label').forEach(label => {
+        label.addEventListener('mouseenter', function() {
+            if (!this.querySelector('input').checked) {
+                this.style.borderColor = '#1a5d1a';
+                this.style.background = '#f0f9f0';
+            }
+        });
+        label.addEventListener('mouseleave', function() {
+            if (!this.querySelector('input').checked) {
+                this.style.borderColor = '#e8e8ed';
+                this.style.background = 'white';
+            }
+        });
+    });
+}
+
+// Zapis odpowiedzi użytkownika
+async function saveUserAnswer(questionId, answer) {
+    if (!supabase) {
+        showNotification('Błąd konfiguracji', 'error');
+        return;
+    }
+    
+    try {
+        const { error } = await supabase
+            .from('user_quiz_questions')
+            .update({
+                target_user_answer: answer,
+                answered_at: new Date().toISOString()
+            })
+            .eq('id', questionId);
+        
+        if (error) throw error;
+        
+        showNotification('Odpowiedź została zapisana', 'success');
+        
+        // Przeładuj pytania
+        await loadUserQuestions();
+    } catch (error) {
+        console.error('Błąd zapisywania odpowiedzi:', error);
+        showNotification('Błąd zapisywania odpowiedzi: ' + (error.message || 'Nieznany błąd'), 'error');
+    }
+}
+
+// Funkcja pomocnicza do escape HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // Funkcja powiadomień

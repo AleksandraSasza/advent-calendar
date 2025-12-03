@@ -140,6 +140,25 @@
                     <h3 id="task-title"><span id="task-title-name"></span></h3>
                     <p id="task-description">Przygotuj listę prezentów dla najbliższych!</p>
                     
+                    <!-- Sekcja odpowiedzi tekstowej z weryfikacją (tylko dla zadań typu text_response_verified) -->
+                    <div id="text-response-section" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e8e8ed;">
+                        <!-- Wyświetlanie przesłanej odpowiedzi (tylko dla wykonanych zadań) -->
+                        <div id="view-text-response-container" style="display: none; margin-bottom: 12px;">
+                            <label style="display: block; font-weight: 500; margin-bottom: 8px; color: #1d1d1f;">Twoja odpowiedź:</label>
+                            <div id="view-text-response" style="padding: 12px; background: #f5f5f7; border-radius: 8px; color: #1d1d1f; font-size: 0.875rem; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word;"></div>
+                        </div>
+                        
+                        <!-- Sekcja dodawania odpowiedzi (tylko dla niezakończonych zadań) -->
+                        <div id="add-text-response-section">
+                            <label for="task-text-response" style="display: block; font-weight: 500; margin-bottom: 8px; color: #1d1d1f;">Wpisz odpowiedź:</label>
+                            <textarea id="task-text-response" rows="4" placeholder="Wpisz swoją odpowiedź tutaj..." style="width: 100%; padding: 12px; border: 2px solid #e8e8ed; border-radius: 8px; font-size: 0.875rem; font-family: inherit; resize: vertical; min-height: 100px;"></textarea>
+                        </div>
+                        
+                        <div id="text-verification-message" style="display: none; margin-top: 12px; padding: 12px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; color: #856404; font-size: 0.875rem;">
+                            ⚠️ Zadanie zostanie uznane jako zakończone po weryfikacji odpowiedzi przez administratora.
+                        </div>
+                    </div>
+                    
                     <!-- Sekcja uploadu zdjęcia (tylko dla zadań typu photo_upload) -->
                     <div id="photo-upload-section" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e8e8ed;">
                         <!-- Link do zobaczenia zdjęcia (tylko dla wykonanych zadań) -->

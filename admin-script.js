@@ -374,10 +374,10 @@ function populateAssignForm() {
 const dayToCountryMap = {
     1: { country: "Niemcy", funFact: "🎅 W Niemczech tradycja jarmarków bożonarodzeniowych sięga średniowiecza! Słynne są pierniki norymberskie." },
     2: { country: "Finlandia", funFact: "🎅 W Finlandii Święty Mikołaj mieszka w Rovaniemi na kole podbiegunowym! Można go odwiedzić przez cały rok w Wiosce Świętego Mikołaja." },
-    3: { country: "Francja", funFact: "🎁 We Francji prezenty przynosi Père Noël (Ojciec Święty Mikołaj), a dzieci zostawiają mu wino i ciastka!" },
+    3: { country: "Wielka Brytania", funFact: "🎄 Tradycja choinek bożonarodzeniowych przyszła do UK z Niemiec dzięki księciu Albertowi w czasach królowej Wiktorii!" },
     4: { country: "Włochy", funFact: "🎄 We Włoszech prezenty przynosi Babbo Natale, ale prawdziwa magia dzieje się 6 stycznia - Święto Trzech Króli!" },
     5: { country: "Hiszpania", funFact: "👑 W Hiszpanii główne prezenty przychodzą 6 stycznia od Trzech Króli! Dzieci zostawiają im buty wypełnione słomą dla wielbłądów." },
-    6: { country: "Wielka Brytania", funFact: "🎄 Tradycja choinek bożonarodzeniowych przyszła do UK z Niemiec dzięki księciu Albertowi w czasach królowej Wiktorii!" },
+    6: { country: "Francja", funFact: "🎁 We Francji prezenty przynosi Père Noël (Ojciec Święty Mikołaj), a dzieci zostawiają mu wino i ciastka!" },
     7: { country: "Rosja", funFact: "❄️ W Rosji Nowy Rok jest ważniejszy niż Boże Narodzenie! Dziadek Mróz (Ded Moroz) przynosi prezenty 31 grudnia." },
     8: { country: "Chiny", funFact: "🍊 W Chinach święta zimowe to Chiński Nowy Rok! Czerwony kolor symbolizuje szczęście i prosperity." },
     9: { country: "Japonia", funFact: "🍗 W Japonii tradycją jest jedzenie KFC na Boże Narodzenie! Trzeba rezerwować kurczaka z tygodniowym wyprzedzeniem." },
@@ -689,9 +689,12 @@ function displayTaskTemplates() {
     
     // Mapowanie typów zadań na polskie nazwy
     const taskTypeLabels = {
-        'text_response': 'Odpowiedź tekstowa',
+        'text_response': 'Bez weryfikacji',
+        'text_response_verified': 'Odpowiedź tekstowa (z weryfikacją)',
         'quiz': 'Quiz',
-        'photo_upload': 'Dodaj zdjęcie'
+        'photo_upload': 'Dodaj zdjęcie',
+        'checkbox': 'Checkbox',
+        'custom': 'Niestandardowe'
     };
     
     // Podziel szablony na dwie grupy: bez przypisania i z przypisaniem
@@ -2675,6 +2678,8 @@ function displayVerificationTasks(tasks) {
                 const user = task.profiles;
                 const userName = user?.display_name || user?.email || 'Nieznany użytkownik';
                 const photoUrl = task.response_media_url;
+                const responseText = task.response_text;
+                const taskType = template?.task_type || 'text_response';
                 
                 return `
                     <div class="verification-task-card">
@@ -2682,9 +2687,16 @@ function displayVerificationTasks(tasks) {
                             <div>
                                 <h3>Dzień ${day?.day_number || '?'} - ${template?.title || 'Brak tytułu'}</h3>
                                 <p style="color: #6e6e73; font-size: 0.875rem; margin-top: 4px;">Użytkownik: ${userName}</p>
+                                <p style="color: #6e6e73; font-size: 0.8125rem; margin-top: 2px;">Typ: ${taskType === 'photo_upload' ? 'Zdjęcie' : taskType === 'text_response_verified' ? 'Odpowiedź tekstowa' : 'Inne'}</p>
                                 ${task.completed_at ? `<p style="color: #6e6e73; font-size: 0.8125rem; margin-top: 2px;">Przesłano: ${new Date(task.completed_at).toLocaleString('pl-PL')}</p>` : ''}
                             </div>
                         </div>
+                        ${taskType === 'text_response_verified' && responseText ? `
+                            <div style="margin-top: 16px; padding: 16px; background: #f5f5f7; border-radius: 8px; border: 1px solid #e8e8ed;">
+                                <p style="font-weight: 500; margin-bottom: 8px; color: #1d1d1f; font-size: 0.875rem;">Odpowiedź użytkownika:</p>
+                                <p style="color: #1d1d1f; font-size: 0.875rem; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word;">${responseText.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>
+                            </div>
+                        ` : ''}
                         ${photoUrl ? (() => {
                             // Funkcja do wygenerowania signed URL (jeśli publiczny nie działa)
                             async function getPhotoUrl(url) {

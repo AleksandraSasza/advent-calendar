@@ -126,7 +126,7 @@
             <div class="admin-section" id="section-verification" data-section="verification">
                 <h2>✅ Zadania do akceptacji</h2>
                 <p style="color: #6e6e73; margin-bottom: 20px; font-size: 0.875rem;">
-                    Zadania ze zdjęciami wymagają weryfikacji przed oznaczeniem jako wykonane.
+                    Zadania ze zdjęciami i odpowiedziami tekstowymi wymagają weryfikacji przed oznaczeniem jako wykonane.
                 </p>
                 <div id="verification-tasks-list" class="verification-tasks-list">
                     <p>Ładowanie zadań...</p>
@@ -235,11 +235,11 @@
                             <div class="form-group">
                                 <label for="template-type">Typ zadania:</label>
                                 <select id="template-type" required>
-                                    <option value="text_response">Odpowiedź tekstowa</option>
+                                    <option value="text_response">Bez weryfikacji</option>
+                                    <option value="text_response_verified">Odpowiedź tekstowa (z weryfikacją)</option>
                                     <option value="quiz">Quiz</option>
                                     <option value="photo_upload">Dodaj zdjęcie</option>
                                     <option value="checkbox">Checkbox</option>
-                                    <option value="link">Link</option>
                                     <option value="custom">Niestandardowe</option>
                                 </select>
                             </div>

@@ -36,9 +36,9 @@ const dayToCountry = {
         coordinates: [60.1699, 24.9384] // Helsinki
     },
     3: {
-        country: "Francja",
-        funFact: "🎁 We Francji prezenty przynosi Père Noël (Ojciec Święty Mikołaj), a dzieci zostawiają mu wino i ciastka!",
-        coordinates: [46.2276, 2.2137] // Paryż
+        country: "Wielka Brytania",
+        funFact: "🎄 Tradycja choinek bożonarodzeniowych przyszła do UK z Niemiec dzięki księciu Albertowi w czasach królowej Wiktorii!",
+        coordinates: [51.5074, -0.1278] // Londyn
     },
     4: {
         country: "Włochy",
@@ -51,9 +51,9 @@ const dayToCountry = {
         coordinates: [40.4637, -3.7492] // Madryt
     },
     6: {
-        country: "Wielka Brytania",
-        funFact: "🎄 Tradycja choinek bożonarodzeniowych przyszła do UK z Niemiec dzięki księciu Albertowi w czasach królowej Wiktorii!",
-        coordinates: [55.3781, -3.4360] // Londyn
+        country: "Francja",
+        funFact: "🎁 We Francji prezenty przynosi Père Noël (Ojciec Święty Mikołaj), a dzieci zostawiają mu wino i ciastka!",
+        coordinates: [46.2276, 2.2137] // Paryż
     },
     7: {
         country: "Rosja",
@@ -584,8 +584,77 @@ function openTaskModal(day) {
         const viewPhotoLinkContainer = document.getElementById('view-photo-link-container');
         const viewPhotoLink = document.getElementById('view-photo-link');
         
+        // Sekcja odpowiedzi tekstowej z weryfikacją
+        const textResponseSection = document.getElementById('text-response-section');
+        const viewTextResponseContainer = document.getElementById('view-text-response-container');
+        const viewTextResponse = document.getElementById('view-text-response');
+        const addTextResponseSection = document.getElementById('add-text-response-section');
+        const taskTextResponse = document.getElementById('task-text-response');
+        const textVerificationMessage = document.getElementById('text-verification-message');
+        
         // Sprawdź status tylko jeśli zadanie istnieje
         const isCompleted = taskData.status === 'completed' || taskData.status === 'pending_verification' || completedDays.has(dayNumber);
+        
+        // Obsługa odpowiedzi tekstowej z weryfikacją
+        if (taskData.task_type === 'text_response_verified') {
+            textResponseSection.style.display = 'block';
+            
+            // Jeśli zadanie jest wykonane lub czeka na weryfikację
+            if (isCompleted) {
+                // Ukryj sekcję dodawania odpowiedzi
+                if (addTextResponseSection) {
+                    addTextResponseSection.style.display = 'none';
+                }
+                
+                // Pokaż przesłaną odpowiedź (jeśli istnieje)
+                if (taskData.response_text) {
+                    if (viewTextResponseContainer) {
+                        viewTextResponseContainer.style.display = 'block';
+                    }
+                    if (viewTextResponse) {
+                        viewTextResponse.textContent = taskData.response_text;
+                    }
+                } else {
+                    if (viewTextResponseContainer) {
+                        viewTextResponseContainer.style.display = 'none';
+                    }
+                }
+                
+                // Pokaż komunikat o weryfikacji tylko dla pending_verification
+                if (textVerificationMessage) {
+                    if (taskData.status === 'pending_verification') {
+                        textVerificationMessage.style.display = 'block';
+                    } else {
+                        textVerificationMessage.style.display = 'none';
+                    }
+                }
+            } else {
+                // Zadanie nie jest wykonane - pokaż możliwość dodania odpowiedzi
+                if (addTextResponseSection) {
+                    addTextResponseSection.style.display = 'block';
+                }
+                if (viewTextResponseContainer) {
+                    viewTextResponseContainer.style.display = 'none';
+                }
+                
+                // Jeśli odpowiedź już została przesłana (ale zadanie nie jest wykonane), wypełnij pole
+                if (taskData.response_text && taskTextResponse) {
+                    taskTextResponse.value = taskData.response_text;
+                } else if (taskTextResponse) {
+                    taskTextResponse.value = '';
+                }
+                
+                // Pokaż komunikat o weryfikacji dla zadań z odpowiedzią tekstową
+                if (textVerificationMessage) {
+                    textVerificationMessage.style.display = 'block';
+                }
+            }
+        } else {
+            textResponseSection.style.display = 'none';
+            if (textVerificationMessage) {
+                textVerificationMessage.style.display = 'none';
+            }
+        }
         
         if (taskData.task_type === 'photo_upload') {
             photoUploadSection.style.display = 'block';
@@ -770,9 +839,11 @@ function openTaskModal(day) {
             // Pokaż przycisk "Oznacz jako wykonane" tylko dla niezakończonych zadań
             markButton.style.display = 'inline-flex';
             
-            // Dla zadań ze zdjęciami zmień tekst przycisku
+            // Dla zadań ze zdjęciami i odpowiedzią tekstową z weryfikacją zmień tekst przycisku
             if (taskData.task_type === 'photo_upload') {
                 markButton.textContent = 'Prześlij zdjęcie do weryfikacji';
+            } else if (taskData.task_type === 'text_response_verified') {
+                markButton.textContent = 'Prześlij odpowiedź do weryfikacji';
             } else {
                 markButton.textContent = 'Oznacz jako wykonane';
             }
@@ -946,6 +1017,20 @@ async function markTaskCompleted() {
         }
         
         let mediaUrl = taskData.response_media_url || null;
+        let responseText = taskData.response_text || null;
+        
+        // Jeśli zadanie wymaga odpowiedzi tekstowej z weryfikacją, sprawdź czy została wpisana
+        if (taskData.task_type === 'text_response_verified') {
+            const textResponseInput = document.getElementById('task-text-response');
+            const responseTextValue = textResponseInput?.value.trim() || '';
+            
+            if (!responseTextValue) {
+                showNotification('Musisz wpisać odpowiedź, aby oznaczyć zadanie jako wykonane', 'error');
+                return;
+            }
+            
+            responseText = responseTextValue;
+        }
         
         // Jeśli zadanie wymaga zdjęcia, sprawdź czy zostało przesłane
         if (taskData.task_type === 'photo_upload') {
@@ -1075,8 +1160,8 @@ async function markTaskCompleted() {
             }
         }
         
-        // Dla zadań ze zdjęciami ustaw status 'pending_verification', dla innych 'completed'
-        // Sprawdź czy zadanie wymaga zdjęcia i czy zdjęcie zostało przesłane
+        // Dla zadań ze zdjęciami i odpowiedzią tekstową z weryfikacją ustaw status 'pending_verification', dla innych 'completed'
+        // Sprawdź czy zadanie wymaga zdjęcia/odpowiedzi i czy zostało przesłane
         let newStatus;
         if (taskData.task_type === 'photo_upload') {
             if (mediaUrl) {
@@ -1084,6 +1169,14 @@ async function markTaskCompleted() {
             } else {
                 // Jeśli zadanie wymaga zdjęcia, ale nie ma zdjęcia, nie można oznaczyć jako wykonane
                 showNotification('Musisz dodać zdjęcie, aby oznaczyć zadanie jako wykonane', 'error');
+                return;
+            }
+        } else if (taskData.task_type === 'text_response_verified') {
+            if (responseText) {
+                newStatus = 'pending_verification';
+            } else {
+                // Jeśli zadanie wymaga odpowiedzi, ale nie ma odpowiedzi, nie można oznaczyć jako wykonane
+                showNotification('Musisz wpisać odpowiedź, aby oznaczyć zadanie jako wykonane', 'error');
                 return;
             }
         } else {
@@ -1095,6 +1188,7 @@ async function markTaskCompleted() {
             userId: currentUser.id,
             newStatus: newStatus,
             mediaUrl: mediaUrl,
+            responseText: responseText,
             taskType: taskData.task_type
         });
         
@@ -1114,6 +1208,11 @@ async function markTaskCompleted() {
         // Jeśli jest zdjęcie, dodaj je do aktualizacji
         if (mediaUrl) {
             updateData.response_media_url = mediaUrl;
+        }
+        
+        // Jeśli jest odpowiedź tekstowa, dodaj ją do aktualizacji
+        if (responseText) {
+            updateData.response_text = responseText;
         }
         
         console.log('📤 Dane do aktualizacji:', updateData);
@@ -1164,6 +1263,9 @@ async function markTaskCompleted() {
         userTasks[currentDay].status = newStatus;
         if (mediaUrl) {
             userTasks[currentDay].response_media_url = mediaUrl;
+        }
+        if (responseText) {
+            userTasks[currentDay].response_text = responseText;
         }
         updateProgress();
         updateAllMarkers(); // Odśwież wszystkie markery (mogą się odblokować inne dni)
