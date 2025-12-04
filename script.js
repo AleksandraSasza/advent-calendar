@@ -41,9 +41,9 @@ const dayToCountry = {
         coordinates: [51.5074, -0.1278] // Londyn
     },
     4: {
-        country: "Włochy",
-        funFact: "🎄 We Włoszech prezenty przynosi Babbo Natale, ale prawdziwa magia dzieje się 6 stycznia - Święto Trzech Króli!",
-        coordinates: [41.9028, 12.4964] // Rzym
+        country: "Meksyk",
+        funFact: "🌟 W Meksyku tradycją są Las Posadas - 9-dniowe procesje i imprezy upamiętniające wędrówkę Marii i Józefa do Betlejem.",
+        coordinates: [23.6345, -102.5528] // Meksyk
     },
     5: {
         country: "Hiszpania",
@@ -56,14 +56,14 @@ const dayToCountry = {
         coordinates: [46.2276, 2.2137] // Paryż
     },
     7: {
-        country: "Rosja",
-        funFact: "❄️ W Rosji Nowy Rok jest ważniejszy niż Boże Narodzenie! Dziadek Mróz (Ded Moroz) przynosi prezenty 31 grudnia.",
-        coordinates: [61.5240, 105.3188] // Moskwa
+        country: "Kolumbia",
+        funFact: "🕯️ W Kolumbii Día de las Velitas (Dzień Świeczek) 7 grudnia rozpoczyna sezon świąteczny - miasta świecą tysiącami świec!",
+        coordinates: [4.7110, -74.0721] // Bogota
     },
     8: {
-        country: "Chiny",
-        funFact: "🍊 W Chinach święta zimowe to Chiński Nowy Rok! Czerwony kolor symbolizuje szczęście i prosperity.",
-        coordinates: [35.8617, 104.1954] // Pekin
+        country: "Włochy",
+        funFact: "🍝 We Włoszech tradycją jest jedzenie ryb w Wigilię! Włosi przygotowują La Vigilia - wielodaniową kolację z owocami morza, ale bez mięsa.",
+        coordinates: [41.9028, 12.4964] // Rzym
     },
     9: {
         country: "Japonia",
@@ -91,9 +91,9 @@ const dayToCountry = {
         coordinates: [56.1304, -106.3468] // Ottawa
     },
     14: {
-        country: "Meksyk",
-        funFact: "🌟 W Meksyku tradycją są Las Posadas - 9-dniowe procesje i imprezy upamiętniające wędrówkę Marii i Józefa do Betlejem.",
-        coordinates: [23.6345, -102.5528] // Meksyk
+        country: "Włochy",
+        funFact: "🎄 We Włoszech prezenty przynosi Babbo Natale, ale prawdziwa magia dzieje się 6 stycznia - Święto Trzech Króli!",
+        coordinates: [41.9028, 12.4964] // Rzym
     },
     15: {
         country: "Indie",
@@ -126,9 +126,9 @@ const dayToCountry = {
         coordinates: [-9.1900, -75.0152] // Lima
     },
     21: {
-        country: "Kolumbia",
-        funFact: "🕯️ W Kolumbii Día de las Velitas (Dzień Świeczek) 7 grudnia rozpoczyna sezon świąteczny - miasta świecą tysiącami świec!",
-        coordinates: [4.7110, -74.0721] // Bogota
+        country: "Rosja",
+        funFact: "❄️ W Rosji Nowy Rok jest ważniejszy niż Boże Narodzenie! Dziadek Mróz (Ded Moroz) przynosi prezenty 31 grudnia.",
+        coordinates: [61.5240, 105.3188] // Moskwa
     },
     22: {
         country: "Wenezuela",
@@ -220,6 +220,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     await loadCalendarDays(); // Załaduj dane dni z bazy przed utworzeniem mapy
     await loadUserTasks();
     await loadUserProgress();
+    await checkUserQuestions(); // Sprawdź czy użytkownik ma pytania
     createWorldMap();
     updateProgress();
     setupModalEvents();
@@ -1835,6 +1836,36 @@ function setupLogoutEvent() {
 }
 
 // Ulepszona funkcja powiadomień
+// Sprawdź czy użytkownik ma przypisane pytania
+async function checkUserQuestions() {
+    if (!supabase || !currentUser) return;
+    
+    try {
+        const { data: questions, error } = await supabase
+            .from('user_quiz_questions')
+            .select('id')
+            .eq('target_user_id', currentUser.id)
+            .limit(1);
+        
+        if (error) {
+            console.error('Błąd sprawdzania pytań użytkownika:', error);
+            return;
+        }
+        
+        // Pokaż przycisk jeśli użytkownik ma pytania
+        const buttonContainer = document.getElementById('user-questions-button-container');
+        if (buttonContainer) {
+            if (questions && questions.length > 0) {
+                buttonContainer.style.display = 'block';
+            } else {
+                buttonContainer.style.display = 'none';
+            }
+        }
+    } catch (error) {
+        console.error('Błąd sprawdzania pytań użytkownika:', error);
+    }
+}
+
 function showNotification(message, type = 'success') {
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;

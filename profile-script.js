@@ -422,8 +422,11 @@ function displayUserQuestions(questions) {
                 border-radius: 8px;
             ">
                 <div style="margin-bottom: 16px;">
-                    <h4 style="margin: 0 0 8px 0; font-size: 1rem; font-weight: 600; color: #1d1d1f;">Pytanie ${index + 1}</h4>
-                    <p style="margin: 0; font-size: 0.9375rem; color: #1d1d1f; line-height: 1.5;">${escapeHtml(question.question_text)}</p>
+                    <h4 style="margin: 0 0 12px 0; font-size: 1rem; font-weight: 600; color: #1d1d1f;">Pytanie ${index + 1}</h4>
+                    <div style="display: flex; gap: 16px; margin-bottom: 8px; flex-wrap: wrap;">
+                        <span style="font-size: 0.9375rem; color: #1d1d1f;">Opcja 1: <strong>${escapeHtml(question.option_1)}</strong></span>
+                        <span style="font-size: 0.9375rem; color: #1d1d1f;">Opcja 2: <strong>${escapeHtml(question.option_2)}</strong></span>
+                    </div>
                     ${isAnswered ? `<p style="margin: 8px 0 0 0; font-size: 0.875rem; color: #1a5d1a;">${answeredText}${answeredDate}</p>` : ''}
                 </div>
                 

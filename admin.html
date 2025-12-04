@@ -119,6 +119,14 @@
                 </svg>
                 <span>Dni kalendarza</span>
             </div>
+            <div class="admin-nav-item" data-section="user-questions">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 10h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M15 10h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Pytania do użytkowników</span>
+            </div>
         </nav>
         
         <div class="admin-content">
@@ -246,17 +254,49 @@
                             
                             <!-- Sekcja quizu (widoczna tylko dla typu quiz) -->
                             <div id="quiz-section" style="display: none; margin-top: 32px; padding-top: 24px; border-top: 1px solid #e8e8ed;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                                    <div>
-                                        <h3 style="margin: 0 0 4px 0; font-size: 1.125rem; font-weight: 600; color: #1d1d1f; letter-spacing: -0.2px;">Pytania quizowe</h3>
-                                        <p style="margin: 0; font-size: 0.8125rem; color: #6e6e73;">Dodaj pytania z wielokrotnym wyborem odpowiedzi</p>
-                                    </div>
-                                    <button type="button" id="add-question-btn" class="btn btn-primary" style="padding: 10px 20px; font-size: 0.875rem; min-height: 44px;">
-                                        + Dodaj pytanie
-                                    </button>
+                                <!-- Wybór typu quizu -->
+                                <div class="form-group" style="margin-bottom: 24px;">
+                                    <label for="quiz-type-select">Typ quizu:</label>
+                                    <select id="quiz-type-select" style="width: 100%; padding: 12px 16px; border: 1px solid #d2d2d7; border-radius: 8px; font-size: 0.9375rem;">
+                                        <option value="classic">Klasyczny quiz (z pytaniami i poprawnymi odpowiedziami)</option>
+                                        <option value="user_quiz">Quiz o użytkownikach (pytania, na które użytkownik już odpowiedział)</option>
+                                    </select>
                                 </div>
-                                <div id="quiz-questions-container">
-                                    <!-- Pytania będą dodawane dynamicznie -->
+                                
+                                <!-- Sekcja klasycznego quizu -->
+                                <div id="classic-quiz-section">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                                        <div>
+                                            <h3 style="margin: 0 0 4px 0; font-size: 1.125rem; font-weight: 600; color: #1d1d1f; letter-spacing: -0.2px;">Pytania quizowe</h3>
+                                            <p style="margin: 0; font-size: 0.8125rem; color: #6e6e73;">Dodaj pytania z wielokrotnym wyborem odpowiedzi</p>
+                                        </div>
+                                        <button type="button" id="add-question-btn" class="btn btn-primary" style="padding: 10px 20px; font-size: 0.875rem; min-height: 44px;">
+                                            + Dodaj pytanie
+                                        </button>
+                                    </div>
+                                    <div id="quiz-questions-container">
+                                        <!-- Pytania będą dodawane dynamicznie -->
+                                    </div>
+                                </div>
+                                
+                                <!-- Sekcja quizu o użytkownikach -->
+                                <div id="user-quiz-section" style="display: none;">
+                                    <div class="form-group" style="margin-bottom: 20px;">
+                                        <label for="quiz-target-user">O kim jest quiz:</label>
+                                        <select id="quiz-target-user" style="width: 100%; padding: 12px 16px; border: 1px solid #d2d2d7; border-radius: 8px; font-size: 0.9375rem;">
+                                            <option value="">Wybierz użytkownika</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="form-group" style="margin-bottom: 20px;">
+                                        <label for="quiz-passing-score">Próg zaliczenia (liczba punktów):</label>
+                                        <input type="number" id="quiz-passing-score" min="1" value="5" style="width: 100%; padding: 12px 16px; border: 1px solid #d2d2d7; border-radius: 8px; font-size: 0.9375rem;">
+                                        <small style="color: #6e6e73; display: block; margin-top: 4px;">Zadanie zostanie zaliczone automatycznie po osiągnięciu tej liczby punktów</small>
+                                    </div>
+                                    
+                                    <div id="user-quiz-questions-list" style="margin-top: 24px;">
+                                        <p style="color: #6e6e73; font-style: italic;">Wybierz użytkownika, aby zobaczyć dostępne pytania</p>
+                                    </div>
                                 </div>
                             </div>
                             
@@ -345,6 +385,62 @@
                 </p>
                 <div id="calendar-days-list" class="calendar-days-list">
                     <p>Ładowanie dni...</p>
+                </div>
+            </div>
+            
+            <!-- Sekcja zarządzania pytaniami dla użytkowników -->
+            <div class="admin-section" id="section-user-questions" data-section="user-questions" style="display: none;">
+                <h2>📝 Pytania do użytkowników</h2>
+                <p style="color: #6e6e73; margin-bottom: 20px; font-size: 0.875rem;">
+                    Dodaj pytania przypisane do konkretnych użytkowników. Użytkownicy odpowiedzą na nie w sekcji "Zebranie informacji o tobie", a ich odpowiedzi staną się poprawnymi odpowiedziami w quizach o nich.
+                </p>
+                
+                <div id="user-questions-list" class="user-questions-list">
+                    <p>Ładowanie użytkowników...</p>
+                </div>
+            </div>
+            
+            <!-- Modal dodawania pytania dla użytkownika -->
+            <div id="add-user-question-modal" class="modal" style="display: none;">
+                <div class="modal-content" style="max-width: 600px;">
+                    <div class="modal-header">
+                        <span class="close" id="close-user-question-modal">&times;</span>
+                        <h2 id="user-question-modal-title">Dodaj pytanie dla użytkownika</h2>
+                    </div>
+                    <div class="modal-body">
+                        <form id="add-user-question-form">
+                            <input type="hidden" id="user-question-id" value="">
+                            <input type="hidden" id="user-question-target-user-id" value="">
+                            
+                            <div class="form-group" id="user-question-user-select-group" style="display: none;">
+                                <label for="user-question-user-select">Użytkownik:</label>
+                                <select id="user-question-user-select">
+                                    <option value="">Wybierz użytkownika</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="user-question-option-1">Opcja 1:</label>
+                                <input type="text" id="user-question-option-1" placeholder="Np. Masło" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="user-question-option-2">Opcja 2:</label>
+                                <input type="text" id="user-question-option-2" placeholder="Np. Ser" required>
+                            </div>
+                            
+                            <div style="padding: 12px; background: #f0f9f0; border-radius: 8px; margin-top: 16px;">
+                                <p style="margin: 0; font-size: 0.8125rem; color: #1a5d1a;">
+                                    💡 <strong>Wskazówka:</strong> W quizie użytkownicy będą wybierać między dwiema opcjami. Nie musisz dodawać treści pytania - wystarczą dwie opcje do wyboru.
+                                </p>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary" id="user-question-submit-btn">Dodaj pytanie</button>
+                                <button type="button" class="btn btn-secondary" id="cancel-user-question-btn">Anuluj</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>

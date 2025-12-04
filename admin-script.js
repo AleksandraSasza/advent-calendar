@@ -375,24 +375,24 @@ const dayToCountryMap = {
     1: { country: "Niemcy", funFact: "🎅 W Niemczech tradycja jarmarków bożonarodzeniowych sięga średniowiecza! Słynne są pierniki norymberskie." },
     2: { country: "Finlandia", funFact: "🎅 W Finlandii Święty Mikołaj mieszka w Rovaniemi na kole podbiegunowym! Można go odwiedzić przez cały rok w Wiosce Świętego Mikołaja." },
     3: { country: "Wielka Brytania", funFact: "🎄 Tradycja choinek bożonarodzeniowych przyszła do UK z Niemiec dzięki księciu Albertowi w czasach królowej Wiktorii!" },
-    4: { country: "Włochy", funFact: "🎄 We Włoszech prezenty przynosi Babbo Natale, ale prawdziwa magia dzieje się 6 stycznia - Święto Trzech Króli!" },
+    4: { country: "Meksyk", funFact: "🌟 W Meksyku tradycją są Las Posadas - 9-dniowe procesje i imprezy upamiętniające wędrówkę Marii i Józefa do Betlejem." },
     5: { country: "Hiszpania", funFact: "👑 W Hiszpanii główne prezenty przychodzą 6 stycznia od Trzech Króli! Dzieci zostawiają im buty wypełnione słomą dla wielbłądów." },
     6: { country: "Francja", funFact: "🎁 We Francji prezenty przynosi Père Noël (Ojciec Święty Mikołaj), a dzieci zostawiają mu wino i ciastka!" },
-    7: { country: "Rosja", funFact: "❄️ W Rosji Nowy Rok jest ważniejszy niż Boże Narodzenie! Dziadek Mróz (Ded Moroz) przynosi prezenty 31 grudnia." },
-    8: { country: "Chiny", funFact: "🍊 W Chinach święta zimowe to Chiński Nowy Rok! Czerwony kolor symbolizuje szczęście i prosperity." },
+    7: { country: "Kolumbia", funFact: "🕯️ W Kolumbii Día de las Velitas (Dzień Świeczek) 7 grudnia rozpoczyna sezon świąteczny - miasta świecą tysiącami świec!" },
+    8: { country: "Włochy", funFact: "🍝 We Włoszech tradycją jest jedzenie ryb w Wigilię! Włosi przygotowują La Vigilia - wielodaniową kolację z owocami morza, ale bez mięsa." },
     9: { country: "Japonia", funFact: "🍗 W Japonii tradycją jest jedzenie KFC na Boże Narodzenie! Trzeba rezerwować kurczaka z tygodniowym wyprzedzeniem." },
     10: { country: "Australia", funFact: "🏖️ W Australii Boże Narodzenie wypada w środku lata! Ludzie świętują na plażach i robią BBQ." },
     11: { country: "Brazylia", funFact: "🎅 W Brazylii Święty Mikołaj nazywa się Papai Noel i często nosi lekkie, letnie ubrania zamiast grubego futra!" },
     12: { country: "USA", funFact: "🎄 Nowy Jork ma najbardziej znaną choinkę świata na Rockefeller Center! Tradycja sięga 1931 roku." },
     13: { country: "Kanada", funFact: "🎅 Kanada ma oficjalny kod pocztowy dla Świętego Mikołaja: H0H 0H0! Dzieci mogą wysyłać tam listy i otrzymują odpowiedź." },
-    14: { country: "Meksyk", funFact: "🌟 W Meksyku tradycją są Las Posadas - 9-dniowe procesje i imprezy upamiętniające wędrówkę Marii i Józefa do Betlejem." },
+    14: { country: "Włochy", funFact: "🎄 We Włoszech prezenty przynosi Babbo Natale, ale prawdziwa magia dzieje się 6 stycznia - Święto Trzech Króli!" },
     15: { country: "Indie", funFact: "🪔 W Indiach Boże Narodzenie łączy się z tradycjami Diwali - domyśl świetlne i kolorowe dekoracje wypełniają ulice!" },
     16: { country: "Egipt", funFact: "⛪ Chrześcijanie w Egipcie (Koptowie) obchodzą Boże Narodzenie 7 stycznia według kalendarza koptyjskiego!" },
     17: { country: "RPA", funFact: "🌞 W RPA Boże Narodzenie to letnia impreza! Ludzie świętują grillując na świeżym powietrzu i pływając w oceanie." },
     18: { country: "Argentyna", funFact: "🎆 W Argentynie o północy 24 grudnia eksplodują fajerwerki! To moment otwarcia prezentów i rozpoczęcia świętowania." },
     19: { country: "Chile", funFact: "🎅 W Chile Święty Mikołaj nazywa się Viejito Pascuero (Stary Człowiek Wielkanocny) i przychodzi przez kominek mimo letnich upałów!" },
     20: { country: "Peru", funFact: "🌟 W Peru tradycją jest budowanie elaborate szopek (nacimientos) z lokalnych materiałów i figurek z ceramiki z Ayacucho!" },
-    21: { country: "Kolumbia", funFact: "🕯️ W Kolumbii Día de las Velitas (Dzień Świeczek) 7 grudnia rozpoczyna sezon świąteczny - miasta świecą tysiącami świec!" },
+    21: { country: "Rosja", funFact: "❄️ W Rosji Nowy Rok jest ważniejszy niż Boże Narodzenie! Dziadek Mróz (Ded Moroz) przynosi prezenty 31 grudnia." },
     22: { country: "Wenezuela", funFact: "⛸️ W Caracas w Wenezueli tradycją jest chodzenie na rolkach do kościoła na poranną mszę w Wigilię! Ulice są zamykane dla samochodów." },
     23: { country: "Ekwador", funFact: "🎭 W Ekwadorze tradycją jest palenie starej szafy (Año Viejo) - kukieł symbolizujących stary rok, 31 grudnia o północy!" },
     24: { country: "Urugwaj", funFact: "🎄 W Urugwaju Boże Narodzenie to czas rodzinnych spotkań na plaży i tradycyjnego asado (grilla) pod palmami zamiast choinkami!" }
@@ -917,12 +917,39 @@ window.editTemplate = function(templateId) {
             metadata = null;
         }
         
-        if (metadata && metadata.questions && Array.isArray(metadata.questions)) {
+        if (metadata && metadata.quiz_type === 'user_quiz') {
+            // Quiz o użytkownikach
+            document.getElementById('quiz-type-select').value = 'user_quiz';
+            document.getElementById('quiz-target-user').value = metadata.target_user_id || '';
+            document.getElementById('quiz-passing-score').value = metadata.passing_score || 5;
+            toggleQuizType();
+            if (metadata.target_user_id) {
+                loadUserQuestionsForQuiz(metadata.target_user_id).then(() => {
+                    // Zaznacz pytania które są w quizie
+                    if (metadata.question_ids && Array.isArray(metadata.question_ids)) {
+                        metadata.question_ids.forEach(qId => {
+                            const checkbox = document.querySelector(`.quiz-question-checkbox[value="${qId}"]`);
+                            if (checkbox) checkbox.checked = true;
+                        });
+                    }
+                });
+            }
+        } else if (metadata && metadata.questions && Array.isArray(metadata.questions)) {
+            // Klasyczny quiz
+            document.getElementById('quiz-type-select').value = 'classic';
+            toggleQuizType();
             loadQuizQuestions(metadata.questions);
         } else {
+            // Domyślnie klasyczny quiz
+            document.getElementById('quiz-type-select').value = 'classic';
+            toggleQuizType();
             clearQuizQuestions();
         }
     } else {
+        // Domyślnie klasyczny quiz
+        if (document.getElementById('quiz-type-select')) {
+            document.getElementById('quiz-type-select').value = 'classic';
+        }
         clearQuizQuestions();
     }
     
@@ -1082,8 +1109,125 @@ function toggleQuizSection() {
     
     if (taskType === 'quiz') {
         quizSection.style.display = 'block';
+        // Załaduj użytkowników do selecta quizu o użytkownikach
+        loadUsersForQuiz();
     } else {
         quizSection.style.display = 'none';
+    }
+}
+
+// Załaduj użytkowników do selecta quizu o użytkownikach
+function loadUsersForQuiz() {
+    const select = document.getElementById('quiz-target-user');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">Wybierz użytkownika</option>';
+    allUsers.forEach(user => {
+        const option = document.createElement('option');
+        option.value = user.id;
+        option.textContent = user.display_name || user.email;
+        select.appendChild(option);
+    });
+}
+
+// Przełącz między klasycznym quizem a quizem o użytkownikach
+function toggleQuizType() {
+    const quizType = document.getElementById('quiz-type-select').value;
+    const classicSection = document.getElementById('classic-quiz-section');
+    const userSection = document.getElementById('user-quiz-section');
+    
+    if (quizType === 'user_quiz') {
+        classicSection.style.display = 'none';
+        userSection.style.display = 'block';
+        loadUsersForQuiz();
+    } else {
+        classicSection.style.display = 'block';
+        userSection.style.display = 'none';
+    }
+}
+
+// Załaduj pytania użytkownika dla quizu
+async function loadUserQuestionsForQuiz(userId) {
+    const container = document.getElementById('user-quiz-questions-list');
+    if (!container) return;
+    
+    if (!userId) {
+        container.innerHTML = '<p style="color: #6e6e73; font-style: italic;">Wybierz użytkownika, aby zobaczyć dostępne pytania</p>';
+        return;
+    }
+    
+    container.innerHTML = '<p style="color: #6e6e73;">Ładowanie pytań...</p>';
+    
+    try {
+        const { data: questions, error } = await supabase
+            .from('user_quiz_questions')
+            .select('*')
+            .eq('target_user_id', userId)
+            .not('target_user_answer', 'is', null) // Tylko pytania, na które użytkownik już odpowiedział
+            .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        
+        if (!questions || questions.length === 0) {
+            container.innerHTML = '<p style="color: #d32f2f;">Ten użytkownik nie ma jeszcze odpowiedzianych pytań. Najpierw dodaj pytania dla użytkownika i poczekaj, aż na nie odpowie.</p>';
+            return;
+        }
+        
+        container.innerHTML = `
+            <div style="margin-bottom: 16px;">
+                <h4 style="margin: 0 0 8px 0; font-size: 1rem; font-weight: 600; color: #1d1d1f;">Wybierz pytania do quizu:</h4>
+                <p style="margin: 0; font-size: 0.8125rem; color: #6e6e73;">Zaznacz pytania, które mają wejść w skład quizu</p>
+            </div>
+            ${questions.map(q => `
+                <label style="
+                    display: flex;
+                    align-items: start;
+                    padding: 16px;
+                    margin-bottom: 12px;
+                    background: white;
+                    border: 2px solid #e8e8ed;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                ">
+                    <input type="checkbox" class="quiz-question-checkbox" value="${q.id}" style="
+                        margin-right: 12px;
+                        margin-top: 2px;
+                        width: 20px;
+                        height: 20px;
+                        cursor: pointer;
+                    ">
+                    <div style="flex: 1;">
+                        <div style="display: flex; gap: 16px; margin-bottom: 8px; font-size: 0.9375rem; font-weight: 500; color: #1d1d1f;">
+                            <span>Opcja 1: <strong>${escapeHtml(q.option_1)}</strong></span>
+                            <span>Opcja 2: <strong>${escapeHtml(q.option_2)}</strong></span>
+                        </div>
+                        <p style="margin: 0; font-size: 0.8125rem; color: #1a5d1a;">
+                            ✓ Poprawna odpowiedź: <strong>${escapeHtml(q.target_user_answer === 1 ? q.option_1 : q.option_2)}</strong>
+                        </p>
+                    </div>
+                </label>
+            `).join('')}
+        `;
+        
+        // Dodaj hover effect
+        container.querySelectorAll('label').forEach(label => {
+            label.addEventListener('mouseenter', function() {
+                if (!this.querySelector('input').checked) {
+                    this.style.borderColor = '#1a5d1a';
+                    this.style.background = '#f0f9f0';
+                }
+            });
+            label.addEventListener('mouseleave', function() {
+                if (!this.querySelector('input').checked) {
+                    this.style.borderColor = '#e8e8ed';
+                    this.style.background = 'white';
+                }
+            });
+        });
+    } catch (error) {
+        console.error('Błąd ładowania pytań użytkownika:', error);
+        container.innerHTML = `<p style="color: #d32f2f;">Błąd ładowania pytań: ${error.message}</p>`;
     }
 }
 
@@ -1148,6 +1292,20 @@ function setupEventListeners() {
     
     // Zmiana typu zadania - pokaż/ukryj sekcję quizu
     document.getElementById('template-type').addEventListener('change', toggleQuizSection);
+    
+    // Zmiana typu quizu (klasyczny vs o użytkownikach)
+    const quizTypeSelect = document.getElementById('quiz-type-select');
+    if (quizTypeSelect) {
+        quizTypeSelect.addEventListener('change', toggleQuizType);
+    }
+    
+    // Zmiana użytkownika w quizie o użytkownikach
+    const quizTargetUser = document.getElementById('quiz-target-user');
+    if (quizTargetUser) {
+        quizTargetUser.addEventListener('change', (e) => {
+            loadUserQuestionsForQuiz(e.target.value);
+        });
+    }
     
     // Przycisk dodawania pytania quizowego
     document.getElementById('add-question-btn').addEventListener('click', () => {
@@ -1258,6 +1416,49 @@ function setupEventListeners() {
             closeAssignTaskModal();
         }
     });
+    
+    // Formularz dodawania/edycji pytania dla użytkownika
+    const addUserQuestionForm = document.getElementById('add-user-question-form');
+    if (addUserQuestionForm) {
+        addUserQuestionForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await saveUserQuestion();
+        });
+    }
+    
+    // Zamykanie modalu pytań użytkowników
+    const closeUserQuestionModal = document.getElementById('close-user-question-modal');
+    if (closeUserQuestionModal) {
+        closeUserQuestionModal.addEventListener('click', closeAddUserQuestionModal);
+    }
+    
+    const cancelUserQuestionBtn = document.getElementById('cancel-user-question-btn');
+    if (cancelUserQuestionBtn) {
+        cancelUserQuestionBtn.addEventListener('click', closeAddUserQuestionModal);
+    }
+    
+    const addUserQuestionModal = document.getElementById('add-user-question-modal');
+    if (addUserQuestionModal) {
+        addUserQuestionModal.addEventListener('click', (e) => {
+            if (e.target.id === 'add-user-question-modal') {
+                closeAddUserQuestionModal();
+            }
+        });
+    }
+    
+    // Event listenery dla przycisków edycji i usuwania pytań (delegacja zdarzeń)
+    document.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('edit-question-btn')) {
+            const questionId = e.target.dataset.questionId;
+            const userId = e.target.dataset.userId;
+            await editUserQuestion(questionId, userId);
+        }
+        
+        if (e.target.classList.contains('delete-question-btn')) {
+            const questionId = e.target.dataset.questionId;
+            await deleteUserQuestion(questionId);
+        }
+    });
 }
 
 // Otwórz modal dodawania dnia
@@ -1298,6 +1499,14 @@ function openAddTemplateModal() {
     // Wyczyść formularz
     document.getElementById('add-template-form').reset();
     clearQuizQuestions();
+    
+    // Resetuj typ quizu do klasycznego
+    const quizTypeSelect = document.getElementById('quiz-type-select');
+    if (quizTypeSelect) {
+        quizTypeSelect.value = 'classic';
+        toggleQuizType();
+    }
+    
     toggleQuizSection();
     
     document.getElementById('add-template-modal').style.display = 'block';
@@ -1611,12 +1820,45 @@ async function addNewTemplate() {
     // Przygotuj metadata dla quizu
     let metadata = null;
     if (taskType === 'quiz') {
-        const questions = collectQuizQuestions();
-        if (questions.length === 0) {
-            showNotification('Dodaj przynajmniej jedno pytanie do quizu', 'error');
-            return;
+        const quizType = document.getElementById('quiz-type-select').value;
+        
+        if (quizType === 'user_quiz') {
+            // Quiz o użytkownikach
+            const targetUserId = document.getElementById('quiz-target-user').value;
+            const passingScore = parseInt(document.getElementById('quiz-passing-score').value) || 5;
+            
+            if (!targetUserId) {
+                showNotification('Wybierz użytkownika dla quizu', 'error');
+                return;
+            }
+            
+            // Zbierz zaznaczone pytania
+            const selectedQuestions = Array.from(document.querySelectorAll('.quiz-question-checkbox:checked'))
+                .map(cb => cb.value);
+            
+            if (selectedQuestions.length === 0) {
+                showNotification('Wybierz przynajmniej jedno pytanie do quizu', 'error');
+                return;
+            }
+            
+            metadata = {
+                quiz_type: 'user_quiz',
+                target_user_id: targetUserId,
+                question_ids: selectedQuestions,
+                passing_score: passingScore
+            };
+        } else {
+            // Klasyczny quiz
+            const questions = collectQuizQuestions();
+            if (questions.length === 0) {
+                showNotification('Dodaj przynajmniej jedno pytanie do quizu', 'error');
+                return;
+            }
+            metadata = {
+                quiz_type: 'classic',
+                questions: questions
+            };
         }
-        metadata = { questions: questions };
     }
     
     try {
@@ -2297,6 +2539,13 @@ function switchSection(sectionName) {
             await loadVerificationTasks();
         }, 100);
     }
+    
+    // Jeśli przełączamy na sekcję pytań użytkowników, odśwież listę
+    if (sectionName === 'user-questions') {
+        setTimeout(async () => {
+            await loadUserQuestionsList();
+        }, 100);
+    }
 }
 
 // Funkcja do wyświetlania zdjęcia w modalu w panelu admina
@@ -2896,6 +3145,335 @@ window.rejectVerificationTask = async function(taskId) {
         showNotification('Błąd odrzucania zadania: ' + (error.message || 'Nieznany błąd'), 'error');
     }
 };
+
+// =========================================================
+// ZARZĄDZANIE PYTANIAMI DLA UŻYTKOWNIKÓW
+// =========================================================
+
+// Załaduj listę użytkowników z ich pytaniami
+async function loadUserQuestionsList() {
+    const container = document.getElementById('user-questions-list');
+    if (!container) return;
+    
+    container.innerHTML = '<p>Ładowanie użytkowników...</p>';
+    
+    try {
+        // Pobierz wszystkich użytkowników
+        const { data: users, error: usersError } = await supabase
+            .from('profiles')
+            .select('*')
+            .order('display_name', { ascending: true, nullsFirst: false });
+        
+        if (usersError) throw usersError;
+        
+        // Dla każdego użytkownika pobierz pytania
+        const usersWithQuestions = await Promise.all(
+            (users || []).map(async (user) => {
+                const { data: questions, error: questionsError } = await supabase
+                    .from('user_quiz_questions')
+                    .select('*')
+                    .eq('target_user_id', user.id)
+                    .order('created_at', { ascending: false });
+                
+                if (questionsError) {
+                    console.error('Błąd ładowania pytań dla użytkownika:', user.id, questionsError);
+                    return { ...user, questions: [] };
+                }
+                
+                return { ...user, questions: questions || [] };
+            })
+        );
+        
+        displayUserQuestionsList(usersWithQuestions);
+    } catch (error) {
+        console.error('Błąd ładowania listy pytań użytkowników:', error);
+        container.innerHTML = `<p style="color: #d32f2f;">Błąd ładowania: ${error.message}</p>`;
+    }
+}
+
+// Wyświetl listę użytkowników z ich pytaniami
+function displayUserQuestionsList(usersWithQuestions) {
+    const container = document.getElementById('user-questions-list');
+    if (!container) return;
+    
+    if (usersWithQuestions.length === 0) {
+        container.innerHTML = '<p style="color: #6e6e73;">Brak użytkowników w systemie.</p>';
+        return;
+    }
+    
+    container.innerHTML = usersWithQuestions.map(user => {
+        const userName = user.display_name || user.email || 'Brak imienia';
+        const questionsCount = user.questions?.length || 0;
+        const answeredCount = user.questions?.filter(q => q.target_user_answer !== null).length || 0;
+        
+        return `
+            <div class="user-questions-card" style="
+                margin-bottom: 24px;
+                padding: 24px;
+                background: white;
+                border: 1px solid #e8e8ed;
+                border-radius: 12px;
+            ">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <div>
+                        <h3 style="margin: 0 0 4px 0; font-size: 1.125rem; font-weight: 600; color: #1d1d1f;">${escapeHtml(userName)}</h3>
+                        <p style="margin: 0; font-size: 0.875rem; color: #6e6e73;">${user.email}</p>
+                        <p style="margin: 8px 0 0 0; font-size: 0.8125rem; color: #6e6e73;">
+                            Pytania: ${questionsCount} (Odpowiedziano: ${answeredCount})
+                        </p>
+                    </div>
+                    <button class="btn btn-primary add-question-for-user-btn" data-user-id="${user.id}" data-user-name="${escapeHtml(userName)}" style="
+                        padding: 10px 20px;
+                        font-size: 0.875rem;
+                        min-height: 44px;
+                    ">+ Dodaj pytanie</button>
+                </div>
+                
+                <div class="user-questions-list" data-user-id="${user.id}">
+                    ${user.questions && user.questions.length > 0 
+                        ? user.questions.map(q => displayUserQuestionItem(q, user.id)).join('')
+                        : '<p style="color: #6e6e73; font-style: italic; margin: 0;">Brak pytań dla tego użytkownika</p>'
+                    }
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    // Dodaj event listenery dla przycisków dodawania pytań
+    container.querySelectorAll('.add-question-for-user-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const userId = this.dataset.userId;
+            const userName = this.dataset.userName;
+            openAddUserQuestionModal(userId, userName);
+        });
+    });
+}
+
+// Wyświetl pojedyncze pytanie użytkownika
+function displayUserQuestionItem(question, userId) {
+    const isAnswered = question.target_user_answer !== null;
+    const answerText = isAnswered 
+        ? (question.target_user_answer === 1 ? question.option_1 : question.option_2)
+        : 'Brak odpowiedzi';
+    
+    return `
+        <div class="user-question-item" data-question-id="${question.id}" style="
+            margin-bottom: 12px;
+            padding: 16px;
+            background: ${isAnswered ? '#f0f9f0' : '#f5f5f7'};
+            border: 1px solid ${isAnswered ? '#1a5d1a' : '#e8e8ed'};
+            border-radius: 8px;
+        ">
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+                <div style="flex: 1;">
+                    <div style="display: flex; gap: 16px; margin-bottom: 8px;">
+                        <span style="font-size: 0.9375rem; font-weight: 500; color: #1d1d1f;">Opcja 1: <strong>${escapeHtml(question.option_1)}</strong></span>
+                        <span style="font-size: 0.9375rem; font-weight: 500; color: #1d1d1f;">Opcja 2: <strong>${escapeHtml(question.option_2)}</strong></span>
+                    </div>
+                    <p style="margin: 0; font-size: 0.8125rem; color: ${isAnswered ? '#1a5d1a' : '#6e6e73'};">
+                        ${isAnswered ? `✓ Odpowiedź: ${escapeHtml(answerText)}` : '⏳ Oczekuje na odpowiedź'}
+                    </p>
+                </div>
+                <div style="display: flex; gap: 8px; margin-left: 16px;">
+                    <button class="btn btn-small edit-question-btn" data-question-id="${question.id}" data-user-id="${userId}" style="
+                        padding: 6px 12px;
+                        font-size: 0.8125rem;
+                        background: white;
+                        border: 1px solid #1a5d1a;
+                        color: #1a5d1a;
+                    ">Edytuj</button>
+                    <button class="btn btn-small delete-question-btn" data-question-id="${question.id}" style="
+                        padding: 6px 12px;
+                        font-size: 0.8125rem;
+                        background: white;
+                        border: 1px solid #d32f2f;
+                        color: #d32f2f;
+                    ">Usuń</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Otwórz modal dodawania/edycji pytania dla użytkownika
+function openAddUserQuestionModal(userId = null, userName = null) {
+    const modal = document.getElementById('add-user-question-modal');
+    const form = document.getElementById('add-user-question-form');
+    const userSelect = document.getElementById('user-question-user-select');
+    const userSelectGroup = document.getElementById('user-question-user-select-group');
+    const targetUserIdInput = document.getElementById('user-question-target-user-id');
+    
+    // Jeśli podano userId (kliknięto przycisk przy użytkowniku), ukryj select i ustaw użytkownika
+    if (userId) {
+        targetUserIdInput.value = userId;
+        if (userSelectGroup) {
+            userSelectGroup.style.display = 'none';
+        }
+        document.getElementById('user-question-modal-title').textContent = `Dodaj pytanie dla: ${userName || 'użytkownika'}`;
+    } else {
+        // Jeśli nie podano userId, pokaż select (dla edycji z innych miejsc)
+        if (userSelectGroup) {
+            userSelectGroup.style.display = 'block';
+        }
+        // Wypełnij select użytkowników
+        userSelect.innerHTML = '<option value="">Wybierz użytkownika</option>';
+        allUsers.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.id;
+            option.textContent = user.display_name || user.email;
+            userSelect.appendChild(option);
+        });
+        targetUserIdInput.value = '';
+        document.getElementById('user-question-modal-title').textContent = 'Dodaj pytanie dla użytkownika';
+    }
+    
+    // Wyczyść formularz
+    form.reset();
+    document.getElementById('user-question-id').value = '';
+    
+    modal.style.display = 'block';
+}
+
+// Zamknij modal dodawania pytania
+function closeAddUserQuestionModal() {
+    const modal = document.getElementById('add-user-question-modal');
+    const form = document.getElementById('add-user-question-form');
+    const userSelectGroup = document.getElementById('user-question-user-select-group');
+    
+    modal.style.display = 'none';
+    form.reset();
+    if (userSelectGroup) {
+        userSelectGroup.style.display = 'none'; // Ukryj select przy zamykaniu
+    }
+    document.getElementById('user-question-id').value = '';
+    document.getElementById('user-question-target-user-id').value = '';
+}
+
+// Zapisz pytanie dla użytkownika
+async function saveUserQuestion() {
+    const questionId = document.getElementById('user-question-id').value;
+    const targetUserId = document.getElementById('user-question-target-user-id').value || document.getElementById('user-question-user-select').value;
+    const option1 = document.getElementById('user-question-option-1').value.trim();
+    const option2 = document.getElementById('user-question-option-2').value.trim();
+    
+    if (!targetUserId) {
+        showNotification('Wybierz użytkownika', 'error');
+        return;
+    }
+    
+    if (!option1 || !option2) {
+        showNotification('Wypełnij obie opcje', 'error');
+        return;
+    }
+    
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+            showNotification('Brak sesji', 'error');
+            return;
+        }
+        
+        // Treść pytania jest opcjonalna - jeśli nie podano, użyj domyślnej
+        const questionText = `${option1} czy ${option2}?`;
+        
+        const questionData = {
+            target_user_id: targetUserId,
+            question_text: questionText,
+            option_1: option1,
+            option_2: option2,
+            created_by: session.user.id
+        };
+        
+        if (questionId) {
+            // Edycja
+            const { error } = await supabase
+                .from('user_quiz_questions')
+                .update(questionData)
+                .eq('id', questionId);
+            
+            if (error) throw error;
+            showNotification('Pytanie zostało zaktualizowane', 'success');
+        } else {
+            // Dodawanie
+            const { error } = await supabase
+                .from('user_quiz_questions')
+                .insert(questionData);
+            
+            if (error) throw error;
+            showNotification('Pytanie zostało dodane', 'success');
+        }
+        
+        closeAddUserQuestionModal();
+        await loadUserQuestionsList();
+    } catch (error) {
+        console.error('Błąd zapisywania pytania:', error);
+        showNotification('Błąd zapisywania pytania: ' + (error.message || 'Nieznany błąd'), 'error');
+    }
+}
+
+// Edytuj pytanie użytkownika
+async function editUserQuestion(questionId, userId) {
+    try {
+        const { data: question, error } = await supabase
+            .from('user_quiz_questions')
+            .select('*')
+            .eq('id', questionId)
+            .single();
+        
+        if (error) throw error;
+        
+        const user = allUsers.find(u => u.id === userId);
+        const userName = user ? (user.display_name || user.email) : 'użytkownika';
+        
+        const userSelectGroup = document.getElementById('user-question-user-select-group');
+        if (userSelectGroup) {
+            userSelectGroup.style.display = 'none'; // Ukryj select przy edycji
+        }
+        
+        // Wypełnij formularz
+        document.getElementById('user-question-id').value = question.id;
+        document.getElementById('user-question-target-user-id').value = question.target_user_id;
+        document.getElementById('user-question-option-1').value = question.option_1;
+        document.getElementById('user-question-option-2').value = question.option_2;
+        document.getElementById('user-question-modal-title').textContent = `Edytuj pytanie dla: ${userName}`;
+        document.getElementById('user-question-submit-btn').textContent = 'Zapisz zmiany';
+        
+        document.getElementById('add-user-question-modal').style.display = 'block';
+    } catch (error) {
+        console.error('Błąd ładowania pytania:', error);
+        showNotification('Błąd ładowania pytania: ' + (error.message || 'Nieznany błąd'), 'error');
+    }
+}
+
+// Usuń pytanie użytkownika
+async function deleteUserQuestion(questionId) {
+    if (!confirm('Czy na pewno chcesz usunąć to pytanie?')) {
+        return;
+    }
+    
+    try {
+        const { error } = await supabase
+            .from('user_quiz_questions')
+            .delete()
+            .eq('id', questionId);
+        
+        if (error) throw error;
+        
+        showNotification('Pytanie zostało usunięte', 'success');
+        await loadUserQuestionsList();
+    } catch (error) {
+        console.error('Błąd usuwania pytania:', error);
+        showNotification('Błąd usuwania pytania: ' + (error.message || 'Nieznany błąd'), 'error');
+    }
+}
+
+// Funkcja pomocnicza do escape HTML
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 
 // Funkcja powiadomień
 function showNotification(message, type = 'success') {
