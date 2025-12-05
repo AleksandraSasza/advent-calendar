@@ -36,6 +36,15 @@ let isRedirecting = false;
 
 // Sprawdź czy użytkownik jest już zalogowany
 document.addEventListener('DOMContentLoaded', async function() {
+    // Sprawdź czy użytkownik właśnie się wylogował - jeśli tak, nie przekierowuj z powrotem
+    const logoutFlag = sessionStorage.getItem('logoutInProgress');
+    if (logoutFlag === 'true') {
+        sessionStorage.removeItem('logoutInProgress');
+        console.log('✅ Wylogowanie w toku - pozwól użytkownikowi się zalogować');
+        setupAuthEvents();
+        return;
+    }
+    
     // Zabezpieczenie przed pętlą przekierowań
     const redirectFlag = sessionStorage.getItem('redirecting');
     if (redirectFlag === 'true') {

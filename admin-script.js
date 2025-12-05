@@ -2082,11 +2082,22 @@ window.viewUserTasks = async function(userId, userEmail = '') {
                                 ${task.response_text ? `<p><strong>Odpowiedź:</strong> ${task.response_text}</p>` : ''}
                                 ${task.completed_at ? `<p><strong>Wykonano:</strong> ${new Date(task.completed_at).toLocaleString('pl-PL')}</p>` : ''}
                             </div>
-                            ${task.status !== 'completed' ? `
-                                <button class="btn btn-small" onclick="deleteTask('${task.id}')">
-                                    Usuń zadanie
-                                </button>
-                            ` : ''}
+                            <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
+                                ${task.status !== 'completed' ? `
+                                    <button class="btn btn-primary btn-small" onclick="changeTaskStatus('${task.id}', 'completed')" style="background: #013927; color: white; border: none;">
+                                        ✓ Oznacz jako wykonane
+                                    </button>
+                                ` : `
+                                    <button class="btn btn-secondary btn-small" onclick="changeTaskStatus('${task.id}', 'pending')" style="background: #8e8e93; color: white; border: none;">
+                                        ↻ Oznacz jako oczekujące
+                                    </button>
+                                `}
+                                ${task.status !== 'completed' ? `
+                                    <button class="btn btn-small" onclick="deleteTask('${task.id}')" style="background: #d32f2f; color: white; border: none;">
+                                        Usuń zadanie
+                                    </button>
+                                ` : ''}
+                            </div>
                         </div>
                     `;
                 }).join('')}
@@ -2123,6 +2134,57 @@ window.deleteTask = async function(taskId) {
     } catch (error) {
         console.error('Błąd usuwania zadania:', error);
         showNotification('Błąd usuwania zadania', 'error');
+    }
+};
+
+// Zmień status zadania (dostępne globalnie)
+window.changeTaskStatus = async function(taskId, newStatus, userId = null, dayNumber = null) {
+    const statusLabels = {
+        'pending': 'Oczekujące',
+        'in_progress': 'W trakcie',
+        'completed': 'Wykonane'
+    };
+    
+    const currentStatusLabel = statusLabels[newStatus] || newStatus;
+    const confirmMessage = `Czy na pewno chcesz zmienić status zadania na "${currentStatusLabel}"?`;
+    
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+    
+    try {
+        const updateData = {
+            status: newStatus
+        };
+        
+        // Jeśli zmieniamy na completed, ustaw completed_at
+        if (newStatus === 'completed') {
+            updateData.completed_at = new Date().toISOString();
+        } else if (newStatus === 'pending') {
+            // Jeśli zmieniamy na pending, usuń completed_at
+            updateData.completed_at = null;
+        }
+        
+        const { error } = await supabase
+            .from('assigned_tasks')
+            .update(updateData)
+            .eq('id', taskId);
+        
+        if (error) throw error;
+        
+        showNotification(`Status zadania został zmieniony na "${currentStatusLabel}"`, 'success');
+        
+        // Odśwież widok zadań użytkownika jeśli jest otwarty
+        if (window.selectedUserId) {
+            await viewUserTasks(window.selectedUserId);
+        }
+        
+        // Odśwież tabelę zadań jeśli jest otwarta
+        await displayTasksTable();
+        
+    } catch (error) {
+        console.error('Błąd zmiany statusu zadania:', error);
+        showNotification('Błąd zmiany statusu zadania: ' + (error.message || 'Nieznany błąd'), 'error');
     }
 };
 
@@ -2211,14 +2273,33 @@ async function displayTasksTable() {
                     
                     cells.push(`
                         <td class="task-cell ${statusClass}" onclick="window.openTaskCell('${escapedUserId}', ${day}, '${escapedTaskId}')" title="Status: ${task.status === 'completed' ? 'Wykonane' : 'Przypisane'}" style="cursor: pointer; padding: 12px; min-width: 200px; max-width: 250px; position: relative;">
-                            <button onclick="event.stopPropagation(); window.deleteAssignedTask('${escapedTaskId}', '${escapedUserId}', ${day})" 
-                                    title="Usuń zadanie" 
-                                    style="position: absolute; top: 6px; right: 6px; background: white; color: #6e6e73; border: 1px solid #d2d2d7; border-radius: 4px; width: 20px; height: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 300; padding: 0; transition: all 0.2s; z-index: 10; opacity: 0.6;"
-                                    onmouseover="this.style.opacity='1'; this.style.borderColor='#d32f2f'; this.style.color='#d32f2f';"
-                                    onmouseout="this.style.opacity='0.6'; this.style.borderColor='#d2d2d7'; this.style.color='#6e6e73';">
-                                ×
-                            </button>
-                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; padding-right: 28px;">
+                            <div style="position: absolute; top: 6px; right: 6px; display: flex; gap: 4px; z-index: 10;">
+                                ${task.status === 'completed' ? `
+                                    <button onclick="event.stopPropagation(); window.changeTaskStatus('${escapedTaskId}', 'pending')" 
+                                            title="Oznacz jako oczekujące" 
+                                            style="background: white; color: #8e8e93; border: 1px solid #d2d2d7; border-radius: 4px; width: 24px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 500; padding: 0; transition: all 0.2s; opacity: 0.7;"
+                                            onmouseover="this.style.opacity='1'; this.style.borderColor='#8e8e93'; this.style.color='#8e8e93';"
+                                            onmouseout="this.style.opacity='0.7'; this.style.borderColor='#d2d2d7'; this.style.color='#8e8e93';">
+                                        ↻
+                                    </button>
+                                ` : `
+                                    <button onclick="event.stopPropagation(); window.changeTaskStatus('${escapedTaskId}', 'completed')" 
+                                            title="Oznacz jako wykonane" 
+                                            style="background: white; color: #013927; border: 1px solid #d2d2d7; border-radius: 4px; width: 24px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 500; padding: 0; transition: all 0.2s; opacity: 0.7;"
+                                            onmouseover="this.style.opacity='1'; this.style.borderColor='#013927'; this.style.color='#013927';"
+                                            onmouseout="this.style.opacity='0.7'; this.style.borderColor='#d2d2d7'; this.style.color='#013927';">
+                                        ✓
+                                    </button>
+                                `}
+                                <button onclick="event.stopPropagation(); window.deleteAssignedTask('${escapedTaskId}', '${escapedUserId}', ${day})" 
+                                        title="Usuń zadanie" 
+                                        style="background: white; color: #6e6e73; border: 1px solid #d2d2d7; border-radius: 4px; width: 24px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 300; padding: 0; transition: all 0.2s; opacity: 0.6;"
+                                        onmouseover="this.style.opacity='1'; this.style.borderColor='#d32f2f'; this.style.color='#d32f2f';"
+                                        onmouseout="this.style.opacity='0.6'; this.style.borderColor='#d2d2d7'; this.style.color='#6e6e73';">
+                                    ×
+                                </button>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; padding-right: 60px;">
                                 <span style="font-size: 1.2rem;">${statusIcon}</span>
                                 <span style="font-weight: 500; font-size: 0.875rem;">${templateTitle}</span>
                             </div>

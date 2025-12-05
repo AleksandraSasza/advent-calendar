@@ -266,6 +266,9 @@ function setupEventListeners() {
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async () => {
+            // Ustaw flagę wylogowania PRZED wylogowaniem, aby login-script.js nie przekierowywał z powrotem
+            sessionStorage.setItem('logoutInProgress', 'true');
+            
             if (supabase) {
                 try {
                     // Sprawdź czy sesja istnieje przed próbą wylogowania

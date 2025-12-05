@@ -1709,11 +1709,16 @@ async function logout() {
         currentUser = null;
         completedDays.clear();
         updateProgress();
+        // Ustaw flagę wylogowania, aby login-script.js nie przekierowywał z powrotem
+        sessionStorage.setItem('logoutInProgress', 'true');
         window.location.href = 'login.html';
         return;
     }
     
     try {
+        // Ustaw flagę wylogowania PRZED wylogowaniem, aby login-script.js nie przekierowywał z powrotem
+        sessionStorage.setItem('logoutInProgress', 'true');
+        
         // Sprawdź czy sesja istnieje przed próbą wylogowania
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
