@@ -1,39 +1,60 @@
-// Konfiguracja Supabase - ładowana z config.js
-if (!window.SUPABASE_CONFIG) {
-    console.error('⚠️ BŁĄD: Plik config.js nie jest załadowany!');
-    alert('⚠️ BŁĄD KONFIGURACJI:\n\nPlik config.js nie jest załadowany!\n\nUpewnij się, że plik config.js istnieje i jest załadowany przed profile-script.js');
-}
+// Konfiguracja Supabase - ładowana z config.js lub vercel-config.js
+// Funkcja do inicjalizacji Supabase (wywoływana po załadowaniu konfiguracji)
+function initializeSupabase() {
+    // Sprawdź konfigurację (może być załadowana z config.js, vercel-config.js lub meta tagów)
+    const SUPABASE_URL = window.SUPABASE_CONFIG?.URL;
+    const SUPABASE_ANON_KEY = window.SUPABASE_CONFIG?.ANON_KEY;
 
-const SUPABASE_URL = window.SUPABASE_CONFIG?.URL;
-const SUPABASE_ANON_KEY = window.SUPABASE_CONFIG?.ANON_KEY;
-
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    console.error('⚠️ BŁĄD: Konfiguracja Supabase nie jest ustawiona!');
-    alert('⚠️ BŁĄD KONFIGURACJI:\n\nSkopiuj config.example.js jako config.js i wypełnij swoimi danymi z Supabase Dashboard.');
-}
-
-// Inicjalizacja klienta Supabase
-let supabase;
-try {
-    if (typeof window.supabaseLib !== 'undefined' && window.supabaseLib.createClient) {
-        supabase = window.supabaseLib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    } else if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    } else {
-        console.error('Supabase library nie jest załadowana!');
-        alert('Błąd: Biblioteka Supabase nie jest załadowana. Odśwież stronę.');
-        throw new Error('Supabase library not loaded');
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+        console.error('⚠️ BŁĄD: Konfiguracja Supabase nie jest ustawiona!');
+        // Wyświetl błąd tylko w konsoli, nie pokazuj alertu (może być załadowana później)
+        return null;
     }
-    console.log('Supabase zainicjalizowany pomyślnie');
-} catch (error) {
-    console.error('Błąd inicjalizacji Supabase:', error);
-    alert('Błąd inicjalizacji Supabase: ' + error.message);
+
+    // Inicjalizacja klienta Supabase
+    try {
+        let client = null;
+        if (typeof window.supabaseLib !== 'undefined' && window.supabaseLib.createClient) {
+            client = window.supabaseLib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } else if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+            client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } else {
+            console.error('Supabase library nie jest załadowana!');
+            return null;
+        }
+        console.log('Supabase zainicjalizowany pomyślnie');
+        return client;
+    } catch (error) {
+        console.error('Błąd inicjalizacji Supabase:', error);
+        return null;
+    }
 }
+
+// Zmienna globalna dla klienta Supabase
+let supabase = null;
 
 // Sprawdź czy użytkownik jest zalogowany
 document.addEventListener('DOMContentLoaded', async function() {
+    // Poczekaj chwilę, aby vercel-config.js zdążył się wykonać
+    // Sprawdź konfigurację kilka razy (max 10 razy, co 50ms)
+    let attempts = 0;
+    const maxAttempts = 10;
+    
+    while (!window.SUPABASE_CONFIG && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 50));
+        attempts++;
+    }
+    
+    // Teraz spróbuj zainicjalizować Supabase
+    supabase = initializeSupabase();
+    
     if (!supabase) {
-        console.error('Supabase nie jest zainicjalizowany!');
+        // Jeśli nadal nie ma konfiguracji, wyświetl błąd
+        console.error('⚠️ BŁĄD: Nie można załadować konfiguracji Supabase!');
+        const isProfilePage = document.getElementById('user-email-display') !== null;
+        if (isProfilePage) {
+            alert('⚠️ BŁĄD KONFIGURACJI:\n\nKonfiguracja Supabase nie jest dostępna.\n\nUpewnij się, że:\n1. Plik config.js istnieje (lokalnie)\n2. Zmienne środowiskowe są ustawione na Vercel');
+        }
         return;
     }
     
@@ -53,7 +74,11 @@ document.addEventListener('DOMContentLoaded', async function() {
 // Ładowanie profilu użytkownika
 async function loadUserProfile() {
     if (!supabase) {
-        showNotification('Błąd konfiguracji Supabase', 'error');
+        // Sprawdź, czy jesteśmy na stronie profilu (gdzie błędy powinny być widoczne)
+        const isProfilePage = document.getElementById('user-email-display') !== null;
+        if (isProfilePage) {
+            showNotification('Błąd konfiguracji Supabase', 'error');
+        }
         return;
     }
     
@@ -75,11 +100,15 @@ async function loadUserProfile() {
         
         if (profileError) {
             console.error('Błąd ładowania profilu:', profileError);
-            showNotification('Błąd ładowania profilu', 'error');
+            // Wyświetl błąd tylko na stronie profilu
+            const isProfilePage = document.getElementById('user-email-display') !== null;
+            if (isProfilePage) {
+                showNotification('Błąd ładowania profilu', 'error');
+            }
             return;
         }
         
-        // Wyświetl informacje o użytkowniku
+        // Wyświetl informacje o użytkowniku (tylko jeśli elementy istnieją)
         const userData = {
             email: profile.email || session.user.email,
             name: profile.display_name || 'Nie ustawiono',
@@ -91,16 +120,30 @@ async function loadUserProfile() {
         loadUserQuestions(); // Załaduj pytania przypisane do użytkownika
     } catch (error) {
         console.error('Błąd ładowania profilu:', error);
-        showNotification('Błąd ładowania profilu', 'error');
+        // Wyświetl błąd tylko na stronie profilu
+        const isProfilePage = document.getElementById('user-email-display') !== null;
+        if (isProfilePage) {
+            showNotification('Błąd ładowania profilu', 'error');
+        }
     }
 }
 
 // Wyświetlanie informacji o użytkowniku
 function displayUserInfo(userData) {
-    document.getElementById('user-email-display').textContent = userData.email;
-    document.getElementById('user-name-display').textContent = userData.name || 'Nie ustawiono';
-    document.getElementById('user-created-display').textContent = userData.created_at ? 
-        new Date(userData.created_at).toLocaleDateString('pl-PL') : 'Nieznana';
+    const emailDisplay = document.getElementById('user-email-display');
+    const nameDisplay = document.getElementById('user-name-display');
+    const createdDisplay = document.getElementById('user-created-display');
+    
+    if (emailDisplay) {
+        emailDisplay.textContent = userData.email;
+    }
+    if (nameDisplay) {
+        nameDisplay.textContent = userData.name || 'Nie ustawiono';
+    }
+    if (createdDisplay) {
+        createdDisplay.textContent = userData.created_at ? 
+            new Date(userData.created_at).toLocaleDateString('pl-PL') : 'Nieznana';
+    }
 }
 
 // Ładowanie statystyk użytkownika
@@ -133,9 +176,19 @@ async function loadUserStats() {
         const remainingTasks = 24 - completedTasks;
         const progressPercentage = Math.round((completedTasks / 24) * 100);
         
-        document.getElementById('completed-tasks').textContent = completedTasks;
-        document.getElementById('remaining-tasks').textContent = remainingTasks;
-        document.getElementById('progress-percentage').textContent = progressPercentage + '%';
+        const completedTasksEl = document.getElementById('completed-tasks');
+        const remainingTasksEl = document.getElementById('remaining-tasks');
+        const progressPercentageEl = document.getElementById('progress-percentage');
+        
+        if (completedTasksEl) {
+            completedTasksEl.textContent = completedTasks;
+        }
+        if (remainingTasksEl) {
+            remainingTasksEl.textContent = remainingTasks;
+        }
+        if (progressPercentageEl) {
+            progressPercentageEl.textContent = progressPercentage + '%';
+        }
     } catch (error) {
         console.error('Błąd ładowania statystyk:', error);
     }
@@ -144,83 +197,111 @@ async function loadUserStats() {
 // Konfiguracja eventów
 function setupEventListeners() {
     // Edycja imienia - nowy interfejs
-    document.getElementById('edit-name-btn').addEventListener('click', () => {
-        document.getElementById('edit-name-btn').style.display = 'none';
-        document.getElementById('name-edit-controls').style.display = 'inline-block';
-        document.getElementById('new-name').value = document.getElementById('user-name-display').textContent;
-        document.getElementById('new-name').focus();
-    });
+    const editNameBtn = document.getElementById('edit-name-btn');
+    if (editNameBtn) {
+        editNameBtn.addEventListener('click', () => {
+            const nameEditControls = document.getElementById('name-edit-controls');
+            const newNameInput = document.getElementById('new-name');
+            const nameDisplay = document.getElementById('user-name-display');
+            
+            if (editNameBtn) editNameBtn.style.display = 'none';
+            if (nameEditControls) nameEditControls.style.display = 'inline-block';
+            if (newNameInput && nameDisplay) {
+                newNameInput.value = nameDisplay.textContent;
+                newNameInput.focus();
+            }
+        });
+    }
     
-    document.getElementById('cancel-name-btn').addEventListener('click', () => {
-        document.getElementById('name-edit-controls').style.display = 'none';
-        document.getElementById('edit-name-btn').style.display = 'inline-block';
-    });
+    const cancelNameBtn = document.getElementById('cancel-name-btn');
+    if (cancelNameBtn) {
+        cancelNameBtn.addEventListener('click', () => {
+            const nameEditControls = document.getElementById('name-edit-controls');
+            const editNameBtn = document.getElementById('edit-name-btn');
+            
+            if (nameEditControls) nameEditControls.style.display = 'none';
+            if (editNameBtn) editNameBtn.style.display = 'inline-block';
+        });
+    }
     
-    document.getElementById('save-name-btn').addEventListener('click', async () => {
-        const newName = document.getElementById('new-name').value.trim();
-        
-        if (!newName) {
-            showNotification('Imię nie może być puste', 'error');
-            return;
-        }
-        
-        await updateUserName(newName);
-    });
+    const saveNameBtn = document.getElementById('save-name-btn');
+    if (saveNameBtn) {
+        saveNameBtn.addEventListener('click', async () => {
+            const newNameInput = document.getElementById('new-name');
+            const newName = newNameInput ? newNameInput.value.trim() : '';
+            
+            if (!newName) {
+                showNotification('Imię nie może być puste', 'error');
+                return;
+            }
+            
+            await updateUserName(newName);
+        });
+    }
     
     // Formularz zmiany hasła
-    document.getElementById('change-password-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const currentPassword = document.getElementById('current-password').value;
-        const newPassword = document.getElementById('new-password').value;
-        const confirmPassword = document.getElementById('confirm-new-password').value;
-        
-        if (newPassword.length < 6) {
-            showNotification('Nowe hasło musi mieć co najmniej 6 znaków', 'error');
-            return;
-        }
-        
-        if (newPassword !== confirmPassword) {
-            showNotification('Nowe hasła nie są identyczne', 'error');
-            return;
-        }
-        
-        await changePassword(currentPassword, newPassword);
-    });
+    const changePasswordForm = document.getElementById('change-password-form');
+    if (changePasswordForm) {
+        changePasswordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const currentPassword = document.getElementById('current-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-new-password').value;
+            
+            if (newPassword.length < 6) {
+                showNotification('Nowe hasło musi mieć co najmniej 6 znaków', 'error');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                showNotification('Nowe hasła nie są identyczne', 'error');
+                return;
+            }
+            
+            await changePassword(currentPassword, newPassword);
+        });
+    }
     
     // Wylogowanie
-    document.getElementById('logout-btn').addEventListener('click', async () => {
-        if (supabase) {
-            try {
-                // Sprawdź czy sesja istnieje przed próbą wylogowania
-                const { data: { session } } = await supabase.auth.getSession();
-                
-                if (session) {
-                    const { error } = await supabase.auth.signOut();
-                    if (error) {
-                        // Nie wyświetlaj błędu jeśli sesja już nie istnieje
-                        if (error.message && !error.message.includes('Auth session missing')) {
-                            console.error('Błąd wylogowania:', error);
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async () => {
+            if (supabase) {
+                try {
+                    // Sprawdź czy sesja istnieje przed próbą wylogowania
+                    const { data: { session } } = await supabase.auth.getSession();
+                    
+                    if (session) {
+                        const { error } = await supabase.auth.signOut();
+                        if (error) {
+                            // Nie wyświetlaj błędu jeśli sesja już nie istnieje
+                            if (error.message && !error.message.includes('Auth session missing')) {
+                                console.error('Błąd wylogowania:', error);
+                            }
                         }
                     }
-                }
-            } catch (error) {
-                // Ignoruj błąd jeśli sesja nie istnieje
-                if (!error.message?.includes('Auth session missing')) {
-                    console.error('Błąd wylogowania:', error);
+                } catch (error) {
+                    // Ignoruj błąd jeśli sesja nie istnieje
+                    if (!error.message?.includes('Auth session missing')) {
+                        console.error('Błąd wylogowania:', error);
+                    }
                 }
             }
-        }
-        
-        // Zawsze przekieruj, nawet jeśli wystąpił błąd
-        window.location.href = 'login.html';
-    });
+            
+            // Zawsze przekieruj, nawet jeśli wystąpił błąd
+            window.location.href = 'login.html';
+        });
+    }
     
     // Usuwanie konta
-    document.getElementById('delete-account-btn').addEventListener('click', () => {
-        if (confirm('Czy na pewno chcesz usunąć swoje konto? Ta operacja jest nieodwracalna!')) {
-            deleteAccount();
-        }
-    });
+    const deleteAccountBtn = document.getElementById('delete-account-btn');
+    if (deleteAccountBtn) {
+        deleteAccountBtn.addEventListener('click', () => {
+            if (confirm('Czy na pewno chcesz usunąć swoje konto? Ta operacja jest nieodwracalna!')) {
+                deleteAccount();
+            }
+        });
+    }
 }
 
 // Aktualizacja imienia użytkownika
@@ -251,9 +332,19 @@ async function updateUserName(newName) {
             return;
         }
         
-        document.getElementById('user-name-display').textContent = newName;
-        document.getElementById('name-edit-controls').style.display = 'none';
-        document.getElementById('edit-name-btn').style.display = 'inline-block';
+        const nameDisplay = document.getElementById('user-name-display');
+        const nameEditControls = document.getElementById('name-edit-controls');
+        const editNameBtn = document.getElementById('edit-name-btn');
+        
+        if (nameDisplay) {
+            nameDisplay.textContent = newName;
+        }
+        if (nameEditControls) {
+            nameEditControls.style.display = 'none';
+        }
+        if (editNameBtn) {
+            editNameBtn.style.display = 'inline-block';
+        }
         showNotification('Imię zostało zaktualizowane', 'success');
     } catch (error) {
         console.error('Błąd aktualizacji imienia:', error);
@@ -300,7 +391,10 @@ async function changePassword(currentPassword, newPassword) {
         }
         
         // Wyczyść formularz
-        document.getElementById('change-password-form').reset();
+        const changePasswordForm = document.getElementById('change-password-form');
+        if (changePasswordForm) {
+            changePasswordForm.reset();
+        }
         showNotification('Hasło zostało zmienione', 'success');
     } catch (error) {
         console.error('Błąd zmiany hasła:', error);
@@ -361,8 +455,28 @@ async function deleteAccount() {
 
 // Ładowanie pytań przypisanych do użytkownika
 async function loadUserQuestions() {
-    if (!supabase) {
+    const container = document.getElementById('user-questions-container');
+    
+    if (!container) {
         return;
+    }
+    
+    // Jeśli Supabase nie jest jeszcze zainicjalizowany, poczekaj
+    if (!supabase) {
+        // Poczekaj max 2 sekundy na inicjalizację
+        let attempts = 0;
+        const maxAttempts = 40; // 40 * 50ms = 2 sekundy
+        
+        while (!supabase && attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+            attempts++;
+        }
+        
+        if (!supabase) {
+            container.innerHTML = '<p style="color: #d32f2f;">Błąd: Nie można połączyć się z bazą danych. Odśwież stronę.</p>';
+            console.error('Błąd: Supabase nie jest zainicjalizowany');
+            return;
+        }
     }
     
     try {
@@ -370,6 +484,10 @@ async function loadUserQuestions() {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError || !session) {
+            container.innerHTML = '<p style="color: #d32f2f;">Błąd: Nie jesteś zalogowany. Przekierowywanie do strony logowania...</p>';
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 2000);
             return;
         }
         
@@ -382,12 +500,16 @@ async function loadUserQuestions() {
         
         if (error) {
             console.error('Błąd ładowania pytań:', error);
+            container.innerHTML = `<p style="color: #d32f2f;">Błąd ładowania pytań: ${error.message || 'Nieznany błąd'}</p>`;
             return;
         }
         
         displayUserQuestions(questions || []);
     } catch (error) {
         console.error('Błąd ładowania pytań:', error);
+        if (container) {
+            container.innerHTML = `<p style="color: #d32f2f;">Błąd ładowania pytań: ${error.message || 'Nieznany błąd'}</p>`;
+        }
     }
 }
 

@@ -51,9 +51,9 @@ const dayToCountry = {
         coordinates: [6.4238, -66.5897] // Caracas
     },
     6: {
-        country: "Francja",
-        funFact: "🎁 We Francji prezenty przynosi Père Noël (Ojciec Święty Mikołaj), a dzieci zostawiają mu wino i ciastka!",
-        coordinates: [46.2276, 2.2137] // Paryż
+        country: "Irlandia",
+        funFact: "🍀 W Irlandii tradycją jest stawianie świecy w oknie w Wigilię, aby wskazać drogę Maryi i Józefowi. To symbol gościnności i nadziei!",
+        coordinates: [53.3498, -6.2603] // Dublin
     },
     7: {
         country: "Kolumbia",
@@ -159,6 +159,7 @@ const countriesList = [
     { name: "Niemcy", coordinates: [51.1657, 10.4515] },
     { name: "Finlandia", coordinates: [60.1699, 24.9384] },
     { name: "Francja", coordinates: [46.2276, 2.2137] },
+    { name: "Irlandia", coordinates: [53.3498, -6.2603] },
     { name: "Włochy", coordinates: [41.9028, 12.4964] },
     { name: "Hiszpania", coordinates: [40.4637, -3.7492] },
     { name: "Wielka Brytania", coordinates: [55.3781, -3.4360] },

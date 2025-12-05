@@ -293,8 +293,8 @@ header p {
 .map-container {
     background: var(--color-surface);
     border-radius: var(--radius-lg);
-    padding: var(--spacing-lg);
-    box-shadow: 0 2px 4px rgba(1, 57, 39, 0.1);
+    padding: var(--spacing-sm);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.15);
     margin-bottom: var(--spacing-lg);
     border: 1px solid rgba(1, 57, 39, 0.2);
     position: relative;
@@ -507,15 +507,14 @@ header p {
     color: var(--color-text);
     margin-bottom: var(--spacing-md);
     font-size: var(--font-size-xl);
-}
-
-.task-content h3 span {
-    display: inline;
-}
     font-weight: 600;
     letter-spacing: 0.5px;
     line-height: 1.3;
     font-family: 'Quintessential', cursive;
+}
+
+.task-content h3 span {
+    display: inline;
 }
 
 .task-content p {

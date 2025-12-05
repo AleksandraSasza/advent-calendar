@@ -683,9 +683,21 @@
     </script>
     <script src="profile-script.js"></script>
     <script>
-        // Załaduj pytania przy starcie strony
+        // Załaduj pytania przy starcie strony (backup - głównie wywoływane przez loadUserProfile)
         document.addEventListener('DOMContentLoaded', async () => {
+            // Poczekaj na inicjalizację Supabase (max 2 sekundy)
+            let attempts = 0;
+            const maxAttempts = 40;
+            
+            while (typeof loadUserQuestions !== 'function' && attempts < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, 50));
+                attempts++;
+            }
+            
+            // Jeśli funkcja istnieje, wywołaj ją (ale zwykle jest już wywołana przez loadUserProfile)
             if (typeof loadUserQuestions === 'function') {
+                // Dodatkowe opóźnienie, aby upewnić się, że Supabase jest zainicjalizowany
+                await new Promise(resolve => setTimeout(resolve, 100));
                 await loadUserQuestions();
             }
         });
