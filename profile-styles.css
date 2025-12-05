@@ -92,29 +92,17 @@
     }
 }
 
-/* STARE - całkowicie usunięte (kule śnieżne) */
-.profile-body::after {
+/* Kule śnieżne całkowicie usunięte */
+.profile-body::after,
+.profile-body::before {
     display: none !important;
     content: none !important;
     background: none !important;
+    background-image: none !important;
     animation: none !important;
-}
-
-@keyframes snowfall {
-    0% {
-        transform: translateY(0) translateX(0) rotate(0deg);
-        opacity: 0;
-    }
-    2% {
-        opacity: 1;
-    }
-    98% {
-        opacity: 1;
-    }
-    100% {
-        transform: translateY(calc(100vh + 400px)) translateX(30px) rotate(360deg);
-        opacity: 0;
-    }
+    pointer-events: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
 }
 
 .profile-container {

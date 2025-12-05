@@ -376,7 +376,7 @@ const dayToCountryMap = {
     2: { country: "Finlandia", funFact: "🎅 W Finlandii Święty Mikołaj mieszka w Rovaniemi na kole podbiegunowym! Można go odwiedzić przez cały rok w Wiosce Świętego Mikołaja." },
     3: { country: "Wielka Brytania", funFact: "🎄 Tradycja choinek bożonarodzeniowych przyszła do UK z Niemiec dzięki księciu Albertowi w czasach królowej Wiktorii!" },
     4: { country: "Meksyk", funFact: "🌟 W Meksyku tradycją są Las Posadas - 9-dniowe procesje i imprezy upamiętniające wędrówkę Marii i Józefa do Betlejem." },
-    5: { country: "Hiszpania", funFact: "👑 W Hiszpanii główne prezenty przychodzą 6 stycznia od Trzech Króli! Dzieci zostawiają im buty wypełnione słomą dla wielbłądów." },
+    5: { country: "Wenezuela", funFact: "⛸️ W Caracas w Wenezueli tradycją jest chodzenie na rolkach do kościoła na poranną mszę w Wigilię! Ulice są zamykane dla samochodów, tworząc wyjątkową świąteczną atmosferę." },
     6: { country: "Francja", funFact: "🎁 We Francji prezenty przynosi Père Noël (Ojciec Święty Mikołaj), a dzieci zostawiają mu wino i ciastka!" },
     7: { country: "Kolumbia", funFact: "🕯️ W Kolumbii Día de las Velitas (Dzień Świeczek) 7 grudnia rozpoczyna sezon świąteczny - miasta świecą tysiącami świec!" },
     8: { country: "Włochy", funFact: "🍝 We Włoszech tradycją jest jedzenie ryb w Wigilię! Włosi przygotowują La Vigilia - wielodaniową kolację z owocami morza, ale bez mięsa." },
@@ -393,7 +393,7 @@ const dayToCountryMap = {
     19: { country: "Chile", funFact: "🎅 W Chile Święty Mikołaj nazywa się Viejito Pascuero (Stary Człowiek Wielkanocny) i przychodzi przez kominek mimo letnich upałów!" },
     20: { country: "Peru", funFact: "🌟 W Peru tradycją jest budowanie elaborate szopek (nacimientos) z lokalnych materiałów i figurek z ceramiki z Ayacucho!" },
     21: { country: "Rosja", funFact: "❄️ W Rosji Nowy Rok jest ważniejszy niż Boże Narodzenie! Dziadek Mróz (Ded Moroz) przynosi prezenty 31 grudnia." },
-    22: { country: "Wenezuela", funFact: "⛸️ W Caracas w Wenezueli tradycją jest chodzenie na rolkach do kościoła na poranną mszę w Wigilię! Ulice są zamykane dla samochodów." },
+    22: { country: "Hiszpania", funFact: "👑 W Hiszpanii główne prezenty przychodzą 6 stycznia od Trzech Króli! Dzieci zostawiają im buty wypełnione słomą dla wielbłądów." },
     23: { country: "Ekwador", funFact: "🎭 W Ekwadorze tradycją jest palenie starej szafy (Año Viejo) - kukieł symbolizujących stary rok, 31 grudnia o północy!" },
     24: { country: "Urugwaj", funFact: "🎄 W Urugwaju Boże Narodzenie to czas rodzinnych spotkań na plaży i tradycyjnego asado (grilla) pod palmami zamiast choinkami!" }
 };

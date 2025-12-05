@@ -406,11 +406,8 @@ function displayUserQuestions(questions) {
     
     container.innerHTML = questions.map((question, index) => {
         const isAnswered = question.target_user_answer !== null;
-        const answeredText = isAnswered 
-            ? `Odpowiedziałeś: <strong>${question.target_user_answer === 1 ? question.option_1 : question.option_2}</strong>`
-            : '';
-        const answeredDate = isAnswered && question.answered_at
-            ? ` (${new Date(question.answered_at).toLocaleDateString('pl-PL')})`
+        const selectedAnswer = isAnswered 
+            ? (question.target_user_answer === 1 ? question.option_1 : question.option_2)
             : '';
         
         return `
@@ -421,16 +418,8 @@ function displayUserQuestions(questions) {
                 border: 1px solid ${isAnswered ? '#1a5d1a' : '#e8e8ed'};
                 border-radius: 8px;
             ">
-                <div style="margin-bottom: 16px;">
-                    <h4 style="margin: 0 0 12px 0; font-size: 1rem; font-weight: 600; color: #1d1d1f;">Pytanie ${index + 1}</h4>
-                    <div style="display: flex; gap: 16px; margin-bottom: 8px; flex-wrap: wrap;">
-                        <span style="font-size: 0.9375rem; color: #1d1d1f;">Opcja 1: <strong>${escapeHtml(question.option_1)}</strong></span>
-                        <span style="font-size: 0.9375rem; color: #1d1d1f;">Opcja 2: <strong>${escapeHtml(question.option_2)}</strong></span>
-                    </div>
-                    ${isAnswered ? `<p style="margin: 8px 0 0 0; font-size: 0.875rem; color: #1a5d1a;">${answeredText}${answeredDate}</p>` : ''}
-                </div>
-                
                 ${!isAnswered ? `
+                    <p style="margin: 0 0 16px 0; font-size: 0.9375rem; color: #6e6e73;">Wybierz jedną z opcji:</p>
                     <div style="margin-bottom: 16px;">
                         <label style="display: flex; align-items: center; padding: 12px; background: white; border: 2px solid #e8e8ed; border-radius: 8px; cursor: pointer; margin-bottom: 8px; transition: all 0.2s ease;">
                             <input type="radio" name="question-${question.id}" value="1" style="margin-right: 12px; width: 20px; height: 20px; cursor: pointer;">
@@ -452,7 +441,17 @@ function displayUserQuestions(questions) {
                         font-weight: 500;
                         transition: all 0.2s ease;
                     ">Zapisz odpowiedź</button>
-                ` : ''}
+                ` : `
+                    <div style="margin-bottom: 12px;">
+                        <div style="display: flex; gap: 16px; margin-bottom: 12px; flex-wrap: wrap;">
+                            <span style="font-size: 0.9375rem; color: #6e6e73;">${escapeHtml(question.option_1)}</span>
+                            <span style="font-size: 0.9375rem; color: #6e6e73;">${escapeHtml(question.option_2)}</span>
+                        </div>
+                        <p style="margin: 0; font-size: 1rem; color: #1a5d1a; font-weight: 500;">
+                            Wybrałeś: <strong>${escapeHtml(selectedAnswer)}</strong>
+                        </p>
+                    </div>
+                `}
             </div>
         `;
     }).join('');

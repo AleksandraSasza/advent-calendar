@@ -46,9 +46,9 @@ const dayToCountry = {
         coordinates: [23.6345, -102.5528] // Meksyk
     },
     5: {
-        country: "Hiszpania",
-        funFact: "👑 W Hiszpanii główne prezenty przychodzą 6 stycznia od Trzech Króli! Dzieci zostawiają im buty wypełnione słomą dla wielbłądów.",
-        coordinates: [40.4637, -3.7492] // Madryt
+        country: "Wenezuela",
+        funFact: "⛸️ W Caracas w Wenezueli tradycją jest chodzenie na rolkach do kościoła na poranną mszę w Wigilię! Ulice są zamykane dla samochodów, tworząc wyjątkową świąteczną atmosferę.",
+        coordinates: [6.4238, -66.5897] // Caracas
     },
     6: {
         country: "Francja",
@@ -131,9 +131,9 @@ const dayToCountry = {
         coordinates: [61.5240, 105.3188] // Moskwa
     },
     22: {
-        country: "Wenezuela",
-        funFact: "⛸️ W Caracas w Wenezueli tradycją jest chodzenie na rolkach do kościoła na poranną mszę w Wigilię! Ulice są zamykane dla samochodów.",
-        coordinates: [6.4238, -66.5897] // Caracas
+        country: "Hiszpania",
+        funFact: "👑 W Hiszpanii główne prezenty przychodzą 6 stycznia od Trzech Króli! Dzieci zostawiają im buty wypełnione słomą dla wielbłądów.",
+        coordinates: [40.4637, -3.7492] // Madryt
     },
     23: {
         country: "Ekwador",
