@@ -38,6 +38,86 @@ let allCalendarDays = [];
 
 // Sprawdź autoryzację i załaduj dane
 document.addEventListener('DOMContentLoaded', async function() {
+    // Kod generowania płatków śniegu
+    const snowContainer = document.querySelector(".snow-container");
+    
+    if (snowContainer) {
+        const particlesPerThousandPixels = 0.1;
+        const fallSpeed = 1.25;
+        const pauseWhenNotActive = true;
+        const maxSnowflakes = 200;
+        const snowflakes = [];
+        
+        let snowflakeInterval;
+        let isTabActive = true;
+        
+        function resetSnowflake(snowflake) {
+            const size = Math.random() * 5 + 1;
+            const viewportWidth = window.innerWidth - size;
+            const viewportHeight = window.innerHeight;
+            
+            snowflake.style.width = `${size}px`;
+            snowflake.style.height = `${size}px`;
+            snowflake.style.left = `${Math.random() * viewportWidth}px`;
+            snowflake.style.top = `-${size}px`;
+            
+            const animationDuration = (Math.random() * 3 + 2) / fallSpeed;
+            snowflake.style.animationDuration = `${animationDuration}s`;
+            snowflake.style.animationTimingFunction = "linear";
+            snowflake.style.animationName = Math.random() < 0.5 ? "fall" : "diagonal-fall";
+            
+            setTimeout(() => {
+                if (parseInt(snowflake.style.top, 10) < viewportHeight) {
+                    resetSnowflake(snowflake);
+                } else {
+                    snowflake.remove();
+                }
+            }, animationDuration * 1000);
+        }
+        
+        function createSnowflake() {
+            if (snowflakes.length < maxSnowflakes) {
+                const snowflake = document.createElement("div");
+                snowflake.classList.add("snowflake");
+                snowflakes.push(snowflake);
+                snowContainer.appendChild(snowflake);
+                resetSnowflake(snowflake);
+            }
+        }
+        
+        function generateSnowflakes() {
+            const numberOfParticles = Math.ceil((window.innerWidth * window.innerHeight) / 1000) * particlesPerThousandPixels;
+            const interval = 5000 / numberOfParticles;
+            
+            clearInterval(snowflakeInterval);
+            snowflakeInterval = setInterval(() => {
+                if (isTabActive && snowflakes.length < maxSnowflakes) {
+                    requestAnimationFrame(createSnowflake);
+                }
+            }, interval);
+        }
+        
+        function handleVisibilityChange() {
+            if (!pauseWhenNotActive) return;
+            
+            isTabActive = !document.hidden;
+            if (isTabActive) {
+                generateSnowflakes();
+            } else {
+                clearInterval(snowflakeInterval);
+            }
+        }
+        
+        generateSnowflakes();
+        
+        window.addEventListener("resize", () => {
+            clearInterval(snowflakeInterval);
+            setTimeout(generateSnowflakes, 1000);
+        });
+        
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+    }
+    
     console.log('🔍 Admin panel - sprawdzanie autoryzacji...');
     
     // Zabezpieczenie przed pętlą przekierowań
@@ -385,7 +465,7 @@ const dayToCountryMap = {
     11: { country: "Brazylia", funFact: "🎅 W Brazylii Święty Mikołaj nazywa się Papai Noel i często nosi lekkie, letnie ubrania zamiast grubego futra!" },
     12: { country: "USA", funFact: "🎄 Nowy Jork ma najbardziej znaną choinkę świata na Rockefeller Center! Tradycja sięga 1931 roku." },
     13: { country: "Kanada", funFact: "🎅 Kanada ma oficjalny kod pocztowy dla Świętego Mikołaja: H0H 0H0! Dzieci mogą wysyłać tam listy i otrzymują odpowiedź." },
-    14: { country: "Włochy", funFact: "🎄 We Włoszech prezenty przynosi Babbo Natale, ale prawdziwa magia dzieje się 6 stycznia - Święto Trzech Króli!" },
+    14: { country: "Francja", funFact: "🎄 We Francji tradycją jest jedzenie bûche de Noël (bożonarodzeniowego kłoda) - ciasta w kształcie kłoda! W Paryżu na Polach Elizejskich rozbłyskują tysiące światełek." },
     15: { country: "Indie", funFact: "🪔 W Indiach Boże Narodzenie łączy się z tradycjami Diwali - domyśl świetlne i kolorowe dekoracje wypełniają ulice!" },
     16: { country: "Egipt", funFact: "⛪ Chrześcijanie w Egipcie (Koptowie) obchodzą Boże Narodzenie 7 stycznia według kalendarza koptyjskiego!" },
     17: { country: "RPA", funFact: "🌞 W RPA Boże Narodzenie to letnia impreza! Ludzie świętują grillując na świeżym powietrzu i pływając w oceanie." },
@@ -812,12 +892,16 @@ window.saveDayInfo = async function(dayId) {
     
     const funFactInput = dayCard.querySelector('.day-funfact-input');
     
-    const funFact = funFactInput?.value?.trim() || null;
+    // Pobierz wartość i usuń białe znaki - jeśli jest pusty string, zapisz jako null
+    const funFactValue = funFactInput?.value?.trim();
+    const funFact = (funFactValue && funFactValue.length > 0) ? funFactValue : null;
+    
+    console.log('💾 saveDayInfo - zapisuję ciekawostkę dla dnia:', dayId, 'wartość:', funFact);
     
     try {
         // Zapisz tylko fun_fact (państwo jest w kodzie dayToCountryMap i nie można go zmieniać)
         const updateData = {
-            fun_fact: funFact || null
+            fun_fact: funFact
         };
         
         const { error } = await supabase

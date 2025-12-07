@@ -199,6 +199,86 @@ let markers = {};
 
 // Inicjalizacja aplikacji
 document.addEventListener('DOMContentLoaded', async function() {
+    // Kod generowania płatków śniegu
+    const snowContainer = document.querySelector(".snow-container");
+    
+    if (snowContainer) {
+        const particlesPerThousandPixels = 0.1;
+        const fallSpeed = 1.25;
+        const pauseWhenNotActive = true;
+        const maxSnowflakes = 200;
+        const snowflakes = [];
+        
+        let snowflakeInterval;
+        let isTabActive = true;
+        
+        function resetSnowflake(snowflake) {
+            const size = Math.random() * 5 + 1;
+            const viewportWidth = window.innerWidth - size;
+            const viewportHeight = window.innerHeight;
+            
+            snowflake.style.width = `${size}px`;
+            snowflake.style.height = `${size}px`;
+            snowflake.style.left = `${Math.random() * viewportWidth}px`;
+            snowflake.style.top = `-${size}px`;
+            
+            const animationDuration = (Math.random() * 3 + 2) / fallSpeed;
+            snowflake.style.animationDuration = `${animationDuration}s`;
+            snowflake.style.animationTimingFunction = "linear";
+            snowflake.style.animationName = Math.random() < 0.5 ? "fall" : "diagonal-fall";
+            
+            setTimeout(() => {
+                if (parseInt(snowflake.style.top, 10) < viewportHeight) {
+                    resetSnowflake(snowflake);
+                } else {
+                    snowflake.remove();
+                }
+            }, animationDuration * 1000);
+        }
+        
+        function createSnowflake() {
+            if (snowflakes.length < maxSnowflakes) {
+                const snowflake = document.createElement("div");
+                snowflake.classList.add("snowflake");
+                snowflakes.push(snowflake);
+                snowContainer.appendChild(snowflake);
+                resetSnowflake(snowflake);
+            }
+        }
+        
+        function generateSnowflakes() {
+            const numberOfParticles = Math.ceil((window.innerWidth * window.innerHeight) / 1000) * particlesPerThousandPixels;
+            const interval = 5000 / numberOfParticles;
+            
+            clearInterval(snowflakeInterval);
+            snowflakeInterval = setInterval(() => {
+                if (isTabActive && snowflakes.length < maxSnowflakes) {
+                    requestAnimationFrame(createSnowflake);
+                }
+            }, interval);
+        }
+        
+        function handleVisibilityChange() {
+            if (!pauseWhenNotActive) return;
+            
+            isTabActive = !document.hidden;
+            if (isTabActive) {
+                generateSnowflakes();
+            } else {
+                clearInterval(snowflakeInterval);
+            }
+        }
+        
+        generateSnowflakes();
+        
+        window.addEventListener("resize", () => {
+            clearInterval(snowflakeInterval);
+            setTimeout(generateSnowflakes, 1000);
+        });
+        
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+    }
+    
     // Zabezpieczenie przed pętlą przekierowań
     const redirectFlag = sessionStorage.getItem('redirecting');
     if (redirectFlag === 'true') {
@@ -288,9 +368,29 @@ function addAdventMarkers() {
         const dbData = calendarDaysData[dayNumber];
         const defaultData = dayToCountry[dayString];
         
+        // Debug: loguj dane dla dnia 8
+        if (dayNumber === 8) {
+            console.log('🔍 Dzień 8 - dbData:', dbData);
+            console.log('🔍 Dzień 8 - defaultData:', defaultData);
+        }
+        
         // Użyj danych z bazy, jeśli istnieją, w przeciwnym razie użyj domyślnych
+        // country zawsze z kodu (dayToCountry), bo nie jest w bazie
+        // Sprawdź czy fun_fact z bazy nie jest pustym stringiem ani null
+        const hasDbFunFact = dbData?.fun_fact && typeof dbData.fun_fact === 'string' && dbData.fun_fact.trim().length > 0;
+        
         const country = defaultData?.country || 'Brak państwa';
-        const funFact = dbData?.fun_fact || defaultData?.funFact || 'Brak ciekawostki';
+        const funFact = hasDbFunFact ? dbData.fun_fact : (defaultData?.funFact || 'Brak ciekawostki');
+        
+        // Debug: loguj wybraną ciekawostkę dla dnia 8
+        if (dayNumber === 8) {
+            console.log('🔍 Dzień 8 - dbData:', dbData);
+            console.log('🔍 Dzień 8 - hasDbFunFact:', hasDbFunFact);
+            console.log('🔍 Dzień 8 - fun_fact z bazy:', dbData?.fun_fact);
+            console.log('🔍 Dzień 8 - fun_fact typ:', typeof dbData?.fun_fact);
+            console.log('🔍 Dzień 8 - wybrana ciekawostka:', funFact);
+            console.log('🔍 Dzień 8 - defaultData.funFact:', defaultData?.funFact);
+        }
         
         // Współrzędne: najpierw z mapowania państwa, potem domyślne
         let coordinates = null;
@@ -528,8 +628,21 @@ async function openTaskModal(day) {
     // Pobierz dane z bazy lub użyj domyślnych
     const dbData = calendarDaysData[dayNumber];
     const defaultData = dayToCountry[day];
+    // country zawsze z kodu (dayToCountry), bo nie jest w bazie
+    const hasDbFunFact = dbData?.fun_fact && typeof dbData.fun_fact === 'string' && dbData.fun_fact.trim().length > 0;
     const country = defaultData?.country || 'Brak państwa';
-    const funFact = dbData?.fun_fact || defaultData?.funFact || 'Brak ciekawostki';
+    const funFact = hasDbFunFact ? dbData.fun_fact : (defaultData?.funFact || 'Brak ciekawostki');
+    
+    // Debug dla dnia 8
+    if (dayNumber === 8) {
+        console.log('🔍 openTaskModal - Dzień 8:');
+        console.log('  - dbData:', dbData);
+        console.log('  - hasDbFunFact:', hasDbFunFact);
+        console.log('  - fun_fact z bazy:', dbData?.fun_fact);
+        console.log('  - fun_fact typ:', typeof dbData?.fun_fact);
+        console.log('  - wybrana ciekawostka:', funFact);
+        console.log('  - defaultData.funFact:', defaultData?.funFact);
+    }
     
     // Użyj dayNumber (liczba) jako klucza, bo w loadUserTasks zadania są zapisywane z kluczem liczbowym
     const taskData = userTasks[dayNumber]; // Dynamiczne zadanie z Supabase
@@ -1978,16 +2091,45 @@ async function loadCalendarDays() {
         calendarDaysData = {};
         if (data && data.length > 0) {
             data.forEach(day => {
-                calendarDaysData[day.day_number] = {
-                    fun_fact: day.fun_fact || null
+                // NORMALIZUJ day_number do liczby - ważne dla poprawnego indeksowania
+                const dayNum = typeof day.day_number === 'string' ? parseInt(day.day_number, 10) : day.day_number;
+                
+                calendarDaysData[dayNum] = {
+                    // Sprawdź czy fun_fact istnieje i nie jest pustym stringiem
+                    fun_fact: (day.fun_fact !== null && day.fun_fact !== undefined && 
+                               typeof day.fun_fact === 'string' && 
+                               day.fun_fact.trim().length > 0) 
+                        ? day.fun_fact.trim() 
+                        : null
+                    // country nie jest w bazie - pobieramy z dayToCountry w kodzie
                 };
+                
+                // Debug: loguj dane dla dnia 8
+                if (dayNum === 8) {
+                    console.log('🔍 loadCalendarDays - Dzień 8 z bazy:', {
+                        day_number_original: day.day_number,
+                        day_number_type: typeof day.day_number,
+                        dayNum_normalized: dayNum,
+                        fun_fact: day.fun_fact,
+                        fun_fact_type: typeof day.fun_fact,
+                        fun_fact_length: day.fun_fact ? day.fun_fact.length : 'null/undefined',
+                        fun_fact_trimmed: calendarDaysData[dayNum].fun_fact
+                    });
+                }
             });
         }
         
         console.log('✅ Załadowano dane dni kalendarza z bazy:', Object.keys(calendarDaysData).length, 'dni');
+        if (calendarDaysData[8]) {
+            console.log('🔍 calendarDaysData[8] po załadowaniu:', calendarDaysData[8]);
+            console.log('🔍 calendarDaysData[8].fun_fact:', calendarDaysData[8].fun_fact);
+            console.log('🔍 calendarDaysData[8].fun_fact typ:', typeof calendarDaysData[8].fun_fact);
+            console.log('🔍 calendarDaysData[8].fun_fact długość:', calendarDaysData[8].fun_fact ? calendarDaysData[8].fun_fact.length : 'null/undefined');
+        }
         
         // Odśwież markery na mapie jeśli mapa już istnieje
         if (map && markers) {
+            console.log('🔄 Odświeżam markery na mapie...');
             refreshMapMarkers();
         }
     } catch (error) {
@@ -2317,8 +2459,10 @@ function updateMarkerAppearance(day) {
         // Pobierz dane z bazy lub użyj domyślnych
         const dbData = calendarDaysData[dayNumber];
         const defaultData = dayToCountry[day];
+        // country zawsze z kodu (dayToCountry), bo nie jest w bazie
+        const hasDbFunFact = dbData?.fun_fact && typeof dbData.fun_fact === 'string' && dbData.fun_fact.trim().length > 0;
         const country = defaultData?.country || 'Brak państwa';
-        const funFact = dbData?.fun_fact || defaultData?.funFact || 'Brak ciekawostki';
+        const funFact = hasDbFunFact ? dbData.fun_fact : (defaultData?.funFact || 'Brak ciekawostki');
         
         let popupContent;
         if (isLocked) {

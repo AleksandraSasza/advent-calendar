@@ -1,6 +1,6 @@
 /* Minimalistyczny design z świątecznymi elementami - Ranking */
 .ranking-body {
-    background: #014a35; /* Jaśniejszy odcień zielonego */
+    background: rgba(10, 35, 18, 1); /* Ciemnozielony kolor */
     min-height: 100vh;
     font-family: 'Quintessential', cursive;
     margin: 0;

@@ -35,6 +35,86 @@ let supabase = null;
 
 // Sprawdź czy użytkownik jest zalogowany
 document.addEventListener('DOMContentLoaded', async function() {
+    // Kod generowania płatków śniegu
+    const snowContainer = document.querySelector(".snow-container");
+    
+    if (snowContainer) {
+        const particlesPerThousandPixels = 0.1;
+        const fallSpeed = 1.25;
+        const pauseWhenNotActive = true;
+        const maxSnowflakes = 200;
+        const snowflakes = [];
+        
+        let snowflakeInterval;
+        let isTabActive = true;
+        
+        function resetSnowflake(snowflake) {
+            const size = Math.random() * 5 + 1;
+            const viewportWidth = window.innerWidth - size;
+            const viewportHeight = window.innerHeight;
+            
+            snowflake.style.width = `${size}px`;
+            snowflake.style.height = `${size}px`;
+            snowflake.style.left = `${Math.random() * viewportWidth}px`;
+            snowflake.style.top = `-${size}px`;
+            
+            const animationDuration = (Math.random() * 3 + 2) / fallSpeed;
+            snowflake.style.animationDuration = `${animationDuration}s`;
+            snowflake.style.animationTimingFunction = "linear";
+            snowflake.style.animationName = Math.random() < 0.5 ? "fall" : "diagonal-fall";
+            
+            setTimeout(() => {
+                if (parseInt(snowflake.style.top, 10) < viewportHeight) {
+                    resetSnowflake(snowflake);
+                } else {
+                    snowflake.remove();
+                }
+            }, animationDuration * 1000);
+        }
+        
+        function createSnowflake() {
+            if (snowflakes.length < maxSnowflakes) {
+                const snowflake = document.createElement("div");
+                snowflake.classList.add("snowflake");
+                snowflakes.push(snowflake);
+                snowContainer.appendChild(snowflake);
+                resetSnowflake(snowflake);
+            }
+        }
+        
+        function generateSnowflakes() {
+            const numberOfParticles = Math.ceil((window.innerWidth * window.innerHeight) / 1000) * particlesPerThousandPixels;
+            const interval = 5000 / numberOfParticles;
+            
+            clearInterval(snowflakeInterval);
+            snowflakeInterval = setInterval(() => {
+                if (isTabActive && snowflakes.length < maxSnowflakes) {
+                    requestAnimationFrame(createSnowflake);
+                }
+            }, interval);
+        }
+        
+        function handleVisibilityChange() {
+            if (!pauseWhenNotActive) return;
+            
+            isTabActive = !document.hidden;
+            if (isTabActive) {
+                generateSnowflakes();
+            } else {
+                clearInterval(snowflakeInterval);
+            }
+        }
+        
+        generateSnowflakes();
+        
+        window.addEventListener("resize", () => {
+            clearInterval(snowflakeInterval);
+            setTimeout(generateSnowflakes, 1000);
+        });
+        
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+    }
+    
     // Poczekaj chwilę, aby vercel-config.js zdążył się wykonać
     // Sprawdź konfigurację kilka razy (max 10 razy, co 50ms)
     let attempts = 0;
@@ -544,7 +624,7 @@ function displayUserQuestions(questions) {
                 border-radius: 8px;
             ">
                 ${!isAnswered ? `
-                    <p style="margin: 0 0 16px 0; font-size: 0.9375rem; color: #6e6e73;">Wybierz jedną z opcji:</p>
+                    <p style="margin: 0 0 16px 0; font-size: 0.9375rem; color: #6e6e73;">Co wolisz?</p>
                     <div style="margin-bottom: 16px;">
                         <label style="display: flex; align-items: center; padding: 12px; background: white; border: 2px solid #e8e8ed; border-radius: 8px; cursor: pointer; margin-bottom: 8px; transition: all 0.2s ease;">
                             <input type="radio" name="question-${question.id}" value="1" style="margin-right: 12px; width: 20px; height: 20px; cursor: pointer;">
@@ -589,7 +669,7 @@ function displayUserQuestions(questions) {
             const selectedOption = questionItem.querySelector(`input[name="question-${questionId}"]:checked`);
             
             if (!selectedOption) {
-                showNotification('Wybierz jedną z opcji', 'error');
+                showNotification('Co wolisz?', 'error');
                 return;
             }
             
