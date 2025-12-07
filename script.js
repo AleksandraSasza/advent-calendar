@@ -91,9 +91,9 @@ const dayToCountry = {
         coordinates: [56.1304, -106.3468] // Ottawa
     },
     14: {
-        country: "Włochy",
-        funFact: "🎄 We Włoszech prezenty przynosi Babbo Natale, ale prawdziwa magia dzieje się 6 stycznia - Święto Trzech Króli!",
-        coordinates: [41.9028, 12.4964] // Rzym
+        country: "Francja",
+        funFact: "🎄 We Francji tradycją jest jedzenie bûche de Noël (bożonarodzeniowego kłoda) - ciasta w kształcie kłoda! W Paryżu na Polach Elizejskich rozbłyskują tysiące światełek.",
+        coordinates: [46.2276, 2.2137] // Paryż
     },
     15: {
         country: "Indie",
@@ -375,12 +375,10 @@ function addAdventMarkers() {
         if (!isMobileDevice()) {
             marker.bindPopup(popupContent, {
                 maxWidth: 400,
+                maxHeight: Math.min(window.innerHeight * 0.5, 400),
                 className: 'advent-popup-container',
-                autoPan: true,
-                autoPanPadding: [100, 50],
-                autoPanPaddingTopLeft: [100, 50],
-                autoPanPaddingBottomRight: [100, 50],
-                keepInView: true,
+                autoPan: false, // Wyłączone - popup otwiera się nad markerem bez przesuwania mapy
+                keepInView: false, // Wyłączone - nie wymuszaj widoczności przez przesuwanie
                 closeOnClick: true, // Pozwól zamykać popup klikając w mapę
                 autoClose: true // Automatycznie zamykaj popup przy otwarciu innego
             });
@@ -504,7 +502,7 @@ function closeFunFactModal() {
 }
 
 // Otwieranie modala z zadaniem (duży popup)
-function openTaskModal(day) {
+async function openTaskModal(day) {
     const dayNumber = parseInt(day);
     
     // Sprawdź czy dzień jest zablokowany
@@ -586,6 +584,11 @@ function openTaskModal(day) {
         const viewPhotoLinkContainer = document.getElementById('view-photo-link-container');
         const viewPhotoLink = document.getElementById('view-photo-link');
         
+        // Sekcja quizu o użytkownikach
+        const quizSection = document.getElementById('quiz-section');
+        const quizQuestionsContainer = document.getElementById('quiz-questions-container');
+        const quizResult = document.getElementById('quiz-result');
+        
         // Sekcja odpowiedzi tekstowej z weryfikacją
         const textResponseSection = document.getElementById('text-response-section');
         const viewTextResponseContainer = document.getElementById('view-text-response-container');
@@ -596,6 +599,26 @@ function openTaskModal(day) {
         
         // Sprawdź status tylko jeśli zadanie istnieje
         const isCompleted = taskData.status === 'completed' || taskData.status === 'pending_verification' || completedDays.has(dayNumber);
+        
+        // Obsługa quizu o użytkownikach
+        if (taskData.task_type === 'quiz' && taskData.metadata && taskData.metadata.quiz_type === 'user_quiz') {
+            quizSection.style.display = 'block';
+            textResponseSection.style.display = 'none';
+            photoUploadSection.style.display = 'none';
+            
+            // Ukryj przycisk "Oznacz jako wykonane" dla quizów - wynik pokaże się automatycznie
+            if (markButton) {
+                markButton.style.display = 'none';
+            }
+            
+            // Załaduj i wyświetl pytania quizowe
+            await loadQuizQuestions(taskData, isCompleted);
+        } else {
+            quizSection.style.display = 'none';
+            if (quizResult) {
+                quizResult.style.display = 'none';
+            }
+        }
         
         // Obsługa odpowiedzi tekstowej z weryfikacją
         if (taskData.task_type === 'text_response_verified') {
@@ -838,20 +861,25 @@ function openTaskModal(day) {
                 }
             }
         } else {
-            // Pokaż przycisk "Oznacz jako wykonane" tylko dla niezakończonych zadań
-            markButton.style.display = 'inline-flex';
-            
-            // Dla zadań ze zdjęciami i odpowiedzią tekstową z weryfikacją zmień tekst przycisku
-            if (taskData.task_type === 'photo_upload') {
-                markButton.textContent = 'Prześlij zdjęcie do weryfikacji';
-            } else if (taskData.task_type === 'text_response_verified') {
-                markButton.textContent = 'Prześlij odpowiedź do weryfikacji';
+            // Pokaż przycisk "Oznacz jako wykonane" tylko dla niezakończonych zadań (ale nie dla quizów)
+            if (taskData.task_type === 'quiz' && taskData.metadata && taskData.metadata.quiz_type === 'user_quiz') {
+                // Dla quizów przycisk jest już ukryty w sekcji obsługi quizów
+                markButton.style.display = 'none';
             } else {
-                markButton.textContent = 'Oznacz jako wykonane';
+                markButton.style.display = 'inline-flex';
+                
+                // Dla zadań ze zdjęciami i odpowiedzią tekstową z weryfikacją zmień tekst przycisku
+                if (taskData.task_type === 'photo_upload') {
+                    markButton.textContent = 'Prześlij zdjęcie do weryfikacji';
+                } else if (taskData.task_type === 'text_response_verified') {
+                    markButton.textContent = 'Prześlij odpowiedź do weryfikacji';
+                } else {
+                    markButton.textContent = 'Oznacz jako wykonane';
+                }
+                
+                markButton.disabled = false;
+                markButton.style.background = '';
             }
-            
-            markButton.disabled = false;
-            markButton.style.background = '';
             
             // Ukryj badge statusu
             if (statusBadge) {
@@ -1001,6 +1029,499 @@ async function showPhotoInModal(photoUrl) {
     }
     
     photoModal.style.display = 'block';
+}
+
+// Ładowanie i wyświetlanie pytań quizowych o użytkownikach
+async function loadQuizQuestions(taskData, isCompleted) {
+    if (!supabase || !currentUser) {
+        console.error('Brak supabase lub użytkownika');
+        return;
+    }
+    
+    const quizSection = document.getElementById('quiz-section');
+    const quizQuestionsContainer = document.getElementById('quiz-questions-container');
+    const quizResult = document.getElementById('quiz-result');
+    const markButton = document.getElementById('mark-completed');
+    
+    if (!quizSection || !quizQuestionsContainer) {
+        console.error('Brak elementów HTML dla quizu');
+        return;
+    }
+    
+    try {
+        const metadata = taskData.metadata;
+        if (!metadata || !metadata.question_ids || !Array.isArray(metadata.question_ids) || metadata.question_ids.length === 0) {
+            quizQuestionsContainer.innerHTML = '<p style="color: #6e6e73; font-size: 0.875rem;">Bez pytań</p>';
+            if (markButton) {
+                markButton.style.display = 'none';
+            }
+            return;
+        }
+        
+        // Pobierz pytania z bazy danych
+        const { data: questions, error } = await supabase
+            .from('user_quiz_questions')
+            .select('*')
+            .in('id', metadata.question_ids)
+            .eq('target_user_id', metadata.target_user_id);
+        
+        if (error) {
+            console.error('Błąd ładowania pytań quizowych:', error);
+            quizQuestionsContainer.innerHTML = '<p style="color: #dc3545; font-size: 0.875rem;">Błąd ładowania pytań</p>';
+            return;
+        }
+        
+        if (!questions || questions.length === 0) {
+            quizQuestionsContainer.innerHTML = '<p style="color: #6e6e73; font-size: 0.875rem;">Bez pytań</p>';
+            if (markButton) {
+                markButton.style.display = 'none';
+            }
+            return;
+        }
+        
+        // Sprawdź czy użytkownik już rozwiązał quiz (nawet jeśli niezaliczony)
+        let existingAttempt = null;
+        if (taskData.id) {
+            const { data: attempts, error: attemptError } = await supabase
+                .from('quiz_attempts')
+                .select('*')
+                .eq('assigned_task_id', taskData.id)
+                .eq('attempting_user_id', currentUser.id)
+                .order('completed_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+            
+            if (!attemptError && attempts) {
+                existingAttempt = attempts;
+            }
+        }
+        
+        // Jeśli istnieje jakakolwiek próba rozwiązania quizu (zaliczona lub nie), pokaż wynik
+        // Nie ma możliwości ponownego rozwiązania quizu
+        if (existingAttempt) {
+            displayQuizResult(questions, existingAttempt, metadata.passing_score || 5);
+            if (markButton) {
+                markButton.style.display = 'none';
+            }
+        } else {
+            // Tylko jeśli nie ma żadnej próby, pozwól na rozwiązanie quizu
+            displayQuizQuestions(questions, taskData, metadata);
+            if (markButton) {
+                markButton.style.display = 'none'; // Ukryj przycisk "Zakończ quiz" - wynik pokaże się automatycznie
+            }
+        }
+        
+    } catch (error) {
+        console.error('Błąd w loadQuizQuestions:', error);
+        quizQuestionsContainer.innerHTML = '<p style="color: #dc3545; font-size: 0.875rem;">Błąd ładowania quizu</p>';
+    }
+}
+
+// Wyświetlanie pytań quizowych
+function displayQuizQuestions(questions, taskData, metadata) {
+    const quizQuestionsContainer = document.getElementById('quiz-questions-container');
+    const quizResult = document.getElementById('quiz-result');
+    
+    if (quizResult) {
+        quizResult.style.display = 'none';
+    }
+    
+    const passingScore = metadata.passing_score || 5;
+    const totalQuestions = questions.length;
+    
+    // Wyczyść kontener i dodaj informację o progu zaliczenia
+    quizQuestionsContainer.innerHTML = '';
+    
+    // Informacja o progu zaliczenia
+    const infoDiv = document.createElement('div');
+    infoDiv.style.cssText = 'margin-bottom: 24px; padding: 16px; background: #e7f3ff; border: 1px solid #1a5d1a; border-radius: 8px;';
+    infoDiv.innerHTML = `
+        <p style="margin: 0; font-weight: 500; color: #1d1d1f; font-size: 0.9375rem;">
+            📊 Aby zaliczyć quiz, musisz poprawnie odpowiedzieć na <strong>${passingScore}</strong> z <strong>${totalQuestions}</strong> pytań.
+        </p>
+    `;
+    quizQuestionsContainer.appendChild(infoDiv);
+    
+    // Obiekt do śledzenia zatwierdzonych pytań (w zakresie funkcji)
+    const confirmedAnswers = {};
+    
+    // Funkcja sprawdzająca czy wszystkie pytania zostały zatwierdzone
+    const checkAllConfirmed = () => {
+        if (Object.keys(confirmedAnswers).length === questions.length) {
+            // Wszystkie pytania zatwierdzone - automatycznie zapisz quiz i pokaż wynik
+            setTimeout(() => {
+                submitQuizAutomatically(taskData, questions, metadata, confirmedAnswers);
+            }, 500);
+        }
+    };
+    
+    questions.forEach((question, index) => {
+        const questionDiv = document.createElement('div');
+        questionDiv.className = 'quiz-question-item';
+        questionDiv.id = `quiz-question-${question.id}`;
+        questionDiv.style.cssText = 'margin-bottom: 24px; padding: 16px; background: #f5f5f7; border-radius: 8px;';
+        
+        const questionText = document.createElement('p');
+        questionText.style.cssText = 'font-weight: 500; margin-bottom: 12px; color: #1d1d1f; font-size: 0.9375rem;';
+        questionText.textContent = `${index + 1}. ${question.question_text}`;
+        questionDiv.appendChild(questionText);
+        
+        // Kontener dla opcji
+        const optionsContainer = document.createElement('div');
+        optionsContainer.style.cssText = 'margin-bottom: 12px;';
+        
+        // Opcja 1
+        const option1Label = document.createElement('label');
+        option1Label.style.cssText = 'display: flex; align-items: center; padding: 12px; margin-bottom: 8px; background: white; border: 2px solid #e8e8ed; border-radius: 8px; cursor: pointer; transition: all 0.2s;';
+        
+        const option1Input = document.createElement('input');
+        option1Input.type = 'radio';
+        option1Input.name = `quiz-question-${question.id}`;
+        option1Input.value = '1';
+        option1Input.id = `quiz-${question.id}-option-1`;
+        option1Input.style.cssText = 'margin-right: 12px;';
+        option1Input.disabled = false;
+        option1Label.appendChild(option1Input);
+        
+        const option1Text = document.createElement('span');
+        option1Text.textContent = question.option_1;
+        option1Text.style.cssText = 'flex: 1; color: #1d1d1f; font-size: 0.875rem;';
+        option1Label.appendChild(option1Text);
+        
+        optionsContainer.appendChild(option1Label);
+        
+        // Opcja 2
+        const option2Label = document.createElement('label');
+        option2Label.style.cssText = 'display: flex; align-items: center; padding: 12px; background: white; border: 2px solid #e8e8ed; border-radius: 8px; cursor: pointer; transition: all 0.2s;';
+        
+        const option2Input = document.createElement('input');
+        option2Input.type = 'radio';
+        option2Input.name = `quiz-question-${question.id}`;
+        option2Input.value = '2';
+        option2Input.id = `quiz-${question.id}-option-2`;
+        option2Input.style.cssText = 'margin-right: 12px;';
+        option2Input.disabled = false;
+        option2Label.appendChild(option2Input);
+        
+        const option2Text = document.createElement('span');
+        option2Text.textContent = question.option_2;
+        option2Text.style.cssText = 'flex: 1; color: #1d1d1f; font-size: 0.875rem;';
+        option2Label.appendChild(option2Text);
+        
+        optionsContainer.appendChild(option2Label);
+        questionDiv.appendChild(optionsContainer);
+        
+        // Przycisk "Zatwierdź"
+        const confirmButton = document.createElement('button');
+        confirmButton.textContent = 'Zatwierdź';
+        confirmButton.className = 'btn btn-primary';
+        confirmButton.style.cssText = 'margin-top: 8px;';
+        confirmButton.id = `confirm-btn-${question.id}`;
+        confirmButton.disabled = false;
+        
+        confirmButton.addEventListener('click', () => {
+            const selectedOption = document.querySelector(`input[name="quiz-question-${question.id}"]:checked`)?.value;
+            
+            if (!selectedOption) {
+                showNotification('Wybierz odpowiedź przed zatwierdzeniem', 'error');
+                return;
+            }
+            
+            // Zatwierdź odpowiedź
+            const selectedAnswer = parseInt(selectedOption);
+            const isCorrect = selectedAnswer === question.target_user_answer;
+            confirmedAnswers[question.id] = selectedAnswer;
+            
+            // Zablokuj możliwość zmiany odpowiedzi
+            option1Input.disabled = true;
+            option2Input.disabled = true;
+            option1Label.style.cursor = 'not-allowed';
+            option2Label.style.cursor = 'not-allowed';
+            confirmButton.disabled = true;
+            confirmButton.textContent = isCorrect ? '✓ Poprawna odpowiedź' : '✗ Niepoprawna odpowiedź';
+            confirmButton.style.background = isCorrect ? '#28a745' : '#dc3545';
+            confirmButton.style.cursor = 'default';
+            
+            // Zmień kolor odpowiedzi
+            if (isCorrect) {
+                option1Label.style.borderColor = option1Input.checked ? '#28a745' : '#e8e8ed';
+                option2Label.style.borderColor = option2Input.checked ? '#28a745' : '#e8e8ed';
+                option1Label.style.background = option1Input.checked ? '#d4edda' : 'white';
+                option2Label.style.background = option2Input.checked ? '#d4edda' : 'white';
+            } else {
+                option1Label.style.borderColor = option1Input.checked ? '#dc3545' : '#e8e8ed';
+                option2Label.style.borderColor = option2Input.checked ? '#dc3545' : '#e8e8ed';
+                option1Label.style.background = option1Input.checked ? '#f8d7da' : 'white';
+                option2Label.style.background = option2Input.checked ? '#f8d7da' : 'white';
+            }
+            
+            // Sprawdź czy wszystkie pytania zostały zatwierdzone
+            checkAllConfirmed();
+        });
+        
+        questionDiv.appendChild(confirmButton);
+        quizQuestionsContainer.appendChild(questionDiv);
+    });
+}
+
+// Wyświetlanie wyniku quizu
+function displayQuizResult(questions, attempt, passingScore) {
+    const quizQuestionsContainer = document.getElementById('quiz-questions-container');
+    const quizResult = document.getElementById('quiz-result');
+    
+    if (!quizResult) return;
+    
+    const score = attempt.score || 0;
+    const totalQuestions = attempt.total_questions || questions.length;
+    const passed = score >= passingScore;
+    const questionAnswers = attempt.question_answers || {};
+    
+    // Wyczyść kontener i dodaj informację o progu zaliczenia
+    quizQuestionsContainer.innerHTML = '';
+    
+    // Informacja o progu zaliczenia (także w wyniku)
+    const infoDiv = document.createElement('div');
+    infoDiv.style.cssText = 'margin-bottom: 24px; padding: 16px; background: #e7f3ff; border: 1px solid #1a5d1a; border-radius: 8px;';
+    infoDiv.innerHTML = `
+        <p style="margin: 0; font-weight: 500; color: #1d1d1f; font-size: 0.9375rem;">
+            📊 Aby zaliczyć quiz, musisz poprawnie odpowiedzieć na <strong>${passingScore}</strong> z <strong>${totalQuestions}</strong> pytań.
+        </p>
+    `;
+    quizQuestionsContainer.appendChild(infoDiv);
+    
+    questions.forEach((question, index) => {
+        const questionDiv = document.createElement('div');
+        questionDiv.style.cssText = 'margin-bottom: 24px; padding: 16px; background: #f5f5f7; border-radius: 8px;';
+        
+        const questionText = document.createElement('p');
+        questionText.style.cssText = 'font-weight: 500; margin-bottom: 12px; color: #1d1d1f; font-size: 0.9375rem;';
+        questionText.textContent = `${index + 1}. ${question.question_text}`;
+        questionDiv.appendChild(questionText);
+        
+        const userAnswer = questionAnswers[question.id];
+        const isCorrect = userAnswer === question.target_user_answer;
+        
+        // Opcja 1
+        const option1Div = document.createElement('div');
+        option1Div.style.cssText = `padding: 12px; margin-bottom: 8px; background: ${userAnswer === 1 ? (isCorrect ? '#d4edda' : '#f8d7da') : 'white'}; border: 2px solid ${userAnswer === 1 ? (isCorrect ? '#28a745' : '#dc3545') : '#e8e8ed'}; border-radius: 8px;`;
+        option1Div.textContent = question.option_1;
+        if (userAnswer === 1) {
+            option1Div.textContent += isCorrect ? ' ✓' : ' ✗';
+        }
+        questionDiv.appendChild(option1Div);
+        
+        // Opcja 2
+        const option2Div = document.createElement('div');
+        option2Div.style.cssText = `padding: 12px; background: ${userAnswer === 2 ? (isCorrect ? '#d4edda' : '#f8d7da') : 'white'}; border: 2px solid ${userAnswer === 2 ? (isCorrect ? '#28a745' : '#dc3545') : '#e8e8ed'}; border-radius: 8px;`;
+        option2Div.textContent = question.option_2;
+        if (userAnswer === 2) {
+            option2Div.textContent += isCorrect ? ' ✓' : ' ✗';
+        }
+        questionDiv.appendChild(option2Div);
+        
+        quizQuestionsContainer.appendChild(questionDiv);
+    });
+    
+    // Wyświetl wynik
+    quizResult.style.display = 'block';
+    quizResult.style.background = passed ? '#d4edda' : '#f8d7da';
+    quizResult.style.border = `1px solid ${passed ? '#28a745' : '#dc3545'}`;
+    quizResult.style.color = passed ? '#155724' : '#721c24';
+    quizResult.innerHTML = `
+        <p style="font-weight: 600; margin-bottom: 8px; font-size: 1rem;">
+            ${passed ? '✓ Quiz zaliczony!' : '✗ Quiz niezaliczony'}
+        </p>
+        <p style="margin: 0; font-size: 0.875rem;">
+            Wynik: ${score}/${totalQuestions} (wymagane: ${passingScore}/${totalQuestions})
+        </p>
+    `;
+}
+
+// Automatyczne zapisanie quizu po zatwierdzeniu wszystkich pytań
+async function submitQuizAutomatically(taskData, questions, metadata, confirmedAnswers) {
+    if (!supabase || !currentUser) {
+        showNotification('Błąd: Brak autoryzacji', 'error');
+        return;
+    }
+    
+    try {
+        // Oblicz wynik
+        let score = 0;
+        questions.forEach(question => {
+            if (confirmedAnswers[question.id] === question.target_user_answer) {
+                score++;
+            }
+        });
+        
+        const totalQuestions = questions.length;
+        const passingScore = metadata.passing_score || 5;
+        const taskCompleted = score >= passingScore;
+        
+        // Zapisz próbę quizu
+        const { data: attempt, error: attemptError } = await supabase
+            .from('quiz_attempts')
+            .insert({
+                task_template_id: taskData.task_template_id,
+                assigned_task_id: taskData.id,
+                attempting_user_id: currentUser.id,
+                target_user_id: metadata.target_user_id,
+                question_answers: confirmedAnswers,
+                score: score,
+                total_questions: totalQuestions,
+                completed_at: new Date().toISOString(),
+                task_completed: taskCompleted
+            })
+            .select()
+            .single();
+        
+        if (attemptError) {
+            console.error('Błąd zapisywania próby quizu:', attemptError);
+            showNotification('Błąd zapisywania quizu: ' + (attemptError.message || 'Nieznany błąd'), 'error');
+            return;
+        }
+        
+        // Jeśli quiz został zaliczony, zaktualizuj status zadania
+        if (taskCompleted) {
+            const { error: updateError } = await supabase
+                .from('assigned_tasks')
+                .update({
+                    status: 'completed',
+                    completed_at: new Date().toISOString(),
+                    response_metadata: { quiz_attempt_id: attempt.id }
+                })
+                .eq('id', taskData.id)
+                .eq('user_id', currentUser.id);
+            
+            if (updateError) {
+                console.error('Błąd aktualizacji zadania:', updateError);
+            } else {
+                // Zaktualizuj lokalny stan
+                taskData.status = 'completed';
+                completedDays.add(currentDay);
+                userTasks[currentDay].status = 'completed';
+                updateAllMarkers();
+            }
+        }
+        
+        // Wyświetl wynik
+        displayQuizResult(questions, attempt, passingScore);
+        
+        if (taskCompleted) {
+            showNotification(`Quiz zaliczony! Wynik: ${score}/${totalQuestions}`, 'success');
+        } else {
+            showNotification(`Quiz niezaliczony. Wynik: ${score}/${totalQuestions} (wymagane: ${passingScore})`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Błąd w submitQuizAutomatically:', error);
+        showNotification('Błąd zapisywania quizu', 'error');
+    }
+}
+
+// Zapisanie odpowiedzi quizu (stara funkcja - zachowana dla kompatybilności)
+async function submitQuiz(taskData, questions, metadata) {
+    if (!supabase || !currentUser) {
+        showNotification('Błąd: Brak autoryzacji', 'error');
+        return;
+    }
+    
+    try {
+        // Zbierz odpowiedzi
+        const questionAnswers = {};
+        let allAnswered = true;
+        
+        questions.forEach(question => {
+            const selectedOption = document.querySelector(`input[name="quiz-question-${question.id}"]:checked`)?.value;
+            if (selectedOption) {
+                questionAnswers[question.id] = parseInt(selectedOption);
+            } else {
+                allAnswered = false;
+            }
+        });
+        
+        if (!allAnswered) {
+            showNotification('Odpowiedz na wszystkie pytania', 'error');
+            return;
+        }
+        
+        // Oblicz wynik
+        let score = 0;
+        questions.forEach(question => {
+            if (questionAnswers[question.id] === question.target_user_answer) {
+                score++;
+            }
+        });
+        
+        const totalQuestions = questions.length;
+        const passingScore = metadata.passing_score || 5;
+        const taskCompleted = score >= passingScore;
+        
+        // Zapisz próbę quizu
+        const { data: attempt, error: attemptError } = await supabase
+            .from('quiz_attempts')
+            .insert({
+                task_template_id: taskData.task_template_id,
+                assigned_task_id: taskData.id,
+                attempting_user_id: currentUser.id,
+                target_user_id: metadata.target_user_id,
+                question_answers: questionAnswers,
+                score: score,
+                total_questions: totalQuestions,
+                completed_at: new Date().toISOString(),
+                task_completed: taskCompleted
+            })
+            .select()
+            .single();
+        
+        if (attemptError) {
+            console.error('Błąd zapisywania próby quizu:', attemptError);
+            showNotification('Błąd zapisywania quizu: ' + (attemptError.message || 'Nieznany błąd'), 'error');
+            return;
+        }
+        
+        // Jeśli quiz został zaliczony, zaktualizuj status zadania
+        if (taskCompleted) {
+            const { error: updateError } = await supabase
+                .from('assigned_tasks')
+                .update({
+                    status: 'completed',
+                    completed_at: new Date().toISOString(),
+                    response_metadata: { quiz_attempt_id: attempt.id }
+                })
+                .eq('id', taskData.id)
+                .eq('user_id', currentUser.id);
+            
+            if (updateError) {
+                console.error('Błąd aktualizacji zadania:', updateError);
+                showNotification('Quiz zapisany, ale błąd aktualizacji zadania', 'error');
+            } else {
+                // Zaktualizuj lokalny stan
+                taskData.status = 'completed';
+                completedDays.add(currentDay);
+                userTasks[currentDay].status = 'completed';
+                updateAllMarkers();
+            }
+        }
+        
+        // Wyświetl wynik
+        displayQuizResult(questions, attempt, passingScore);
+        
+        // Ukryj przycisk
+        const markButton = document.getElementById('mark-completed');
+        if (markButton) {
+            markButton.style.display = 'none';
+        }
+        
+        if (taskCompleted) {
+            showNotification(`Quiz zaliczony! Wynik: ${score}/${totalQuestions}`, 'success');
+        } else {
+            showNotification(`Quiz niezaliczony. Wynik: ${score}/${totalQuestions} (wymagane: ${passingScore})`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Błąd w submitQuiz:', error);
+        showNotification('Błąd zapisywania quizu', 'error');
+    }
 }
 
 // Oznaczanie zadania jako wykonane
@@ -1557,6 +2078,7 @@ async function loadUserTasks() {
                 task_title: task.task_templates?.title || 'Zadanie',
                 task_description: task.task_templates?.description || '',
                 task_type: task.task_templates?.task_type || 'text_response',
+                metadata: task.task_templates?.metadata || null,
                 status: task.status,
                 response_text: task.response_text,
                 response_media_url: task.response_media_url,
@@ -1899,4 +2421,117 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// Animacja tekstu SplitText dla nagłówka głównego
+function initSplitTextAnimation() {
+    // Sprawdź czy GSAP i ScrollTrigger są dostępne
+    if (typeof gsap === 'undefined') {
+        console.warn('GSAP nie jest załadowany');
+        return;
+    }
+    
+    if (typeof ScrollTrigger === 'undefined') {
+        console.warn('ScrollTrigger nie jest załadowany');
+        return;
+    }
+
+    // Rejestruj ScrollTrigger
+    gsap.registerPlugin(ScrollTrigger);
+
+    const titleElement = document.getElementById('main-title');
+    if (!titleElement) return;
+
+    // Czekaj na załadowanie czcionek
+    function waitForFonts(callback) {
+        if (document.fonts && document.fonts.status === 'loaded') {
+            callback();
+        } else if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(callback);
+        } else {
+            // Fallback - czekaj na załadowanie DOM
+            if (document.readyState === 'complete') {
+                setTimeout(callback, 100);
+            } else {
+                window.addEventListener('load', callback);
+            }
+        }
+    }
+
+    waitForFonts(() => {
+        const text = titleElement.textContent;
+        const chars = text.split('');
+        
+        // Wyczyść zawartość i owiń każdy znak w span
+        titleElement.innerHTML = '';
+        titleElement.style.textAlign = 'center';
+        titleElement.style.overflow = 'hidden';
+        titleElement.style.display = 'inline-block';
+        titleElement.style.whiteSpace = 'normal';
+        titleElement.style.wordWrap = 'break-word';
+        titleElement.style.willChange = 'transform, opacity';
+        
+        const charSpans = chars.map(char => {
+            const span = document.createElement('span');
+            span.textContent = char === ' ' ? '\u00A0' : char; // Non-breaking space dla spacji
+            span.style.display = 'inline-block';
+            span.style.willChange = 'transform, opacity';
+            titleElement.appendChild(span);
+            return span;
+        });
+
+        // Ustaw początkowy stan (niewidoczne i przesunięte w dół)
+        gsap.set(charSpans, {
+            opacity: 0,
+            y: 40
+        });
+
+        // Animacja z ScrollTrigger
+        const threshold = 0.1;
+        const rootMargin = '-100px';
+        const startPct = (1 - threshold) * 100;
+        const marginMatch = /^(-?\d+(?:\.\d+)?)(px|em|rem|%)?$/.exec(rootMargin);
+        const marginValue = marginMatch ? parseFloat(marginMatch[1]) : 0;
+        const marginUnit = marginMatch ? marginMatch[2] || 'px' : 'px';
+        const sign = marginValue === 0
+            ? ''
+            : marginValue < 0
+                ? `-=${Math.abs(marginValue)}${marginUnit}`
+                : `+=${marginValue}${marginUnit}`;
+        const start = `top ${startPct}%${sign}`;
+
+        gsap.to(charSpans, {
+            opacity: 1,
+            y: 0,
+            duration: 0.6,
+            ease: 'power3.out',
+            stagger: 0.1, // 100ms delay między znakami
+            scrollTrigger: {
+                trigger: titleElement,
+                start: start,
+                once: true,
+                fastScrollEnd: true,
+                anticipatePin: 0.4
+            },
+            willChange: 'transform, opacity',
+            force3D: true
+        });
+    });
+}
+
+// Inicjalizuj animację po załadowaniu DOM i GSAP
+function initAnimationWhenReady() {
+    if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') {
+        // Poczekaj jeszcze trochę na załadowanie GSAP
+        setTimeout(initAnimationWhenReady, 100);
+        return;
+    }
+    initSplitTextAnimation();
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAnimationWhenReady);
+} else {
+    // DOM już załadowany
+    initAnimationWhenReady();
+}
 

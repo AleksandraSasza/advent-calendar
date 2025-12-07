@@ -16,6 +16,9 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
             integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" 
             crossorigin=""></script>
+    <!-- GSAP -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
 </head>
 <body>
     <!-- Kontener dla płatków śniegu -->
@@ -74,7 +77,7 @@
     </div>
     <div class="container">
         <header>
-            <h1>🎄 Kalendarz Adwentowy 2025 🎄</h1>
+            <h1 id="main-title">Kalendarz Adwentowy 2025</h1>
             <p>Kliknij w numerowane państwo, aby odkryć zadanie na dany dzień!</p>
             <div class="auth-buttons" id="auth-buttons" style="display: none;">
                 <a href="login.html" class="btn btn-primary">Zaloguj się</a>
@@ -87,15 +90,15 @@
         
         <!-- Przyciski pod mapą -->
         <div style="display: flex; flex-direction: column; align-items: center; gap: 16px; margin-top: 20px;">
-            <div class="ranking-button-container">
-                <a href="ranking.html" class="ranking-link">
-                    🏆 Zobacz ranking
-                    <span class="ranking-link-underline"></span>
-                </a>
-            </div>
             <div class="ranking-button-container" id="user-questions-button-container" style="display: none;">
                 <a href="user-questions.html" class="ranking-link">
                     📝 Odpowiedz na pytania o sobie
+                    <span class="ranking-link-underline"></span>
+                </a>
+            </div>
+            <div class="ranking-button-container">
+                <a href="ranking.html" class="ranking-link">
+                    🏆 Zobacz ranking
                     <span class="ranking-link-underline"></span>
                 </a>
             </div>
@@ -147,6 +150,16 @@
                 <div class="task-content" id="task-content">
                     <h3 id="task-title"><span id="task-title-name"></span></h3>
                     <p id="task-description">Przygotuj listę prezentów dla najbliższych!</p>
+                    
+                    <!-- Sekcja quizu o użytkownikach (tylko dla zadań typu quiz z quiz_type: user_quiz) -->
+                    <div id="quiz-section" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e8e8ed;">
+                        <div id="quiz-questions-container" style="margin-bottom: 20px;">
+                            <!-- Pytania będą dodawane dynamicznie -->
+                        </div>
+                        <div id="quiz-result" style="display: none; margin-top: 20px; padding: 16px; border-radius: 8px; font-size: 0.875rem;">
+                            <!-- Wynik quizu będzie wyświetlany tutaj -->
+                        </div>
+                    </div>
                     
                     <!-- Sekcja odpowiedzi tekstowej z weryfikacją (tylko dla zadań typu text_response_verified) -->
                     <div id="text-response-section" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e8e8ed;">

@@ -920,12 +920,14 @@ window.editTemplate = function(templateId) {
         
         if (metadata && metadata.quiz_type === 'user_quiz') {
             // Quiz o użytkownikach
+            const targetUserId = metadata.target_user_id || '';
             document.getElementById('quiz-type-select').value = 'user_quiz';
-            document.getElementById('quiz-target-user').value = metadata.target_user_id || '';
             document.getElementById('quiz-passing-score').value = metadata.passing_score || 5;
-            toggleQuizType();
-            if (metadata.target_user_id) {
-                loadUserQuestionsForQuiz(metadata.target_user_id).then(() => {
+            // Najpierw przełącz typ quizu (to odbuduje select użytkowników z zachowaniem wartości)
+            toggleQuizType(targetUserId);
+            // Załaduj pytania dla tego użytkownika
+            if (targetUserId) {
+                loadUserQuestionsForQuiz(targetUserId).then(() => {
                     // Zaznacz pytania które są w quizie
                     if (metadata.question_ids && Array.isArray(metadata.question_ids)) {
                         metadata.question_ids.forEach(qId => {
@@ -1118,9 +1120,12 @@ function toggleQuizSection() {
 }
 
 // Załaduj użytkowników do selecta quizu o użytkownikach
-function loadUsersForQuiz() {
+function loadUsersForQuiz(preserveValue = null) {
     const select = document.getElementById('quiz-target-user');
     if (!select) return;
+    
+    // Zapisz aktualną wartość jeśli ma być zachowana
+    const currentValue = preserveValue !== null ? preserveValue : select.value;
     
     select.innerHTML = '<option value="">Wybierz użytkownika</option>';
     allUsers.forEach(user => {
@@ -1129,10 +1134,18 @@ function loadUsersForQuiz() {
         option.textContent = user.display_name || user.email;
         select.appendChild(option);
     });
+    
+    // Przywróć wartość jeśli była ustawiona i istnieje w nowych opcjach
+    if (currentValue) {
+        const optionExists = Array.from(select.options).some(opt => opt.value === currentValue);
+        if (optionExists) {
+            select.value = currentValue;
+        }
+    }
 }
 
 // Przełącz między klasycznym quizem a quizem o użytkownikach
-function toggleQuizType() {
+function toggleQuizType(preserveUserId = null) {
     const quizType = document.getElementById('quiz-type-select').value;
     const classicSection = document.getElementById('classic-quiz-section');
     const userSection = document.getElementById('user-quiz-section');
@@ -1140,7 +1153,7 @@ function toggleQuizType() {
     if (quizType === 'user_quiz') {
         classicSection.style.display = 'none';
         userSection.style.display = 'block';
-        loadUsersForQuiz();
+        loadUsersForQuiz(preserveUserId);
     } else {
         classicSection.style.display = 'block';
         userSection.style.display = 'none';
@@ -2044,6 +2057,9 @@ window.viewUserTasks = async function(userId, userEmail = '') {
             return;
         }
         
+        // Pokaż element tasks-list
+        tasksList.style.display = 'block';
+        
         if (!tasks || tasks.length === 0) {
             tasksList.innerHTML = `
                 <p>Użytkownik <strong>${userEmail}</strong> nie ma jeszcze przypisanych zadań.</p>
@@ -2068,6 +2084,115 @@ window.viewUserTasks = async function(userId, userEmail = '') {
                         'completed': 'Wykonane'
                     };
                     
+                    const taskType = template?.task_type || 'text_response';
+                    const taskTypeLabels = {
+                        'text_response': 'Bez weryfikacji',
+                        'text_response_verified': 'Odpowiedź tekstowa',
+                        'quiz': 'Quiz',
+                        'photo_upload': 'Dodaj zdjęcie',
+                        'checkbox': 'Checkbox',
+                        'custom': 'Niestandardowe'
+                    };
+                    
+                    // Funkcja do wyświetlania odpowiedzi z quizu
+                    const renderQuizAnswers = (metadata) => {
+                        if (!metadata || !metadata.answers) return '';
+                        
+                        let html = '<div style="margin-top: 12px; padding: 12px; background: #f5f5f7; border-radius: 8px; border: 1px solid #e8e8ed;">';
+                        html += '<p style="font-weight: 500; margin-bottom: 8px; color: #1d1d1f; font-size: 0.875rem;">Odpowiedzi użytkownika:</p>';
+                        
+                        if (Array.isArray(metadata.answers)) {
+                            metadata.answers.forEach((answer, index) => {
+                                const questionText = answer.question || `Pytanie ${index + 1}`;
+                                const userAnswer = answer.user_answer || answer.answer || 'Brak odpowiedzi';
+                                const isCorrect = answer.is_correct !== undefined ? answer.is_correct : null;
+                                
+                                html += `<div style="margin-bottom: 8px; padding: 8px; background: white; border-radius: 4px;">`;
+                                html += `<p style="font-weight: 500; font-size: 0.8125rem; margin-bottom: 4px; color: #1d1d1f;">${questionText.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`;
+                                html += `<p style="font-size: 0.8125rem; color: #6e6e73;">Odpowiedź: <strong>${String(userAnswer).replace(/</g, "&lt;").replace(/>/g, "&gt;")}</strong></p>`;
+                                if (isCorrect !== null) {
+                                    html += `<p style="font-size: 0.8125rem; color: ${isCorrect ? '#013927' : '#d32f2f'}; margin-top: 4px;">${isCorrect ? '✓ Poprawna' : '✗ Niepoprawna'}</p>`;
+                                }
+                                html += `</div>`;
+                            });
+                        } else if (typeof metadata.answers === 'object') {
+                            // Jeśli answers jest obiektem z kluczami
+                            Object.keys(metadata.answers).forEach((key, index) => {
+                                const answer = metadata.answers[key];
+                                const questionText = answer.question || key || `Pytanie ${index + 1}`;
+                                const userAnswer = answer.user_answer || answer.answer || answer || 'Brak odpowiedzi';
+                                const isCorrect = answer.is_correct !== undefined ? answer.is_correct : null;
+                                
+                                html += `<div style="margin-bottom: 8px; padding: 8px; background: white; border-radius: 4px;">`;
+                                html += `<p style="font-weight: 500; font-size: 0.8125rem; margin-bottom: 4px; color: #1d1d1f;">${questionText.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`;
+                                html += `<p style="font-size: 0.8125rem; color: #6e6e73;">Odpowiedź: <strong>${String(userAnswer).replace(/</g, "&lt;").replace(/>/g, "&gt;")}</strong></p>`;
+                                if (isCorrect !== null) {
+                                    html += `<p style="font-size: 0.8125rem; color: ${isCorrect ? '#013927' : '#d32f2f'}; margin-top: 4px;">${isCorrect ? '✓ Poprawna' : '✗ Niepoprawna'}</p>`;
+                                }
+                                html += `</div>`;
+                            });
+                        }
+                        
+                        if (metadata.score !== undefined || metadata.total_score !== undefined) {
+                            const score = metadata.score || 0;
+                            const total = metadata.total_score || metadata.total || 0;
+                            html += `<p style="margin-top: 12px; font-weight: 500; font-size: 0.875rem; color: #1d1d1f;">Wynik: ${score}/${total} punktów</p>`;
+                        }
+                        
+                        html += '</div>';
+                        return html;
+                    };
+                    
+                    // Funkcja do wyświetlania zdjęcia
+                    const renderPhoto = (photoUrl) => {
+                        if (!photoUrl) return '';
+                        
+                        // Wyciągnij ścieżkę pliku z URL
+                        let filePath = photoUrl;
+                        if (photoUrl.includes('/task-responses/')) {
+                            const match = photoUrl.match(/task-responses\/(.+?)(\?|$)/);
+                            if (match) {
+                                filePath = match[1];
+                            }
+                        } else if (!photoUrl.startsWith('http')) {
+                            filePath = photoUrl.replace(/^\/+/, '');
+                        }
+                        
+                        // Zbuduj publiczny URL
+                        let publicUrl = photoUrl;
+                        if (!publicUrl.includes('/storage/v1/object/public/')) {
+                            const projectUrl = window.SUPABASE_CONFIG?.URL || '';
+                            if (projectUrl) {
+                                const baseUrl = projectUrl.replace(/\/$/, '');
+                                publicUrl = `${baseUrl}/storage/v1/object/public/task-responses/${filePath}`;
+                            }
+                        }
+                        
+                        const escapedUrl = publicUrl.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+                        const escapedFilePath = filePath.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+                        
+                        return `
+                            <div style="margin-top: 12px; padding: 12px; background: #f5f5f7; border-radius: 8px; border: 1px solid #e8e8ed;">
+                                <p style="font-weight: 500; margin-bottom: 8px; color: #1d1d1f; font-size: 0.875rem;">Zdjęcie przesłane przez użytkownika:</p>
+                                <div style="position: relative; display: inline-block;">
+                                    <img src="${escapedUrl}" 
+                                         alt="Zdjęcie zadania" 
+                                         style="max-width: 100%; max-height: 300px; border-radius: 4px; border: 1px solid #d2d2d7; cursor: pointer;"
+                                         onclick="window.showAdminPhotoModal('${escapedUrl}', '${escapedFilePath}')"
+                                         onerror="this.style.display='none'; const nextDiv = this.nextElementSibling; if(nextDiv) nextDiv.style.display='block';">
+                                    <div class="photo-error" style="display: none; padding: 20px; text-align: center; color: #6e6e73; font-size: 0.875rem;">
+                                        <p>Nie można załadować zdjęcia</p>
+                                        <button onclick="const img = this.closest('div').previousElementSibling; if(img) window.loadSignedUrlForPhoto(img, '${escapedFilePath}');" 
+                                                class="btn btn-small" 
+                                                style="margin-top: 8px; background: #013927; color: white; border: none;">
+                                            Spróbuj ponownie
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    };
+                    
                     return `
                         <div class="task-card">
                             <div class="task-header">
@@ -2077,10 +2202,24 @@ window.viewUserTasks = async function(userId, userEmail = '') {
                                 </span>
                             </div>
                             <div class="task-info">
-                                <p><strong>Typ:</strong> ${template ? template.task_type : 'N/A'}</p>
+                                <p><strong>Typ zadania:</strong> ${taskTypeLabels[taskType] || taskType}</p>
                                 ${template ? `<p><strong>Opis:</strong> ${template.description || 'Brak opisu'}</p>` : ''}
-                                ${task.response_text ? `<p><strong>Odpowiedź:</strong> ${task.response_text}</p>` : ''}
                                 ${task.completed_at ? `<p><strong>Wykonano:</strong> ${new Date(task.completed_at).toLocaleString('pl-PL')}</p>` : ''}
+                                
+                                ${task.status === 'completed' ? `
+                                    ${taskType === 'text_response' || taskType === 'text_response_verified' ? `
+                                        ${task.response_text ? `
+                                            <div style="margin-top: 12px; padding: 12px; background: #f5f5f7; border-radius: 8px; border: 1px solid #e8e8ed;">
+                                                <p style="font-weight: 500; margin-bottom: 8px; color: #1d1d1f; font-size: 0.875rem;">Odpowiedź użytkownika:</p>
+                                                <p style="color: #1d1d1f; font-size: 0.875rem; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word;">${task.response_text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>
+                                            </div>
+                                        ` : '<p style="color: #6e6e73; font-size: 0.875rem; margin-top: 8px;">Użytkownik nie dodał odpowiedzi tekstowej.</p>'}
+                                    ` : ''}
+                                    
+                                    ${taskType === 'photo_upload' ? renderPhoto(task.response_media_url) : ''}
+                                    
+                                    ${taskType === 'quiz' ? renderQuizAnswers(task.response_metadata) : ''}
+                                ` : ''}
                             </div>
                             <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
                                 ${task.status !== 'completed' ? `
@@ -2822,6 +2961,53 @@ window.showAdminPhotoModal = async function(photoUrl, filePath) {
 };
 
 // Funkcja pomocnicza do ładowania zdjęcia z signed URL (jeśli publiczny nie działa)
+// Funkcja pomocnicza do ładowania signed URL dla zdjęć w widoku zadań użytkownika
+window.loadSignedUrlForPhoto = async function(imgElement, filePath) {
+    if (!imgElement || !filePath) {
+        console.error('Brak parametrów dla loadSignedUrlForPhoto');
+        return;
+    }
+    
+    try {
+        // Wyczyść ścieżkę
+        let cleanPath = filePath;
+        if (cleanPath.includes('task-responses/')) {
+            const match = cleanPath.match(/task-responses[\/]?(.+?)(\?|$)/);
+            if (match) {
+                cleanPath = match[1].replace(/^\/+/, '');
+            }
+        }
+        cleanPath = cleanPath.split('?')[0].split('#')[0].trim();
+        
+        if (!window.supabase) {
+            console.error('Supabase nie jest dostępny');
+            return;
+        }
+        
+        // Generuj signed URL
+        const { data, error } = await window.supabase.storage
+            .from('task-responses')
+            .createSignedUrl(cleanPath, 3600);
+        
+        if (error) {
+            console.error('Błąd generowania signed URL:', error);
+            return;
+        }
+        
+        if (data && data.signedUrl) {
+            imgElement.src = data.signedUrl;
+            imgElement.style.display = 'block';
+            // Ukryj komunikat błędu jeśli istnieje
+            const errorDiv = imgElement.nextElementSibling;
+            if (errorDiv) {
+                errorDiv.style.display = 'none';
+            }
+        }
+    } catch (err) {
+        console.error('Błąd w loadSignedUrlForPhoto:', err);
+    }
+};
+
 window.loadSignedUrl = async function(imgElement, filePathOrUrl) {
     try {
         if (!window.supabase || !filePathOrUrl) {

@@ -357,8 +357,8 @@ header p {
 }
 
 .icon-button {
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid rgba(1, 57, 39, 0.2);
+    background: transparent;
+    border: none;
     border-radius: var(--radius-md);
     width: 44px;
     height: 44px;
@@ -369,25 +369,25 @@ header p {
     font-size: var(--font-size-xl);
     text-decoration: none;
     transition: all var(--transition-base);
-    box-shadow: var(--shadow-sm);
-    backdrop-filter: blur(10px);
+    box-shadow: none;
+    backdrop-filter: none;
 }
 
 .icon-button:hover {
-    background: rgba(255, 255, 255, 1);
+    background: transparent;
     transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-    border-color: var(--color-primary);
+    box-shadow: none;
+    border: none;
 }
 
 .icon-button:active {
     transform: translateY(0);
-    box-shadow: var(--shadow-sm);
+    box-shadow: none;
 }
 
 .icon-button:focus {
     outline: none;
-    box-shadow: var(--shadow-md), 0 0 0 3px rgba(1, 57, 39, 0.2);
+    box-shadow: none;
 }
 
 /* Przycisk wyloguj - tekstowy, delikatny */
@@ -669,7 +669,7 @@ header p {
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
     border: 1px solid var(--color-border);
-    max-height: min(70vh, 500px);
+    max-height: min(50vh, 400px);
     overflow-y: auto;
     overflow-x: hidden;
     max-width: 400px;
@@ -681,6 +681,8 @@ header p {
     font-family: 'Quintessential', cursive;
     letter-spacing: 0.5px;
     max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .leaflet-popup-tip {
