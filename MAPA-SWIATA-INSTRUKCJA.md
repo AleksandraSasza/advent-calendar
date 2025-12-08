@@ -30,15 +30,15 @@
 5. **Hiszpania** - Madryt (40.4637, -3.7492)
 6. **Wielka Brytania** - Londyn (55.3781, -3.4360)
 
-### **Azja (dni 7-9, 15):**
+### **Azja (dni 7-8, 13, 15):**
 7. **Rosja** - Moskwa (61.5240, 105.3188)
 8. **Chiny** - Pekin (35.8617, 104.1954)
-9. **Japonia** - Tokio (36.2048, 138.2529)
+13. **Japonia** - Tokio (36.2048, 138.2529)
 15. **Indie** - New Delhi (20.5937, 78.9629)
 
-### **Ameryka Północna (dni 12-14):**
+### **Ameryka Północna (dni 9, 12, 14):**
+9. **Kanada** - Ottawa (56.1304, -106.3468)
 12. **USA** - Kansas City (39.8283, -98.5795)
-13. **Kanada** - Ottawa (56.1304, -106.3468)
 14. **Meksyk** - Meksyk (23.6345, -102.5528)
 
 ### **Ameryka Południowa (dni 18-24):**

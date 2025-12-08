@@ -66,9 +66,9 @@ const dayToCountry = {
         coordinates: [41.9028, 12.4964] // Rzym
     },
     9: {
-        country: "Japonia",
-        funFact: "🍗 W Japonii tradycją jest jedzenie KFC na Boże Narodzenie! Trzeba rezerwować kurczaka z tygodniowym wyprzedzeniem.",
-        coordinates: [36.2048, 138.2529] // Tokio
+        country: "Kanada",
+        funFact: "🎅 Kanada ma oficjalny kod pocztowy dla Świętego Mikołaja: H0H 0H0! Dzieci mogą wysyłać tam listy i otrzymują odpowiedź.",
+        coordinates: [56.1304, -106.3468] // Ottawa
     },
     10: {
         country: "Australia",
@@ -86,9 +86,9 @@ const dayToCountry = {
         coordinates: [39.8283, -98.5795] // Kansas City (centrum USA)
     },
     13: {
-        country: "Kanada",
-        funFact: "🎅 Kanada ma oficjalny kod pocztowy dla Świętego Mikołaja: H0H 0H0! Dzieci mogą wysyłać tam listy i otrzymują odpowiedź.",
-        coordinates: [56.1304, -106.3468] // Ottawa
+        country: "Japonia",
+        funFact: "🍗 W Japonii tradycją jest jedzenie KFC na Boże Narodzenie! Trzeba rezerwować kurczaka z tygodniowym wyprzedzeniem.",
+        coordinates: [36.2048, 138.2529] // Tokio
     },
     14: {
         country: "Francja",
