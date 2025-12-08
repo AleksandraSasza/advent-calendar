@@ -432,57 +432,21 @@ function addAdventMarkers() {
         const marker = L.marker(coordinates, { icon: customIcon })
             .addTo(map);
         
-        // Funkcja do otwierania ciekawostki (modal na mobile, popup na desktop)
+        // Funkcja do otwierania ciekawostki (zawsze jako modal)
         const openFunFact = (e) => {
-            if (isMobileDevice()) {
-                // Na urządzeniach mobilnych - otwórz modal i zablokuj domyślne zachowanie
-                if (e.originalEvent) {
-                    e.originalEvent.preventDefault();
-                    e.originalEvent.stopPropagation();
-                }
-                // Zamknij popup jeśli jest otwarty
-                marker.closePopup();
-                openFunFactModal(dayNumber, country, funFact, isLocked);
+            // Zablokuj domyślne zachowanie (otwieranie popupu Leaflet)
+            if (e.originalEvent) {
+                e.originalEvent.preventDefault();
+                e.originalEvent.stopPropagation();
             }
-            // Na desktop - popup otworzy się automatycznie przez Leaflet
+            // Zamknij popup jeśli jest otwarty
+            marker.closePopup();
+            // Otwórz modal z ciekawostką
+            openFunFactModal(dayNumber, country, funFact, isLocked);
         };
         
-        // Dodaj obsługę kliknięcia (tylko dla mobile, desktop używa popupu)
-        if (isMobileDevice()) {
-            marker.on('click', openFunFact);
-        }
-        
-        // Dodaj popup z ciekawostką lub informacją o blokadzie (tylko dla desktop)
-        let popupContent;
-        if (isLocked) {
-            popupContent = `
-                <div class="advent-popup locked">
-                    <h3>🔒 Dzień ${day} - Zablokowany</h3>
-                    <p>Ten dzień będzie dostępny ${day} grudnia 2025!</p>
-                </div>
-            `;
-        } else {
-            popupContent = `
-                <div class="advent-popup">
-                    <h3>📍 Dzień ${day} - ${country}</h3>
-                    <p class="fun-fact">${funFact}</p>
-                    <button class="btn" onclick="openTaskModal(${day})">Otwórz zadanie</button>
-                </div>
-            `;
-        }
-        
-        // Bind popup tylko dla desktop (na mobile będzie modal)
-        if (!isMobileDevice()) {
-            marker.bindPopup(popupContent, {
-                maxWidth: 400,
-                maxHeight: Math.min(window.innerHeight * 0.5, 400),
-                className: 'advent-popup-container',
-                autoPan: false, // Wyłączone - popup otwiera się nad markerem bez przesuwania mapy
-                keepInView: false, // Wyłączone - nie wymuszaj widoczności przez przesuwanie
-                closeOnClick: true, // Pozwól zamykać popup klikając w mapę
-                autoClose: true // Automatycznie zamykaj popup przy otwarciu innego
-            });
-        }
+        // Dodaj obsługę kliknięcia (zawsze używamy modala)
+        marker.on('click', openFunFact);
         
         // Zapisz marker w obiekcie markers
         markers[dayString] = marker;
@@ -2340,6 +2304,10 @@ function showLoginButton() {
     if (topRightButtons) {
         topRightButtons.style.display = 'none';
     }
+    const mobileLogoutContainer = document.getElementById('mobile-logout-container');
+    if (mobileLogoutContainer) {
+        mobileLogoutContainer.classList.remove('visible');
+    }
     document.getElementById('auth-buttons').style.display = 'block';
 }
 
@@ -2351,6 +2319,12 @@ function showUserInfo() {
     const topRightButtons = document.getElementById('top-right-buttons');
     if (topRightButtons) {
         topRightButtons.style.display = 'flex';
+    }
+    
+    // Pokaż przycisk wyloguj dla mobile (CSS ukryje go na desktop)
+    const mobileLogoutContainer = document.getElementById('mobile-logout-container');
+    if (mobileLogoutContainer) {
+        mobileLogoutContainer.classList.add('visible');
     }
     
     // Ukryj przycisk logowania dla zalogowanych użytkowników
@@ -2456,32 +2430,7 @@ function updateMarkerAppearance(day) {
         
         marker.setIcon(customIcon);
         
-        // Pobierz dane z bazy lub użyj domyślnych
-        const dbData = calendarDaysData[dayNumber];
-        const defaultData = dayToCountry[day];
-        // country zawsze z kodu (dayToCountry), bo nie jest w bazie
-        const hasDbFunFact = dbData?.fun_fact && typeof dbData.fun_fact === 'string' && dbData.fun_fact.trim().length > 0;
-        const country = defaultData?.country || 'Brak państwa';
-        const funFact = hasDbFunFact ? dbData.fun_fact : (defaultData?.funFact || 'Brak ciekawostki');
-        
-        let popupContent;
-        if (isLocked) {
-            popupContent = `
-                <div class="advent-popup locked">
-                    <h3>🔒 Dzień ${day} - Zablokowany</h3>
-                    <p>Ten dzień będzie dostępny ${day} grudnia 2025!</p>
-                </div>
-            `;
-        } else {
-            popupContent = `
-                <div class="advent-popup">
-                    <h3>📍 Dzień ${day} - ${country}</h3>
-                    <p class="fun-fact">${funFact}</p>
-                    <button class="btn" onclick="openTaskModal(${day})">Otwórz zadanie</button>
-                </div>
-            `;
-        }
-        marker.setPopupContent(popupContent);
+        // Popup nie jest już używany - ciekawostki otwierają się jako modal
     }
 }
 
@@ -2504,6 +2453,12 @@ function setupLogoutEvent() {
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', logout);
+    }
+    
+    // Dodaj obsługę dla przycisku wyloguj w wersji mobile
+    const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
+    if (mobileLogoutBtn) {
+        mobileLogoutBtn.addEventListener('click', logout);
     }
 }
 

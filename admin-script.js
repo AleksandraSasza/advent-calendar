@@ -1432,15 +1432,15 @@ function setupEventListeners() {
     }
     
     // Zamykanie modali po kliknięciu poza nimi
-    // UWAGA: Modal szablonu NIE zamyka się po kliknięciu poza nim - tylko przez przycisk Anuluj
-    const addDayModal = document.getElementById('add-day-modal');
-    if (addDayModal) {
-        addDayModal.addEventListener('click', (e) => {
-            if (e.target.id === 'add-day-modal') {
-                closeAddDayModal();
-            }
-        });
-    }
+    // UWAGA: Modal szablonu i modal dodawania dnia NIE zamykają się po kliknięciu poza nimi - tylko przez przycisk Anuluj lub Zapisz
+    // const addDayModal = document.getElementById('add-day-modal');
+    // if (addDayModal) {
+    //     addDayModal.addEventListener('click', (e) => {
+    //         if (e.target.id === 'add-day-modal') {
+    //             closeAddDayModal();
+    //         }
+    //     });
+    // }
     
     // Modal szablonu - NIE zamyka się po kliknięciu poza nim
     // Zamyka się tylko przez przycisk "Anuluj" lub po pomyślnym dodaniu
