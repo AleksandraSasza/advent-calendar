@@ -304,10 +304,10 @@ header p {
     width: 100%;
 }
 
-/* Przycisk wyloguj dla mobile - na samym górze */
+/* Przycisk wyloguj dla mobile - na samym dole */
 .mobile-logout-container {
     position: fixed;
-    top: var(--spacing-md);
+    bottom: var(--spacing-md);
     left: 50%;
     transform: translateX(-50%);
     z-index: 101;
@@ -874,10 +874,10 @@ header p {
         display: none !important;
     }
     
-    /* Dodaj padding na górze, żeby header nie nachodził na przycisk wyloguj */
+    /* Dodaj padding na dole, żeby przycisk wyloguj nie nachodził na treść */
     .container {
         padding: var(--spacing-lg) var(--spacing-md);
-        padding-top: calc(var(--spacing-lg) + 40px);
+        padding-bottom: calc(var(--spacing-lg) + 50px);
     }
     
     header h1 {
