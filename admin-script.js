@@ -461,7 +461,7 @@ const dayToCountryMap = {
     7: { country: "Kolumbia", funFact: "🕯️ W Kolumbii Día de las Velitas (Dzień Świeczek) 7 grudnia rozpoczyna sezon świąteczny - miasta świecą tysiącami świec!" },
     8: { country: "Włochy", funFact: "🍝 We Włoszech tradycją jest jedzenie ryb w Wigilię! Włosi przygotowują La Vigilia - wielodaniową kolację z owocami morza, ale bez mięsa." },
     9: { country: "Kanada", funFact: "🎅 Kanada ma oficjalny kod pocztowy dla Świętego Mikołaja: H0H 0H0! Dzieci mogą wysyłać tam listy i otrzymują odpowiedź." },
-    10: { country: "Australia", funFact: "🏖️ W Australii Boże Narodzenie wypada w środku lata! Ludzie świętują na plażach i robią BBQ." },
+    10: { country: "Filipiny", funFact: "🎂 Na Filipinach Boże Narodzenie to prawdziwa fiesta! Jest muzyka, jedzenie, dekoracje i dużo prezentów, jak na wielkich urodzinach. Ludzie często mówią, że to \"urodziny Jezusa\", więc organizują przyjęcie z ciastem i świeczkami – dosłownie tort dla Jezusa!" },
     11: { country: "Brazylia", funFact: "🎅 W Brazylii Święty Mikołaj nazywa się Papai Noel i często nosi lekkie, letnie ubrania zamiast grubego futra!" },
     12: { country: "USA", funFact: "🎄 Nowy Jork ma najbardziej znaną choinkę świata na Rockefeller Center! Tradycja sięga 1931 roku." },
     13: { country: "Japonia", funFact: "🍗 W Japonii tradycją jest jedzenie KFC na Boże Narodzenie! Trzeba rezerwować kurczaka z tygodniowym wyprzedzeniem." },
@@ -1469,6 +1469,21 @@ function setupEventListeners() {
         addUserModal.addEventListener('click', (e) => {
             if (e.target.id === 'add-user-modal') {
                 closeAddUserModal();
+            }
+        });
+    }
+    
+    // Zamykanie modalu szczegółów zadania
+    const closeTaskDetailsModalBtn = document.getElementById('close-task-details-modal');
+    if (closeTaskDetailsModalBtn) {
+        closeTaskDetailsModalBtn.addEventListener('click', closeTaskDetailsModal);
+    }
+    
+    const taskDetailsModal = document.getElementById('task-details-modal');
+    if (taskDetailsModal) {
+        taskDetailsModal.addEventListener('click', (e) => {
+            if (e.target.id === 'task-details-modal') {
+                closeTaskDetailsModal();
             }
         });
     }
@@ -2762,28 +2777,361 @@ window.assignTaskToCell = function(userId, dayNumber) {
 };
 
 // Otwórz szczegóły zadania (z tabeli) - dostępne globalnie
-window.openTaskCell = function(userId, dayNumber, taskId) {
+window.openTaskCell = async function(userId, dayNumber, taskId) {
     console.log('openTaskCell wywołane:', userId, dayNumber, taskId);
     try {
         const user = allUsers.find(u => u.id === userId);
-        if (user) {
-            viewUserTasks(userId, user.email);
-            // Scroll do sekcji zadań
-            setTimeout(() => {
-                const tasksList = document.getElementById('tasks-list');
-                if (tasksList) {
-                    tasksList.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            }, 100);
-        } else {
+        if (!user) {
             console.error('Nie znaleziono użytkownika:', userId);
             showNotification('Nie znaleziono użytkownika', 'error');
+            return;
         }
+        
+        // Pobierz szczegóły zadania
+        const { data: taskData, error: taskError } = await supabase
+            .from('assigned_tasks')
+            .select(`
+                *,
+                calendar_days (*),
+                task_templates (*)
+            `)
+            .eq('id', taskId)
+            .single();
+        
+        if (taskError) {
+            console.error('Błąd pobierania zadania:', taskError);
+            showNotification('Błąd pobierania szczegółów zadania', 'error');
+            return;
+        }
+        
+        if (!taskData) {
+            showNotification('Nie znaleziono zadania', 'error');
+            return;
+        }
+        
+        // Wyświetl modal ze szczegółami
+        await showTaskDetailsModal(taskData, user);
+        
     } catch (error) {
         console.error('Błąd w openTaskCell:', error);
         showNotification('Błąd otwierania szczegółów zadania', 'error');
     }
 };
+
+// Funkcja wyświetlająca modal ze szczegółami zadania
+async function showTaskDetailsModal(task, user) {
+    const modal = document.getElementById('task-details-modal');
+    const modalTitle = document.getElementById('task-details-modal-title');
+    const modalBody = document.getElementById('task-details-modal-body');
+    
+    if (!modal || !modalTitle || !modalBody) {
+        console.error('Nie znaleziono elementów modalu');
+        return;
+    }
+    
+    const day = task.calendar_days;
+    const template = task.task_templates;
+    const taskType = template?.task_type || 'text_response';
+    
+    const taskTypeLabels = {
+        'text_response': 'Bez weryfikacji',
+        'text_response_verified': 'Odpowiedź tekstowa (z weryfikacją)',
+        'quiz': 'Quiz',
+        'photo_upload': 'Dodaj zdjęcie',
+        'checkbox': 'Checkbox',
+        'custom': 'Niestandardowe'
+    };
+    
+    const statusLabels = {
+        'pending': 'Oczekujące',
+        'in_progress': 'W trakcie',
+        'completed': 'Wykonane'
+    };
+    
+    const statusColors = {
+        'pending': '#8e8e93',
+        'in_progress': '#013927',
+        'completed': '#013927'
+    };
+    
+    // Tytuł modalu
+    modalTitle.textContent = `Dzień ${day ? day.day_number : '?'} - ${template ? template.title : 'Brak szablonu'}`;
+    
+    // Funkcja do renderowania odpowiedzi quizowych
+    const renderQuizAnswers = (metadata) => {
+        if (!metadata || !metadata.answers) return '';
+        
+        let html = '<div style="margin-top: 12px; padding: 12px; background: #f5f5f7; border-radius: 8px; border: 1px solid #e8e8ed;">';
+        html += '<p style="font-weight: 500; margin-bottom: 8px; color: #1d1d1f; font-size: 0.875rem;">Odpowiedzi użytkownika:</p>';
+        
+        if (Array.isArray(metadata.answers)) {
+            metadata.answers.forEach((answer, index) => {
+                const questionText = answer.question || `Pytanie ${index + 1}`;
+                const userAnswer = answer.user_answer || answer.answer || 'Brak odpowiedzi';
+                const isCorrect = answer.is_correct !== undefined ? answer.is_correct : null;
+                
+                html += `<div style="margin-bottom: 8px; padding: 8px; background: white; border-radius: 4px;">`;
+                html += `<p style="font-weight: 500; font-size: 0.8125rem; margin-bottom: 4px; color: #1d1d1f;">${questionText.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`;
+                html += `<p style="font-size: 0.8125rem; color: #6e6e73;">Odpowiedź: <strong>${String(userAnswer).replace(/</g, "&lt;").replace(/>/g, "&gt;")}</strong></p>`;
+                if (isCorrect !== null) {
+                    html += `<p style="font-size: 0.8125rem; color: ${isCorrect ? '#013927' : '#d32f2f'}; margin-top: 4px;">${isCorrect ? '✓ Poprawna' : '✗ Niepoprawna'}</p>`;
+                }
+                html += `</div>`;
+            });
+        } else if (typeof metadata.answers === 'object') {
+            Object.keys(metadata.answers).forEach((key, index) => {
+                const answer = metadata.answers[key];
+                const questionText = answer.question || key || `Pytanie ${index + 1}`;
+                const userAnswer = answer.user_answer || answer.answer || answer || 'Brak odpowiedzi';
+                const isCorrect = answer.is_correct !== undefined ? answer.is_correct : null;
+                
+                html += `<div style="margin-bottom: 8px; padding: 8px; background: white; border-radius: 4px;">`;
+                html += `<p style="font-weight: 500; font-size: 0.8125rem; margin-bottom: 4px; color: #1d1d1f;">${questionText.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`;
+                html += `<p style="font-size: 0.8125rem; color: #6e6e73;">Odpowiedź: <strong>${String(userAnswer).replace(/</g, "&lt;").replace(/>/g, "&gt;")}</strong></p>`;
+                if (isCorrect !== null) {
+                    html += `<p style="font-size: 0.8125rem; color: ${isCorrect ? '#013927' : '#d32f2f'}; margin-top: 4px;">${isCorrect ? '✓ Poprawna' : '✗ Niepoprawna'}</p>`;
+                }
+                html += `</div>`;
+            });
+        }
+        
+        if (metadata.score !== undefined || metadata.total_score !== undefined) {
+            const score = metadata.score || 0;
+            const total = metadata.total_score || metadata.total || 0;
+            html += `<p style="margin-top: 12px; font-weight: 500; font-size: 0.875rem; color: #1d1d1f;">Wynik: ${score}/${total} punktów</p>`;
+        }
+        
+        html += '</div>';
+        return html;
+    };
+    
+    // Funkcja do renderowania zdjęcia (taki sam flow jak w sekcji weryfikacji)
+    const renderPhoto = (photoUrl) => {
+        if (!photoUrl) return '';
+        
+        // Zbuduj publiczny URL jak w displayVerificationTasks
+        let finalUrl = photoUrl;
+        if (!finalUrl.includes('/storage/v1/object/public/')) {
+            const projectUrl = window.SUPABASE_CONFIG?.URL || '';
+            if (projectUrl) {
+                const baseUrl = projectUrl.replace(/\/$/, '');
+                
+                // Wyciągnij ścieżkę pliku z oryginalnego URL
+                let filePathFromUrl = photoUrl;
+                if (photoUrl.includes('task-responses/')) {
+                    const match = photoUrl.match(/task-responses[\/]?(.+?)(\?|$)/);
+                    if (match) {
+                        filePathFromUrl = match[1].replace(/^\/+/, '');
+                    }
+                } else if (!photoUrl.startsWith('http')) {
+                    filePathFromUrl = photoUrl.replace(/^\/+/, '');
+                } else {
+                    const parts = photoUrl.split('/');
+                    filePathFromUrl = parts[parts.length - 1];
+                }
+                
+                finalUrl = `${baseUrl}/storage/v1/object/public/task-responses/${filePathFromUrl}`;
+            }
+        }
+        
+        // Wyciągnij ścieżkę pliku do ewentualnego pobrania podpisanego URL
+        let filePath = '';
+        if (finalUrl.includes('/task-responses/')) {
+            const match = finalUrl.match(/task-responses\/(.+?)(\?|$)/);
+            if (match) {
+                filePath = match[1];
+            }
+        } else if (photoUrl.includes('task-responses/')) {
+            const match = photoUrl.match(/task-responses[\/]?(.+?)(\?|$)/);
+            if (match) {
+                filePath = match[1].replace(/^\/+/, '');
+            }
+        } else if (!photoUrl.startsWith('http')) {
+            filePath = photoUrl.replace(/^\/+/, '');
+        }
+        if (filePath.includes('?')) {
+            filePath = filePath.split('?')[0];
+        }
+        
+        const escapedFinalUrl = finalUrl.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        const escapedFilePath = (filePath || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        
+        return `
+            <div style="margin-top: 12px; padding: 12px; background: #f5f5f7; border-radius: 8px; border: 1px solid #e8e8ed;">
+                <p style="font-weight: 500; margin-bottom: 8px; color: #1d1d1f; font-size: 0.875rem;">Zdjęcie przesłane przez użytkownika:</p>
+                <div class="verification-photo-container" data-file-path="${escapedFilePath}">
+                    <button onclick="showAdminPhotoModal('${escapedFinalUrl}', '${escapedFilePath}')"
+                            class="btn btn-secondary"
+                            style="display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; font-size: 0.875rem; font-weight: 500; border: 2px solid #1a5d1a; background: white; color: #1a5d1a; cursor: pointer; border-radius: 6px; transition: all 0.2s;"
+                            onmouseover="this.style.background='#1a5d1a'; this.style.color='white';"
+                            onmouseout="this.style.background='white'; this.style.color='#1a5d1a';">
+                        📷 Zobacz zdjęcie
+                    </button>
+                </div>
+            </div>
+        `;
+    };
+    
+    // Zbuduj zawartość modalu
+    let content = `
+        <div style="margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <div>
+                    <p style="margin: 0; font-size: 0.875rem; color: #6e6e73;">Użytkownik: <strong style="color: #1d1d1f;">${(user.display_name || user.email).replace(/</g, "&lt;").replace(/>/g, "&gt;")}</strong></p>
+                    <p style="margin: 4px 0 0 0; font-size: 0.875rem; color: #6e6e73;">Email: ${user.email.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>
+                </div>
+                <span class="status-badge" style="background: ${statusColors[task.status]}; color: white; padding: 6px 12px; border-radius: 6px; font-size: 0.8125rem; font-weight: 500;">
+                    ${statusLabels[task.status]}
+                </span>
+            </div>
+            
+            <div style="padding: 16px; background: #f5f5f7; border-radius: 8px; margin-bottom: 16px;">
+                <p style="margin: 0 0 8px 0; font-size: 0.875rem; color: #6e6e73;"><strong style="color: #1d1d1f;">Typ zadania:</strong> ${taskTypeLabels[taskType] || taskType}</p>
+                ${template ? `<p style="margin: 8px 0; font-size: 0.875rem; color: #6e6e73;"><strong style="color: #1d1d1f;">Opis:</strong> ${(template.description || 'Brak opisu').replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>` : ''}
+                ${task.assigned_at ? `<p style="margin: 8px 0 0 0; font-size: 0.875rem; color: #6e6e73;"><strong style="color: #1d1d1f;">Przypisano:</strong> ${new Date(task.assigned_at).toLocaleString('pl-PL')}</p>` : ''}
+                ${task.completed_at ? `<p style="margin: 8px 0 0 0; font-size: 0.875rem; color: #6e6e73;"><strong style="color: #1d1d1f;">Wykonano:</strong> ${new Date(task.completed_at).toLocaleString('pl-PL')}</p>` : ''}
+            </div>
+    `;
+    
+    // Jeśli zadanie jest wykonane, pokaż odpowiedzi
+    if (task.status === 'completed') {
+        // Odpowiedź tekstowa
+        if (taskType === 'text_response' || taskType === 'text_response_verified') {
+            if (task.response_text) {
+                content += `
+                    <div style="margin-top: 16px; padding: 16px; background: #f5f5f7; border-radius: 8px; border: 1px solid #e8e8ed;">
+                        <p style="font-weight: 500; margin-bottom: 8px; color: #1d1d1f; font-size: 0.875rem;">Odpowiedź użytkownika:</p>
+                        <p style="color: #1d1d1f; font-size: 0.875rem; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word;">${task.response_text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>
+                    </div>
+                `;
+            } else {
+                content += `<p style="color: #6e6e73; font-size: 0.875rem; margin-top: 16px;">Użytkownik nie dodał odpowiedzi tekstowej.</p>`;
+            }
+        }
+        
+        // Zdjęcie
+        if (taskType === 'photo_upload') {
+            content += renderPhoto(task.response_media_url);
+        }
+        
+        // Quiz
+        if (taskType === 'quiz') {
+            // Spróbuj obsłużyć quiz o użytkownikach (quiz_type === user_quiz)
+            let quizMeta = template?.metadata || {};
+            if (typeof quizMeta === 'string') {
+                try {
+                    quizMeta = JSON.parse(quizMeta);
+                } catch (e) {
+                    quizMeta = {};
+                }
+            }
+            
+            const isUserQuiz = quizMeta?.quiz_type === 'user_quiz' || !!quizMeta?.target_user_id;
+            let quizHtml = '';
+            
+            if (isUserQuiz && supabase) {
+                try {
+                    // Pobierz próbę quizu
+                    let attempt = null;
+                    if (task.response_metadata?.quiz_attempt_id) {
+                        const { data, error } = await supabase
+                            .from('quiz_attempts')
+                            .select('*')
+                            .eq('id', task.response_metadata.quiz_attempt_id)
+                            .maybeSingle();
+                        if (!error) attempt = data;
+                    }
+                    
+                    // Jeśli nie ma zapisanej próby, spróbuj wziąć ostatnią dla tego assigned_task
+                    if (!attempt) {
+                        const { data, error } = await supabase
+                            .from('quiz_attempts')
+                            .select('*')
+                            .eq('assigned_task_id', task.id)
+                            .order('completed_at', { ascending: false })
+                            .limit(1)
+                            .maybeSingle();
+                        if (!error && data) attempt = data;
+                    }
+                    
+                    const questionIds = quizMeta.question_ids || [];
+                    const targetUserId = quizMeta.target_user_id;
+                    
+                    if (attempt && Array.isArray(questionIds) && questionIds.length > 0 && targetUserId) {
+                        const { data: questions, error: qErr } = await supabase
+                            .from('user_quiz_questions')
+                            .select('*')
+                            .in('id', questionIds)
+                            .eq('target_user_id', targetUserId);
+                        
+                        if (!qErr && questions && questions.length > 0) {
+                            const questionAnswers = attempt.question_answers || {};
+                            const passingScore = quizMeta.passing_score || 5;
+                            const score = attempt.score || 0;
+                            const total = attempt.total_questions || questions.length;
+                            const passed = score >= passingScore;
+                            
+                            quizHtml += `
+                                <div style="margin-top: 16px; padding: 16px; background: #f5f5f7; border-radius: 8px; border: 1px solid #e8e8ed;">
+                                    <p style="font-weight: 600; margin: 0 0 8px 0; color: #1d1d1f;">Wynik quizu o użytkowniku:</p>
+                                    <p style="margin: 0; color: ${passed ? '#013927' : '#d32f2f'}; font-weight: 600;">
+                                        ${passed ? '✓ Quiz zaliczony' : '✗ Quiz niezaliczony'} — ${score}/${total} (próg: ${passingScore})
+                                    </p>
+                                </div>
+                            `;
+                            
+                            quizHtml += questions.map((q, idx) => {
+                                const userAnswer = questionAnswers[q.id];
+                                const isCorrect = userAnswer === q.target_user_answer;
+                                const opt1Selected = userAnswer === 1;
+                                const opt2Selected = userAnswer === 2;
+                                
+                                return `
+                                    <div style="margin-top: 12px; padding: 14px; background: #ffffff; border-radius: 8px; border: 1px solid #e8e8ed;">
+                                        <p style="margin: 0 0 10px 0; font-weight: 600; color: #1d1d1f;">${idx + 1}. ${q.question_text}</p>
+                                        <div style="padding: 10px; margin-bottom: 8px; border: 2px solid ${opt1Selected ? (isCorrect ? '#28a745' : '#d32f2f') : '#e8e8ed'}; border-radius: 8px; background: ${opt1Selected ? (isCorrect ? '#d4edda' : '#f8d7da') : 'white'};">
+                                            ${q.option_1} ${opt1Selected ? (isCorrect ? '✓' : '✗') : ''}
+                                        </div>
+                                        <div style="padding: 10px; border: 2px solid ${opt2Selected ? (isCorrect ? '#28a745' : '#d32f2f') : '#e8e8ed'}; border-radius: 8px; background: ${opt2Selected ? (isCorrect ? '#d4edda' : '#f8d7da') : 'white'};">
+                                            ${q.option_2} ${opt2Selected ? (isCorrect ? '✓' : '✗') : ''}
+                                        </div>
+                                        <p style="margin: 8px 0 0 0; font-size: 0.8125rem; color: ${isCorrect ? '#013927' : '#d32f2f'};">${isCorrect ? 'Poprawna odpowiedź' : 'Niepoprawna odpowiedź'}</p>
+                                    </div>
+                                `;
+                            }).join('');
+                        }
+                    }
+                    
+                    if (!quizHtml) {
+                        quizHtml = renderQuizAnswers(task.response_metadata);
+                    }
+                } catch (err) {
+                    console.error('Błąd pobierania szczegółów quizu o użytkownikach:', err);
+                    quizHtml = renderQuizAnswers(task.response_metadata);
+                }
+            } else {
+                quizHtml = renderQuizAnswers(task.response_metadata);
+            }
+            
+            content += quizHtml;
+        }
+    } else {
+        content += `<p style="color: #6e6e73; font-size: 0.875rem; margin-top: 16px; font-style: italic;">Zadanie nie zostało jeszcze wykonane.</p>`;
+    }
+    
+    content += `</div>`;
+    
+    modalBody.innerHTML = content;
+    modal.style.display = 'block';
+}
+
+// Funkcja zamykania modalu szczegółów zadania
+function closeTaskDetailsModal() {
+    const modal = document.getElementById('task-details-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
 
 // Usuń przypisane zadanie z tabeli - dostępne globalnie
 window.deleteAssignedTask = async function(taskId, userId, dayNumber) {

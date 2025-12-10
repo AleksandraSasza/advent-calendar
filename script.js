@@ -71,9 +71,9 @@ const dayToCountry = {
         coordinates: [56.1304, -106.3468] // Ottawa
     },
     10: {
-        country: "Australia",
-        funFact: "🏖️ W Australii Boże Narodzenie wypada w środku lata! Ludzie świętują na plażach i robią BBQ.",
-        coordinates: [-25.2744, 133.7751] // Sydney
+        country: "Filipiny",
+        funFact: "🎂 Na Filipinach Boże Narodzenie to prawdziwa fiesta! Jest muzyka, jedzenie, dekoracje i dużo prezentów, jak na wielkich urodzinach. Ludzie często mówią, że to \"urodziny Jezusa\", więc organizują przyjęcie z ciastem i świeczkami – dosłownie tort dla Jezusa!",
+        coordinates: [14.5995, 120.9842] // Manila
     },
     11: {
         country: "Brazylia",
@@ -86,14 +86,14 @@ const dayToCountry = {
         coordinates: [39.8283, -98.5795] // Kansas City (centrum USA)
     },
     13: {
+        country: "Szwecja",
+        funFact: "🕯️ Święto Łucji w Szwecji ma bardzo \"urodzinowy\" klimat: Najstarsza córka w rodzinie ubiera się na biało, zakłada wianek z świeczkami na głowie i przynosi rodzinie śniadanie do łóżka. To święto światła i radości – można powiedzieć, że to \"urodziny światła\" w czasie zimy.",
+        coordinates: [59.3293, 18.0686] // Sztokholm
+    },
+    14: {
         country: "Japonia",
         funFact: "🍗 W Japonii tradycją jest jedzenie KFC na Boże Narodzenie! Trzeba rezerwować kurczaka z tygodniowym wyprzedzeniem.",
         coordinates: [36.2048, 138.2529] // Tokio
-    },
-    14: {
-        country: "Francja",
-        funFact: "🎄 We Francji tradycją jest jedzenie bûche de Noël (bożonarodzeniowego kłoda) - ciasta w kształcie kłoda! W Paryżu na Polach Elizejskich rozbłyskują tysiące światełek.",
-        coordinates: [46.2276, 2.2137] // Paryż
     },
     15: {
         country: "Indie",
@@ -159,6 +159,7 @@ const countriesList = [
     { name: "Niemcy", coordinates: [51.1657, 10.4515] },
     { name: "Finlandia", coordinates: [60.1699, 24.9384] },
     { name: "Francja", coordinates: [46.2276, 2.2137] },
+    { name: "Szwecja", coordinates: [59.3293, 18.0686] },
     { name: "Irlandia", coordinates: [53.3498, -6.2603] },
     { name: "Włochy", coordinates: [41.9028, 12.4964] },
     { name: "Hiszpania", coordinates: [40.4637, -3.7492] },
@@ -166,6 +167,7 @@ const countriesList = [
     { name: "Rosja", coordinates: [61.5240, 105.3188] },
     { name: "Chiny", coordinates: [35.8617, 104.1954] },
     { name: "Japonia", coordinates: [36.2048, 138.2529] },
+    { name: "Filipiny", coordinates: [14.5995, 120.9842] },
     { name: "Australia", coordinates: [-25.2744, 133.7751] },
     { name: "Brazylia", coordinates: [-14.2350, -51.9253] },
     { name: "USA", coordinates: [39.8283, -98.5795] },

@@ -29,16 +29,40 @@ CREATE INDEX IF NOT EXISTS idx_user_quiz_questions_created_by ON user_quiz_quest
 -- Row Level Security dla user_quiz_questions
 ALTER TABLE user_quiz_questions ENABLE ROW LEVEL SECURITY;
 
--- Polityka: Użytkownicy widzą swoje pytania, admini widzą wszystkie
+-- Polityka: Użytkownicy widzą pytania o sobie ORAZ pytania w quizach przypisanych do nich, admini widzą wszystkie
 DROP POLICY IF EXISTS "user_quiz_questions_select" ON user_quiz_questions;
 CREATE POLICY "user_quiz_questions_select"
 ON user_quiz_questions
 FOR SELECT
 USING (
+  -- 1. Pytania o sobie (target_user_id = auth.uid())
   target_user_id = auth.uid() 
-  OR EXISTS (
+  
+  OR
+  
+  -- 2. Admini widzą wszystkie
+  EXISTS (
     SELECT 1 FROM profiles p 
     WHERE p.id = auth.uid() AND p.role = 'admin'
+  )
+  
+  OR
+  
+  -- 3. Pytania używane w quizach przypisanych do użytkownika
+  EXISTS (
+    SELECT 1 
+    FROM assigned_tasks at
+    INNER JOIN task_templates tt ON at.task_template_id = tt.id
+    WHERE at.user_id = auth.uid()
+      AND tt.is_active = TRUE
+      AND tt.metadata->>'quiz_type' = 'user_quiz'
+      AND (tt.metadata->>'target_user_id')::uuid = user_quiz_questions.target_user_id
+      AND (
+        -- Sprawdź czy question_id jest w tablicy question_ids w metadata
+        -- question_ids jest tablicą stringów UUID w JSONB
+        -- Używamy operatora @> (zawiera) dla JSONB
+        tt.metadata->'question_ids' @> to_jsonb(user_quiz_questions.id::text)
+      )
   )
 );
 
