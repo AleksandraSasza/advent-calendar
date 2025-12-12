@@ -81,14 +81,14 @@ const dayToCountry = {
         coordinates: [-14.2350, -51.9253] // Brasília
     },
     12: {
-        country: "USA",
-        funFact: "🎄 Nowy Jork ma najbardziej znaną choinkę świata na Rockefeller Center! Tradycja sięga 1931 roku.",
-        coordinates: [39.8283, -98.5795] // Kansas City (centrum USA)
+        country: "Czechy",
+        funFact: "🎄 W Czechach tradycją jest wróżenie z jabłek w Wigilię! Po przekrojeniu jabłka na pół, jeśli pestki tworzą gwiazdę, oznacza to szczęście w nadchodzącym roku.",
+        coordinates: [50.0755, 14.4378] // Praga
     },
     13: {
-        country: "Szwecja",
-        funFact: "🕯️ Święto Łucji w Szwecji ma bardzo \"urodzinowy\" klimat: Najstarsza córka w rodzinie ubiera się na biało, zakłada wianek z świeczkami na głowie i przynosi rodzinie śniadanie do łóżka. To święto światła i radości – można powiedzieć, że to \"urodziny światła\" w czasie zimy.",
-        coordinates: [59.3293, 18.0686] // Sztokholm
+        country: "Argentyna",
+        funFact: "🎆 W Argentynie o północy 24 grudnia eksplodują fajerwerki! To moment otwarcia prezentów i rozpoczęcia świętowania.",
+        coordinates: [-38.4161, -63.6167] // Buenos Aires
     },
     14: {
         country: "Japonia",
@@ -96,14 +96,14 @@ const dayToCountry = {
         coordinates: [36.2048, 138.2529] // Tokio
     },
     15: {
-        country: "Indie",
-        funFact: "🪔 W Indiach Boże Narodzenie łączy się z tradycjami Diwali - domyśl świetlne i kolorowe dekoracje wypełniają ulice!",
-        coordinates: [20.5937, 78.9629] // New Delhi
+        country: "Islandia",
+        funFact: "📚 W Islandii tradycją jest dawanie książek jako prezentów w Wigilię! To tzw. \"Jólabókaflóð\" (Świąteczny Potop Książek) - ludzie czytają nowe książki przy czekoladzie przez całą noc.",
+        coordinates: [64.1466, -21.9426] // Reykjavik
     },
     16: {
-        country: "Egipt",
-        funFact: "⛪ Chrześcijanie w Egipcie (Koptowie) obchodzą Boże Narodzenie 7 stycznia według kalendarza koptyjskiego!",
-        coordinates: [26.0975, 30.0444] // Kair
+        country: "Polska",
+        funFact: "🍽️ W Polsce tradycją jest 12 potraw na wigilijnym stole, symbolizujących 12 apostołów! Jedną z najważniejszych jest karp, a pod obrusem kładzie się sianko na pamiątkę żłóbka.",
+        coordinates: [52.2297, 21.0122] // Warszawa
     },
     17: {
         country: "RPA",
@@ -111,9 +111,9 @@ const dayToCountry = {
         coordinates: [-30.5595, 22.9375] // Kapsztad
     },
     18: {
-        country: "Argentyna",
-        funFact: "🎆 W Argentynie o północy 24 grudnia eksplodują fajerwerki! To moment otwarcia prezentów i rozpoczęcia świętowania.",
-        coordinates: [-38.4161, -63.6167] // Buenos Aires
+        country: "Japonia",
+        funFact: "🍗 W Japonii tradycją jest jedzenie KFC na Boże Narodzenie! Trzeba rezerwować kurczaka z tygodniowym wyprzedzeniem.",
+        coordinates: [36.2048, 138.2529] // Tokio
     },
     19: {
         country: "Chile",
@@ -157,7 +157,9 @@ let calendarDaysData = {}; // { day_number: { country, fun_fact, coordinates } }
 const countriesList = [
     { name: "Polska", coordinates: [52.2297, 21.0122] },
     { name: "Niemcy", coordinates: [51.1657, 10.4515] },
+    { name: "Czechy", coordinates: [50.0755, 14.4378] },
     { name: "Finlandia", coordinates: [60.1699, 24.9384] },
+    { name: "Islandia", coordinates: [64.1466, -21.9426] },
     { name: "Francja", coordinates: [46.2276, 2.2137] },
     { name: "Szwecja", coordinates: [59.3293, 18.0686] },
     { name: "Irlandia", coordinates: [53.3498, -6.2603] },
