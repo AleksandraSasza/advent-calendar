@@ -464,17 +464,17 @@ const dayToCountryMap = {
     10: { country: "Filipiny", funFact: "🎂 Na Filipinach Boże Narodzenie to prawdziwa fiesta! Jest muzyka, jedzenie, dekoracje i dużo prezentów, jak na wielkich urodzinach. Ludzie często mówią, że to \"urodziny Jezusa\", więc organizują przyjęcie z ciastem i świeczkami – dosłownie tort dla Jezusa!" },
     11: { country: "Brazylia", funFact: "🎅 W Brazylii Święty Mikołaj nazywa się Papai Noel i często nosi lekkie, letnie ubrania zamiast grubego futra!" },
     12: { country: "Czechy", funFact: "🎄 W Czechach tradycją jest wróżenie z jabłek w Wigilię! Po przekrojeniu jabłka na pół, jeśli pestki tworzą gwiazdę, oznacza to szczęście w nadchodzącym roku." },
-    13: { country: "Argentyna", funFact: "🎆 W Argentynie o północy 24 grudnia eksplodują fajerwerki! To moment otwarcia prezentów i rozpoczęcia świętowania." },
-    14: { country: "Francja", funFact: "🎄 We Francji tradycją jest jedzenie bûche de Noël (bożonarodzeniowego kłoda) - ciasta w kształcie kłoda! W Paryżu na Polach Elizejskich rozbłyskują tysiące światełek." },
+    13: { country: "Norwegia", funFact: "🎁 W Norwegii tradycją jest ukrywanie miotełek w Wigilię! W przeszłości wierzono, że czarownice i złe duchy używają miotełek do latania, więc chowano je, aby chronić dom." },
+    14: { country: "Jamajka", funFact: "🎵 Na Jamajce Boże Narodzenie to czas muzyki reggae i festiwali! Tradycją jest śpiewanie kolęd w stylu jamajskim i jedzenie tradycyjnego owocowego ciasta." },
     15: { country: "Islandia", funFact: "📚 W Islandii tradycją jest dawanie książek jako prezentów w Wigilię! To tzw. \"Jólabókaflóð\" (Świąteczny Potop Książek) - ludzie czytają nowe książki przy czekoladzie przez całą noc." },
-    16: { country: "Polska", funFact: "🍽️ W Polsce tradycją jest 12 potraw na wigilijnym stole, symbolizujących 12 apostołów! Jedną z najważniejszych jest karp, a pod obrusem kładzie się sianko na pamiątkę żłóbka." },
+    16: { country: "Grecja", funFact: "⛪ W Grecji Boże Narodzenie obchodzone jest 25 grudnia, ale główne świętowanie to 6 stycznia - Święto Trzech Króli! Tradycją jest pływanie po krzyż wrzucony do wody przez kapłana." },
     17: { country: "RPA", funFact: "🌞 W RPA Boże Narodzenie to letnia impreza! Ludzie świętują grillując na świeżym powietrzu i pływając w oceanie." },
     18: { country: "Japonia", funFact: "🍗 W Japonii tradycją jest jedzenie KFC na Boże Narodzenie! Trzeba rezerwować kurczaka z tygodniowym wyprzedzeniem." },
-    19: { country: "Chile", funFact: "🎅 W Chile Święty Mikołaj nazywa się Viejito Pascuero (Stary Człowiek Wielkanocny) i przychodzi przez kominek mimo letnich upałów!" },
+    19: { country: "Polska", funFact: "🍽️ W Polsce tradycją jest 12 potraw na wigilijnym stole, symbolizujących 12 apostołów! Jedną z najważniejszych jest karp, a pod obrusem kładzie się sianko na pamiątkę żłóbka." },
     20: { country: "Peru", funFact: "🌟 W Peru tradycją jest budowanie elaborate szopek (nacimientos) z lokalnych materiałów i figurek z ceramiki z Ayacucho!" },
     21: { country: "Rosja", funFact: "❄️ W Rosji Nowy Rok jest ważniejszy niż Boże Narodzenie! Dziadek Mróz (Ded Moroz) przynosi prezenty 31 grudnia." },
     22: { country: "Hiszpania", funFact: "👑 W Hiszpanii główne prezenty przychodzą 6 stycznia od Trzech Króli! Dzieci zostawiają im buty wypełnione słomą dla wielbłądów." },
-    23: { country: "Ekwador", funFact: "🎭 W Ekwadorze tradycją jest palenie starej szafy (Año Viejo) - kukieł symbolizujących stary rok, 31 grudnia o północy!" },
+    23: { country: "Argentyna", funFact: "🎆 W Argentynie o północy 24 grudnia eksplodują fajerwerki! To moment otwarcia prezentów i rozpoczęcia świętowania." },
     24: { country: "Urugwaj", funFact: "🎄 W Urugwaju Boże Narodzenie to czas rodzinnych spotkań na plaży i tradycyjnego asado (grilla) pod palmami zamiast choinkami!" }
 };
 

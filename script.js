@@ -86,14 +86,14 @@ const dayToCountry = {
         coordinates: [50.0755, 14.4378] // Praga
     },
     13: {
-        country: "Argentyna",
-        funFact: "🎆 W Argentynie o północy 24 grudnia eksplodują fajerwerki! To moment otwarcia prezentów i rozpoczęcia świętowania.",
-        coordinates: [-38.4161, -63.6167] // Buenos Aires
+        country: "Norwegia",
+        funFact: "🎁 W Norwegii tradycją jest ukrywanie miotełek w Wigilię! W przeszłości wierzono, że czarownice i złe duchy używają miotełek do latania, więc chowano je, aby chronić dom.",
+        coordinates: [59.9139, 10.7522] // Oslo
     },
     14: {
-        country: "Japonia",
-        funFact: "🍗 W Japonii tradycją jest jedzenie KFC na Boże Narodzenie! Trzeba rezerwować kurczaka z tygodniowym wyprzedzeniem.",
-        coordinates: [36.2048, 138.2529] // Tokio
+        country: "Jamajka",
+        funFact: "🎵 Na Jamajce Boże Narodzenie to czas muzyki reggae i festiwali! Tradycją jest śpiewanie kolęd w stylu jamajskim i jedzenie tradycyjnego owocowego ciasta.",
+        coordinates: [18.0179, -76.8099] // Kingston
     },
     15: {
         country: "Islandia",
@@ -101,9 +101,9 @@ const dayToCountry = {
         coordinates: [64.1466, -21.9426] // Reykjavik
     },
     16: {
-        country: "Polska",
-        funFact: "🍽️ W Polsce tradycją jest 12 potraw na wigilijnym stole, symbolizujących 12 apostołów! Jedną z najważniejszych jest karp, a pod obrusem kładzie się sianko na pamiątkę żłóbka.",
-        coordinates: [52.2297, 21.0122] // Warszawa
+        country: "Grecja",
+        funFact: "⛪ W Grecji Boże Narodzenie obchodzone jest 25 grudnia, ale główne świętowanie to 6 stycznia - Święto Trzech Króli! Tradycją jest pływanie po krzyż wrzucony do wody przez kapłana.",
+        coordinates: [37.9838, 23.7275] // Ateny
     },
     17: {
         country: "RPA",
@@ -116,9 +116,9 @@ const dayToCountry = {
         coordinates: [36.2048, 138.2529] // Tokio
     },
     19: {
-        country: "Chile",
-        funFact: "🎅 W Chile Święty Mikołaj nazywa się Viejito Pascuero (Stary Człowiek Wielkanocny) i przychodzi przez kominek mimo letnich upałów!",
-        coordinates: [-35.6751, -71.5430] // Santiago
+        country: "Polska",
+        funFact: "🍽️ W Polsce tradycją jest 12 potraw na wigilijnym stole, symbolizujących 12 apostołów! Jedną z najważniejszych jest karp, a pod obrusem kładzie się sianko na pamiątkę żłóbka.",
+        coordinates: [52.2297, 21.0122] // Warszawa
     },
     20: {
         country: "Peru",
@@ -136,9 +136,9 @@ const dayToCountry = {
         coordinates: [40.4637, -3.7492] // Madryt
     },
     23: {
-        country: "Ekwador",
-        funFact: "🎭 W Ekwadorze tradycją jest palenie starej szafy (Año Viejo) - kukieł symbolizujących stary rok, 31 grudnia o północy!",
-        coordinates: [-1.8312, -78.1834] // Quito
+        country: "Argentyna",
+        funFact: "🎆 W Argentynie o północy 24 grudnia eksplodują fajerwerki! To moment otwarcia prezentów i rozpoczęcia świętowania.",
+        coordinates: [-38.4161, -63.6167] // Buenos Aires
     },
     24: {
         country: "Urugwaj",
@@ -160,8 +160,10 @@ const countriesList = [
     { name: "Czechy", coordinates: [50.0755, 14.4378] },
     { name: "Finlandia", coordinates: [60.1699, 24.9384] },
     { name: "Islandia", coordinates: [64.1466, -21.9426] },
+    { name: "Norwegia", coordinates: [59.9139, 10.7522] },
     { name: "Francja", coordinates: [46.2276, 2.2137] },
     { name: "Szwecja", coordinates: [59.3293, 18.0686] },
+    { name: "Grecja", coordinates: [37.9838, 23.7275] },
     { name: "Irlandia", coordinates: [53.3498, -6.2603] },
     { name: "Włochy", coordinates: [41.9028, 12.4964] },
     { name: "Hiszpania", coordinates: [40.4637, -3.7492] },
@@ -172,6 +174,7 @@ const countriesList = [
     { name: "Filipiny", coordinates: [14.5995, 120.9842] },
     { name: "Australia", coordinates: [-25.2744, 133.7751] },
     { name: "Brazylia", coordinates: [-14.2350, -51.9253] },
+    { name: "Jamajka", coordinates: [18.0179, -76.8099] },
     { name: "USA", coordinates: [39.8283, -98.5795] },
     { name: "Kanada", coordinates: [56.1304, -106.3468] },
     { name: "Meksyk", coordinates: [23.6345, -102.5528] },
