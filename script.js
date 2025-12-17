@@ -299,12 +299,19 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // Jeśli nie jest zalogowany, przekieruj do strony logowania
     if (!isAuthenticated) {
-        sessionStorage.setItem('redirecting', 'true');
-        window.location.href = 'login.html';
+        console.log('Użytkownik nie jest zalogowany - przekierowanie do login.html');
+        // Użyj replace zamiast href, aby natychmiast przekierować
+        window.location.replace('login.html');
         return;
     }
     
     // Jeśli jest zalogowany, załaduj zadania z Supabase i kontynuuj inicjalizację
+    // Pokaż kontener mapy
+    const mapContainer = document.getElementById('map-container');
+    if (mapContainer) {
+        mapContainer.style.display = 'block';
+    }
+    
     await loadCalendarDays(); // Załaduj dane dni z bazy przed utworzeniem mapy
     await loadUserTasks();
     await loadUserProgress();
@@ -319,6 +326,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (!document.hidden && currentUser) {
             // Odśwież dane dni kalendarza (ciekawostki)
             await loadCalendarDays();
+            // Odśwież stan przycisku pytań użytkownika (może zostać ukryty po odpowiedzi)
+            await checkUserQuestions();
         }
     });
 });
@@ -2475,23 +2484,33 @@ async function checkUserQuestions() {
     if (!supabase || !currentUser) return;
     
     try {
+        // Pobierz wszystkie pytania użytkownika z informacją o odpowiedziach
         const { data: questions, error } = await supabase
             .from('user_quiz_questions')
-            .select('id')
-            .eq('target_user_id', currentUser.id)
-            .limit(1);
+            .select('id, target_user_answer')
+            .eq('target_user_id', currentUser.id);
         
         if (error) {
             console.error('Błąd sprawdzania pytań użytkownika:', error);
             return;
         }
         
-        // Pokaż przycisk jeśli użytkownik ma pytania
+        // Sprawdź czy użytkownik ma pytania i czy są pytania bez odpowiedzi
         const buttonContainer = document.getElementById('user-questions-button-container');
         if (buttonContainer) {
             if (questions && questions.length > 0) {
-                buttonContainer.style.display = 'block';
+                // Sprawdź czy są pytania bez odpowiedzi (target_user_answer === null)
+                const unansweredQuestions = questions.filter(q => q.target_user_answer === null);
+                
+                // Pokaż przycisk tylko jeśli są pytania bez odpowiedzi
+                if (unansweredQuestions.length > 0) {
+                    buttonContainer.style.display = 'block';
+                } else {
+                    // Wszystkie pytania mają odpowiedzi - ukryj przycisk
+                    buttonContainer.style.display = 'none';
+                }
             } else {
+                // Brak pytań - ukryj przycisk
                 buttonContainer.style.display = 'none';
             }
         }
