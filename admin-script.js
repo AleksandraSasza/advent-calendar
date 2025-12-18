@@ -1,33 +1,65 @@
+// =========================================================
+// ZABEZPIECZENIE PRZED WIELOKROTNYM ŁADOWANIEM
+// =========================================================
+// Opakuj cały kod w IIFE, aby uniknąć konfliktów przy wielokrotnym ładowaniu
+(function() {
+    'use strict';
+    
+    if (window.ADMIN_SCRIPT_LOADED) {
+        console.warn('⚠️ admin-script.js jest już załadowany! Pomijam ponowną inicjalizację.');
+        // Jeśli skrypt jest już załadowany, upewnij się, że event listenery są skonfigurowane
+        if (typeof window.setupEventListeners === 'function' && !window.ADMIN_EVENT_LISTENERS_SETUP) {
+            console.log('🔍 Konfiguruję event listenery po ponownym ładowaniu...');
+            window.setupEventListeners();
+        }
+        return; // Zatrzymaj wykonanie tego skryptu
+    }
+    window.ADMIN_SCRIPT_LOADED = true;
+
 // Konfiguracja Supabase - ładowana z config.js
 if (!window.SUPABASE_CONFIG) {
     console.error('⚠️ BŁĄD: Plik config.js nie jest załadowany!');
+    console.error('⚠️ Sprawdź kolejność ładowania skryptów w admin.html');
 }
 
+// Użyj window.SUPABASE_CONFIG bezpośrednio zamiast const (aby uniknąć błędów przy wielokrotnym ładowaniu)
 const SUPABASE_URL = window.SUPABASE_CONFIG?.URL;
 const SUPABASE_ANON_KEY = window.SUPABASE_CONFIG?.ANON_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     console.error('⚠️ BŁĄD: Konfiguracja Supabase nie jest ustawiona!');
+    console.error('⚠️ SUPABASE_CONFIG:', window.SUPABASE_CONFIG);
     alert('⚠️ BŁĄD KONFIGURACJI:\n\nSkopiuj config.example.js jako config.js i wypełnij swoimi danymi z Supabase Dashboard.');
 }
 
-// Inicjalizacja klienta Supabase
+// Inicjalizacja klienta Supabase - tylko jeśli jeszcze nie istnieje
 let supabase;
-try {
-    // Sprawdź różne sposoby dostępu do biblioteki Supabase
-    if (typeof window.supabaseLib !== 'undefined' && window.supabaseLib.createClient) {
-        supabase = window.supabaseLib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    } else if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    } else {
-        console.error('Supabase library nie jest załadowana!');
-        throw new Error('Supabase library not loaded');
+if (window.adminSupabaseClient) {
+    // Użyj istniejącego klienta
+    supabase = window.adminSupabaseClient;
+    console.log('✅ Używam istniejącego klienta Supabase');
+} else {
+    try {
+        // Sprawdź różne sposoby dostępu do biblioteki Supabase
+        if (typeof window.supabaseLib !== 'undefined' && window.supabaseLib.createClient) {
+            supabase = window.supabaseLib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } else if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } else {
+            console.error('❌ Supabase library nie jest załadowana!');
+            console.error('❌ window.supabaseLib:', typeof window.supabaseLib);
+            console.error('❌ window.supabase:', typeof window.supabase);
+            throw new Error('Supabase library not loaded');
+        }
+        // Zapisz klienta w window, aby uniknąć wielokrotnej inicjalizacji
+        window.adminSupabaseClient = supabase;
+        // Eksportuj supabase do window, aby funkcje globalne (jak showAdminPhotoModal) miały dostęp
+        window.supabase = supabase;
+        console.log('✅ Supabase zainicjalizowany pomyślnie');
+    } catch (error) {
+        console.error('❌ Błąd inicjalizacji Supabase:', error);
+        console.error('❌ Stack trace:', error.stack);
     }
-    // Eksportuj supabase do window, aby funkcje globalne (jak showAdminPhotoModal) miały dostęp
-    window.supabase = supabase;
-    console.log('Supabase zainicjalizowany pomyślnie');
-} catch (error) {
-    console.error('Błąd inicjalizacji Supabase:', error);
 }
 
 let currentUser = null;
@@ -221,10 +253,32 @@ document.addEventListener('DOMContentLoaded', async function() {
     try {
         await loadAllData();
         await ensureAllDaysExist(); // Automatycznie dodaj wszystkie dni jeśli brakuje
+        
+        // Upewnij się, że sekcja weryfikacji jest widoczna na starcie
+        const verificationSection = document.getElementById('section-verification');
+        if (verificationSection) {
+            verificationSection.style.display = 'block';
+            console.log('✅ Sekcja weryfikacji ustawiona jako widoczna');
+        }
+        
+        // Ukryj wszystkie inne sekcje
+        document.querySelectorAll('.admin-section').forEach(section => {
+            if (section.id !== 'section-verification') {
+                section.style.display = 'none';
+            }
+        });
+        
         setupEventListeners();
         console.log('✅ Panel admina załadowany pomyślnie');
+        
+        // Załaduj zadania do weryfikacji po załadowaniu
+        setTimeout(async () => {
+            console.log('🔍 Ładuję zadania do weryfikacji po inicjalizacji...');
+            await loadVerificationTasks();
+        }, 200);
     } catch (error) {
         console.error('❌ Błąd ładowania panelu:', error);
+        console.error('❌ Stack trace:', error.stack);
         alert('Błąd ładowania panelu admina: ' + error.message);
     }
 });
@@ -1330,7 +1384,71 @@ async function loadUserQuestionsForQuiz(userId) {
 }
 
 // Konfiguracja eventów
-function setupEventListeners() {
+// Przełącz sekcję w menu nawigacyjnym - dostępna globalnie (DEFINICJA PRZED setupEventListeners)
+window.switchSection = function switchSection(sectionName) {
+    console.log('🔍 switchSection wywołana z:', sectionName);
+    
+    // Ukryj wszystkie sekcje
+    const allSections = document.querySelectorAll('.admin-section');
+    console.log('🔍 Znaleziono sekcji:', allSections.length);
+    allSections.forEach((section, index) => {
+        console.log(`🔍 Sekcja ${index + 1}:`, section.id, 'data-section:', section.dataset.section);
+        section.style.display = 'none';
+    });
+    
+    // Pokaż wybraną sekcję
+    const targetSection = document.getElementById(`section-${sectionName}`);
+    console.log('🔍 Szukam sekcji:', `section-${sectionName}`, 'Znaleziono:', !!targetSection);
+    if (targetSection) {
+        targetSection.style.display = 'block';
+        console.log('✅ Sekcja pokazana:', sectionName);
+    } else {
+        console.error('❌ Nie znaleziono sekcji:', `section-${sectionName}`);
+    }
+    
+    // Zaktualizuj aktywne menu
+    const navItems = document.querySelectorAll('.admin-nav-item');
+    navItems.forEach(item => {
+        item.classList.remove('active');
+        if (item.dataset.section === sectionName) {
+            item.classList.add('active');
+            console.log('✅ Zakładka oznaczona jako aktywna:', sectionName);
+        }
+    });
+    
+    // Jeśli przełączamy na sekcję zadań, odśwież tabelę
+    if (sectionName === 'tasks') {
+        setTimeout(async () => {
+            await displayTasksTable();
+        }, 100);
+    }
+    
+    // Jeśli przełączamy na sekcję weryfikacji, odśwież listę
+    if (sectionName === 'verification') {
+        console.log('🔍 Przełączono na sekcję weryfikacji - ładuję zadania...');
+        setTimeout(async () => {
+            await loadVerificationTasks();
+        }, 100);
+    }
+    
+    // Jeśli przełączamy na sekcję pytań użytkowników, odśwież listę
+    if (sectionName === 'user-questions') {
+        setTimeout(async () => {
+            await loadUserQuestionsList();
+        }, 100);
+    }
+};
+
+// Oznacz funkcję jako dostępną globalnie
+window.setupEventListeners = function setupEventListeners() {
+    // Zabezpieczenie przed wielokrotnym wywołaniem
+    if (window.ADMIN_EVENT_LISTENERS_SETUP) {
+        console.warn('⚠️ Event listenery są już skonfigurowane! Pomijam...');
+        return;
+    }
+    window.ADMIN_EVENT_LISTENERS_SETUP = true;
+    
+    console.log('🔍 setupEventListeners wywołana');
     // Formularz przypisywania zadania (stary - może nie istnieć)
     const oldAssignForm = document.getElementById('assign-task-form');
     if (oldAssignForm) {
@@ -1494,12 +1612,48 @@ function setupEventListeners() {
     });
     
     // Menu nawigacyjne - przełączanie sekcji
-    document.querySelectorAll('.admin-nav-item').forEach(item => {
-        item.addEventListener('click', function() {
+    console.log('🔍 Konfigurowanie nawigacji...');
+    const navItems = document.querySelectorAll('.admin-nav-item');
+    console.log('🔍 Znaleziono elementów nawigacji:', navItems.length);
+    
+    if (navItems.length === 0) {
+        console.error('❌ BŁĄD: Nie znaleziono elementów .admin-nav-item!');
+        console.error('❌ Sprawdź czy HTML jest poprawnie załadowany');
+    }
+    
+    navItems.forEach((item, index) => {
+        const sectionName = item.dataset.section;
+        console.log(`🔍 Element ${index + 1}:`, sectionName, item);
+        
+        // Usuń stare event listenery jeśli istnieją
+        const newItem = item.cloneNode(true);
+        item.parentNode.replaceChild(newItem, item);
+        
+        newItem.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
             const section = this.dataset.section;
-            switchSection(section);
+            console.log('🔍 Kliknięto w zakładkę:', section);
+            
+            // Spróbuj użyć window.switchSection najpierw
+            if (window.switchSection && typeof window.switchSection === 'function') {
+                console.log('✅ Używam window.switchSection');
+                window.switchSection(section);
+            } else if (typeof switchSection === 'function') {
+                console.log('✅ Funkcja switchSection jest dostępna, wywołuję...');
+                switchSection(section);
+            } else {
+                console.error('❌ Funkcja switchSection nie jest dostępna!');
+                console.error('❌ Typ switchSection:', typeof switchSection);
+                console.error('❌ window.switchSection:', typeof window.switchSection);
+                alert('Błąd: Funkcja przełączania sekcji nie jest dostępna. Odśwież stronę.');
+            }
         });
+        
+        console.log(`✅ Event listener dodany do zakładki ${index + 1}:`, sectionName);
     });
+    
+    console.log('✅ Nawigacja skonfigurowana');
     
     // Formularz przypisywania zadania (nowy modal w assign-task-modal)
     const newAssignTaskForm = document.querySelector('#assign-task-modal form#assign-task-form');
@@ -1572,7 +1726,9 @@ function setupEventListeners() {
             await deleteUserQuestion(questionId);
         }
     });
-}
+    
+    console.log('✅ setupEventListeners zakończona pomyślnie');
+};
 
 // Otwórz modal dodawania dnia
 function openAddDayModal() {
@@ -3158,49 +3314,6 @@ window.deleteAssignedTask = async function(taskId, userId, dayNumber) {
     }
 };
 
-// Przełącz sekcję w menu nawigacyjnym
-function switchSection(sectionName) {
-    // Ukryj wszystkie sekcje
-    document.querySelectorAll('.admin-section').forEach(section => {
-        section.style.display = 'none';
-    });
-    
-    // Pokaż wybraną sekcję
-    const targetSection = document.getElementById(`section-${sectionName}`);
-    if (targetSection) {
-        targetSection.style.display = 'block';
-    }
-    
-    // Zaktualizuj aktywne menu
-    document.querySelectorAll('.admin-nav-item').forEach(item => {
-        item.classList.remove('active');
-        if (item.dataset.section === sectionName) {
-            item.classList.add('active');
-        }
-    });
-    
-    // Jeśli przełączamy na sekcję zadań, odśwież tabelę
-    if (sectionName === 'tasks') {
-        setTimeout(async () => {
-            await displayTasksTable();
-        }, 100);
-    }
-    
-    // Jeśli przełączamy na sekcję weryfikacji, odśwież listę
-    if (sectionName === 'verification') {
-        setTimeout(async () => {
-            await loadVerificationTasks();
-        }, 100);
-    }
-    
-    // Jeśli przełączamy na sekcję pytań użytkowników, odśwież listę
-    if (sectionName === 'user-questions') {
-        setTimeout(async () => {
-            await loadUserQuestionsList();
-        }, 100);
-    }
-}
-
 // Funkcja do wyświetlania zdjęcia w modalu w panelu admina
 window.showAdminPhotoModal = async function(photoUrl, filePath) {
     // Utwórz modal do wyświetlenia zdjęcia
@@ -3523,27 +3636,33 @@ window.loadSignedUrl = async function(imgElement, filePathOrUrl) {
 
 // Załaduj zadania do weryfikacji
 async function loadVerificationTasks() {
+    console.log('🔍 loadVerificationTasks wywołana');
     const listContainer = document.getElementById('verification-tasks-list');
     
     // Jeśli kontener nie istnieje (sekcja nie jest widoczna), nie ładuj zadań
     if (!listContainer) {
-        console.log('Sekcja weryfikacji nie jest widoczna - pomijam ładowanie zadań');
+        console.log('⚠️ Sekcja weryfikacji nie jest widoczna - pomijam ładowanie zadań');
         return;
     }
+    
+    console.log('✅ Kontener verification-tasks-list znaleziony');
     
     try {
         // Pobierz zadania ze statusem pending_verification (zadania czekające na weryfikację)
         // Usunięto warunek o zdjęciu - zadania mogą wymagać weryfikacji bez zdjęcia
-        // Używamy inner join zamiast relacji, bo może nie być foreign key
+        // Używamy left join, aby nie pomijać zadań bez powiązań
+        console.log('🔍 Ładowanie zadań do weryfikacji...');
         const { data: tasks, error } = await supabase
             .from('assigned_tasks')
             .select(`
                 *,
-                calendar_days!inner(day_number),
-                task_templates!inner(title, task_type)
+                calendar_days(day_number),
+                task_templates(title, task_type)
             `)
             .eq('status', 'pending_verification')
             .order('completed_at', { ascending: false });
+        
+        console.log('🔍 Wynik zapytania - zadania:', tasks?.length || 0, 'błąd:', error);
         
         // Pobierz dane użytkowników osobno, bo może nie być foreign key
         let tasksWithUsers = [];
@@ -4186,4 +4305,6 @@ function showNotification(message, type = 'success') {
         notification.remove();
     }, 4000);
 }
+
+})(); // Koniec IIFE - zabezpieczenie przed wielokrotnym ładowaniem
 
