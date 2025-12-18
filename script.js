@@ -2288,16 +2288,10 @@ async function checkAuth() {
             .eq('id', session.user.id)
             .single();
         
-        if (profileError) {
+        if (profileError || !profile) {
             console.error('Błąd pobierania profilu:', profileError);
-            // Jeśli profil nie istnieje, użytkownik nie jest w pełni zarejestrowany
             return false;
         }
-        
-        if (!profile) {
-            console.log('Profil nie istnieje');
-    return false;
-}
 
         // Ustaw dane użytkownika
         currentUser = {
