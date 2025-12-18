@@ -208,24 +208,38 @@ let markers = {};
 document.addEventListener('DOMContentLoaded', async function() {
     // Sprawdź czy użytkownik właśnie się zalogował (flaga redirecting)
     const redirectFlag = sessionStorage.getItem('redirecting');
+    console.log('🔍 Sprawdzanie flagi redirecting:', redirectFlag);
+    
     if (redirectFlag === 'true') {
-        sessionStorage.removeItem('redirecting');
-        console.log('Użytkownik właśnie się zalogował - sprawdzam autoryzację...');
+        // NIE usuwaj flagi od razu - najpierw sprawdź autoryzację
+        console.log('✅ Flaga redirecting znaleziona - użytkownik właśnie się zalogował');
+        console.log('🔍 Sprawdzam autoryzację...');
+        
+        // Daj czas na synchronizację sesji Supabase (krótkie opóźnienie)
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
         // Sprawdź autoryzację - jeśli użytkownik jest zalogowany, kontynuuj
-        const isAuthenticated = await checkAuth();
-        if (!isAuthenticated) {
-            // Jeśli nadal nie jest zalogowany, przekieruj do logowania
-            console.log('Brak autoryzacji po logowaniu - przekierowanie do login.html');
-            window.location.replace('login.html');
-            return;
-        }
-        // Użytkownik jest zalogowany - kontynuuj inicjalizację (kod poniżej)
-    } else {
-        // Normalne sprawdzenie autoryzacji dla użytkowników, którzy nie logują się teraz
         const isAuthenticated = await checkAuth();
         
         if (!isAuthenticated) {
-            console.log('Użytkownik nie jest zalogowany - przekierowanie do login.html');
+            // Jeśli nadal nie jest zalogowany, przekieruj do logowania
+            console.log('❌ Brak autoryzacji po logowaniu - przekierowanie do login.html');
+            sessionStorage.removeItem('redirecting');
+            window.location.replace('login.html');
+            return;
+        }
+        
+        // Użytkownik jest zalogowany - usuń flagę i kontynuuj inicjalizację
+        console.log('✅ Użytkownik jest zalogowany - usuwam flagę redirecting i kontynuuję');
+        sessionStorage.removeItem('redirecting');
+        // Kontynuuj inicjalizację (kod poniżej)
+    } else {
+        // Normalne sprawdzenie autoryzacji dla użytkowników, którzy nie logują się teraz
+        console.log('🔍 Brak flagi redirecting - normalne sprawdzanie autoryzacji');
+        const isAuthenticated = await checkAuth();
+        
+        if (!isAuthenticated) {
+            console.log('❌ Użytkownik nie jest zalogowany - przekierowanie do login.html');
             // Pokaż tylko przycisk logowania
             const authButtons = document.getElementById('auth-buttons');
             if (authButtons) {
@@ -235,6 +249,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             window.location.replace('login.html');
             return; // Zatrzymaj dalsze wykonanie kodu
         }
+        
+        console.log('✅ Użytkownik jest zalogowany - kontynuuję inicjalizację');
     }
     
     // Kod generowania płatków śniegu
