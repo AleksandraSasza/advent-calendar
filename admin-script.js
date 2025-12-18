@@ -945,18 +945,37 @@ window.saveDayInfo = async function(dayId) {
     if (!dayCard) return;
     
     const funFactInput = dayCard.querySelector('.day-funfact-input');
+    const countrySelect = dayCard.querySelector('.day-country-select');
+    const customInput = dayCard.querySelector('.day-country-custom-input');
     
     // Pobierz wartość i usuń białe znaki - jeśli jest pusty string, zapisz jako null
     const funFactValue = funFactInput?.value?.trim();
     const funFact = (funFactValue && funFactValue.length > 0) ? funFactValue : null;
     
-    console.log('💾 saveDayInfo - zapisuję ciekawostkę dla dnia:', dayId, 'wartość:', funFact);
+    // Pobierz państwo - z selecta lub z custom inputa
+    let country = null;
+    if (countrySelect && countrySelect.value) {
+        if (countrySelect.value === '__OTHER__' && customInput && customInput.value) {
+            country = customInput.value.trim();
+        } else if (countrySelect.value !== '__OTHER__') {
+            country = countrySelect.value;
+        }
+    }
+    
+    console.log('💾 saveDayInfo - zapisuję dla dnia:', dayId);
+    console.log('💾 Państwo:', country);
+    console.log('💾 Ciekawostka:', funFact);
     
     try {
-        // Zapisz tylko fun_fact (państwo jest w kodzie dayToCountryMap i nie można go zmieniać)
+        // Zapisz fun_fact i country
         const updateData = {
             fun_fact: funFact
         };
+        
+        // Dodaj country tylko jeśli zostało wybrane
+        if (country && country.length > 0) {
+            updateData.country = country;
+        }
         
         const { error } = await supabase
             .from('calendar_days')
