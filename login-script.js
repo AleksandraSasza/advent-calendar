@@ -199,10 +199,6 @@ async function handleLogin(email, password) {
                 console.log('  - userRole:', userRole);
                 console.log('  - isAdmin:', isAdmin);
                 
-                // Ustaw flagę przekierowania PRZED przekierowaniem
-                isRedirecting = true;
-                sessionStorage.setItem('redirecting', 'true');
-                
                 const redirectUrl = isAdmin ? 'admin.html' : 'index.html';
                 
                 // Wyświetl powiadomienie
@@ -212,16 +208,12 @@ async function handleLogin(email, password) {
                 console.log('🔄 URL:', redirectUrl);
                 console.log('🔄 User role:', profile.role);
                 console.log('🔄 Is admin:', isAdmin);
-                console.log('🔄 Redirecting flag set:', sessionStorage.getItem('redirecting'));
+                console.log('🔄 Session exists:', !!data.session);
                 
-                // Daj czas na zapisanie sesji w Supabase (małe opóźnienie)
-                // Przekieruj po krótkim opóźnieniu, aby upewnić się, że sesja jest zapisana
-                setTimeout(() => {
-                    console.log('🔄 Wykonuję przekierowanie teraz...');
-                    console.log('🔄 Redirecting flag before redirect:', sessionStorage.getItem('redirecting'));
-                    // Użyj replace zamiast href, aby nie można było wrócić do strony logowania
-                    window.location.replace(redirectUrl);
-                }, 100); // 100ms opóźnienia dla synchronizacji sesji
+                // Przekieruj natychmiast - sesja jest już ustawiona w supabase.auth
+                // Supabase automatycznie zapisuje sesję w localStorage
+                console.log('🔄 Wykonuję przekierowanie teraz...');
+                window.location.href = redirectUrl;
                 
             } catch (error) {
                 console.error('❌ Błąd sprawdzania roli:', error);

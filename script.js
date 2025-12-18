@@ -206,52 +206,32 @@ let markers = {};
 
 // Inicjalizacja aplikacji
 document.addEventListener('DOMContentLoaded', async function() {
-    // Sprawdź czy użytkownik właśnie się zalogował (flaga redirecting)
-    const redirectFlag = sessionStorage.getItem('redirecting');
-    console.log('🔍 Sprawdzanie flagi redirecting:', redirectFlag);
+    // Sprawdź czy użytkownik jest zalogowany
+    // Daj czas na pełną inicjalizację Supabase i synchronizację sesji
+    console.log('⏳ Oczekiwanie na inicjalizację Supabase...');
+    await new Promise(resolve => setTimeout(resolve, 300));
     
-    if (redirectFlag === 'true') {
-        // NIE usuwaj flagi od razu - najpierw sprawdź autoryzację
-        console.log('✅ Flaga redirecting znaleziona - użytkownik właśnie się zalogował');
-        console.log('🔍 Sprawdzam autoryzację...');
-        
-        // Daj czas na synchronizację sesji Supabase (krótkie opóźnienie)
-        await new Promise(resolve => setTimeout(resolve, 200));
-        
-        // Sprawdź autoryzację - jeśli użytkownik jest zalogowany, kontynuuj
-        const isAuthenticated = await checkAuth();
-        
-        if (!isAuthenticated) {
-            // Jeśli nadal nie jest zalogowany, przekieruj do logowania
-            console.log('❌ Brak autoryzacji po logowaniu - przekierowanie do login.html');
-            sessionStorage.removeItem('redirecting');
-            window.location.replace('login.html');
-            return;
+    // Sprawdź autoryzację - zawsze sprawdzaj sesję bezpośrednio
+    console.log('🔍 Sprawdzanie autoryzacji użytkownika...');
+    console.log('🔍 Supabase zainicjalizowany:', !!supabase);
+    
+    const isAuthenticated = await checkAuth();
+    
+    console.log('🔍 Wynik checkAuth():', isAuthenticated);
+    
+    if (!isAuthenticated) {
+        console.log('❌ Użytkownik nie jest zalogowany - przekierowanie do login.html');
+        // Pokaż tylko przycisk logowania
+        const authButtons = document.getElementById('auth-buttons');
+        if (authButtons) {
+            authButtons.style.display = 'block';
         }
-        
-        // Użytkownik jest zalogowany - usuń flagę i kontynuuj inicjalizację
-        console.log('✅ Użytkownik jest zalogowany - usuwam flagę redirecting i kontynuuję');
-        sessionStorage.removeItem('redirecting');
-        // Kontynuuj inicjalizację (kod poniżej)
-    } else {
-        // Normalne sprawdzenie autoryzacji dla użytkowników, którzy nie logują się teraz
-        console.log('🔍 Brak flagi redirecting - normalne sprawdzanie autoryzacji');
-        const isAuthenticated = await checkAuth();
-        
-        if (!isAuthenticated) {
-            console.log('❌ Użytkownik nie jest zalogowany - przekierowanie do login.html');
-            // Pokaż tylko przycisk logowania
-            const authButtons = document.getElementById('auth-buttons');
-            if (authButtons) {
-                authButtons.style.display = 'block';
-            }
-            // Przekieruj do strony logowania
-            window.location.replace('login.html');
-            return; // Zatrzymaj dalsze wykonanie kodu
-        }
-        
-        console.log('✅ Użytkownik jest zalogowany - kontynuuję inicjalizację');
+        // Przekieruj do strony logowania
+        window.location.replace('login.html');
+        return; // Zatrzymaj dalsze wykonanie kodu
     }
+    
+    console.log('✅ Użytkownik jest zalogowany - kontynuuję inicjalizację');
     
     // Kod generowania płatków śniegu
     const snowContainer = document.querySelector(".snow-container");
@@ -2303,18 +2283,24 @@ async function checkAuth() {
     
     try {
         // Sprawdź sesję
+        console.log('🔍 Pobieranie sesji z Supabase...');
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
-            console.error('Błąd sprawdzania sesji:', sessionError);
+            console.error('❌ Błąd sprawdzania sesji:', sessionError);
             return false;
         }
         
+        console.log('🔍 Sesja znaleziona:', !!session);
+        console.log('🔍 User w sesji:', !!session?.user);
+        
         if (!session || !session.user) {
             // Brak sesji - użytkownik nie jest zalogowany
-            console.log('Brak sesji - użytkownik nie jest zalogowany');
+            console.log('❌ Brak sesji - użytkownik nie jest zalogowany');
             return false;
         }
+        
+        console.log('✅ Sesja istnieje dla użytkownika:', session.user.email);
         
         // Użytkownik jest zalogowany - pobierz profil
         const { data: profile, error: profileError } = await supabase
