@@ -209,11 +209,41 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Sprawdź czy użytkownik jest zalogowany
     // Daj czas na pełną inicjalizację Supabase i synchronizację sesji
     console.log('⏳ Oczekiwanie na inicjalizację Supabase...');
-    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // Sprawdź czy Supabase jest zainicjalizowany, jeśli nie, poczekaj
+    let attempts = 0;
+    while (!supabase && attempts < 10) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+        // Spróbuj ponownie zainicjalizować jeśli nie jest zainicjalizowany
+        if (!supabase && SUPABASE_URL && SUPABASE_ANON_KEY) {
+            try {
+                if (typeof window.supabaseLib !== 'undefined' && window.supabaseLib.createClient) {
+                    supabase = window.supabaseLib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                } else if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+                    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                }
+            } catch (error) {
+                console.error('Błąd ponownej inicjalizacji Supabase:', error);
+            }
+        }
+    }
+    
+    // Dodatkowe opóźnienie dla synchronizacji sesji z localStorage
+    await new Promise(resolve => setTimeout(resolve, 500));
     
     // Sprawdź autoryzację - zawsze sprawdzaj sesję bezpośrednio
     console.log('🔍 Sprawdzanie autoryzacji użytkownika...');
     console.log('🔍 Supabase zainicjalizowany:', !!supabase);
+    
+    if (!supabase) {
+        console.error('❌ Supabase nie jest zainicjalizowany!');
+        const authButtons = document.getElementById('auth-buttons');
+        if (authButtons) {
+            authButtons.style.display = 'block';
+        }
+        return;
+    }
     
     const isAuthenticated = await checkAuth();
     
