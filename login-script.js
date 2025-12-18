@@ -59,20 +59,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         return;
     }
     
-    // Zabezpieczenie przed pętlą przekierowań
-    const redirectFlag = sessionStorage.getItem('redirecting');
-    if (redirectFlag === 'true') {
-        sessionStorage.removeItem('redirecting');
-        console.log('✅ Flaga przekierowania usunięta - pozwól użytkownikowi się zalogować');
-        setupAuthEvents();
-        return;
-    }
-    
-    // Jeśli przekierowanie jest w toku, nie sprawdzaj sesji
-    if (isRedirecting) {
-        console.log('⚠️ Przekierowanie w toku, pomijam sprawdzanie sesji');
-        return;
-    }
     
     if (!supabase) {
         console.error('Supabase nie jest zainicjalizowany!');
