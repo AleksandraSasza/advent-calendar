@@ -48,9 +48,6 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 // Użyj zmiennej z window
 var supabase = window.loginSupabase;
 
-// Flaga wskazująca, że przekierowanie jest w toku
-let isRedirecting = false;
-
 // Sprawdź czy użytkownik jest już zalogowany
 document.addEventListener('DOMContentLoaded', async function() {
     // Sprawdź czy użytkownik właśnie się wylogował - jeśli tak, nie przekierowuj z powrotem
@@ -108,12 +105,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return;
             }
             
-            // Użytkownik jest zalogowany i ma profil - sprawdź rolę
+            // Użytkownik jest zalogowany i ma profil - przekieruj
             const redirectUrl = profile.role === 'admin' ? 'admin.html' : 'index.html';
-            console.log('🔄 Przekierowanie istniejącej sesji do:', redirectUrl);
-            isRedirecting = true;
-            sessionStorage.setItem('redirecting', 'true');
-            window.location.replace(redirectUrl);
+            window.location.href = redirectUrl;
             return;
         }
     } catch (error) {
