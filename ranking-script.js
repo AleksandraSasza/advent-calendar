@@ -10,17 +10,31 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     console.error('⚠️ BŁĄD: Konfiguracja Supabase nie jest ustawiona!');
 }
 
-// Inicjalizacja klienta Supabase
-let supabase;
-try {
-    if (typeof window.supabaseLib !== 'undefined' && window.supabaseLib.createClient) {
-        supabase = window.supabaseLib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    } else if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Inicjalizacja klienta Supabase - użyj IIFE aby uniknąć konfliktów
+(function() {
+    if (window.rankingSupabaseClient) {
+        window.rankingSupabase = window.rankingSupabaseClient;
+        return;
     }
-} catch (error) {
-    console.error('Błąd inicjalizacji Supabase:', error);
-}
+    
+    try {
+        let client = null;
+        if (typeof window.supabaseLib !== 'undefined' && window.supabaseLib.createClient) {
+            client = window.supabaseLib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } else if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+            client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        }
+        
+        if (client) {
+            window.rankingSupabase = client;
+            window.rankingSupabaseClient = client;
+        }
+    } catch (error) {
+        console.error('Błąd inicjalizacji Supabase:', error);
+    }
+})();
+
+var supabase = window.rankingSupabase;
 
 let currentUser = null;
 
@@ -106,11 +120,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.addEventListener("visibilitychange", handleVisibilityChange);
     }
     
+    // Daj czas na synchronizację sesji
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
     // Sprawdź czy użytkownik jest zalogowany
     const isAuthenticated = await checkAuth();
     
     if (!isAuthenticated) {
-        sessionStorage.setItem('redirecting', 'true');
+        // Użytkownik nie jest zalogowany - przekieruj do logowania
         window.location.href = 'login.html';
         return;
     }
@@ -169,18 +186,21 @@ async function checkAuth() {
 // Ładowanie rankingu użytkowników
 async function loadRanking() {
     if (!supabase) {
+        console.error('Supabase nie jest zainicjalizowany');
         showError('Błąd konfiguracji Supabase');
         return;
     }
     
+    console.log('Ładowanie rankingu...');
+    
     try {
         // Użyj funkcji SQL do pobrania rankingu (automatycznie wyklucza adminów)
+        console.log('Próba użycia funkcji get_user_ranking...');
         const { data: rankingData, error: rankingError } = await supabase.rpc('get_user_ranking');
         
         if (rankingError) {
-            console.error('Błąd pobierania rankingu:', rankingError);
-            // Jeśli funkcja nie istnieje, użyj fallback - pobierz użytkowników i dla każdego policz zadania
-            console.log('Funkcja get_user_ranking nie istnieje, używam metody alternatywnej...');
+            console.error('Błąd pobierania rankingu z funkcji RPC:', rankingError);
+            console.log('Używam metody alternatywnej (fallback)...');
             
             // Fallback: Pobierz tylko użytkowników (bez adminów) i dla każdego policz zadania
             const { data: profiles, error: profilesError } = await supabase
@@ -191,9 +211,11 @@ async function loadRanking() {
             
             if (profilesError) {
                 console.error('Błąd pobierania profili:', profilesError);
-                showError('Błąd pobierania danych użytkowników');
+                showError('Błąd pobierania danych użytkowników: ' + (profilesError.message || 'Nieznany błąd'));
                 return;
             }
+            
+            console.log('Pobrano profile:', profiles?.length || 0);
             
             if (!profiles || profiles.length === 0) {
                 showError('Brak użytkowników w systemie');
@@ -211,6 +233,13 @@ async function loadRanking() {
                 
                 if (tasksError) {
                     console.error(`Błąd pobierania zadań dla użytkownika ${profile.id}:`, tasksError);
+                    // Kontynuuj z 0 zadaniami jeśli błąd
+                    rankingDataFallback.push({
+                        user_id: profile.id,
+                        email: profile.email,
+                        display_name: profile.display_name || profile.email.split('@')[0],
+                        completed_tasks_count: 0
+                    });
                     continue;
                 }
                 
