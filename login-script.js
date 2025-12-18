@@ -169,19 +169,13 @@ async function handleLogin(email, password) {
                 console.log('User ID:', data.session.user.id);
                 console.log('User Email:', data.session.user.email);
                 
-                // Pobierz profil przez ID
                 const { data: profile, error: profileError } = await supabase
                     .from('profiles')
                     .select('id, email, role, display_name')
                     .eq('id', data.session.user.id)
                     .single();
                 
-                console.log('📋 Wynik pobierania profilu:');
-                console.log('  - Profile:', profile);
-                console.log('  - Error:', profileError);
-                
                 if (profileError || !profile) {
-                    console.error('Błąd pobierania profilu:', profileError);
                     showNotification('Błąd pobierania profilu użytkownika', 'error');
                     return false;
                 }
@@ -196,11 +190,9 @@ async function handleLogin(email, password) {
                 window.location.href = redirectUrl;
                 
             } catch (error) {
-                console.error('❌ Błąd sprawdzania roli:', error);
-                showNotification('Zalogowano, ale wystąpił błąd. Przekierowanie...', 'warning');
-                sessionStorage.setItem('redirecting', 'true');
-                window.location.href = 'index.html';
-                return true; // Przekierowanie w toku, nie przywracaj przycisku
+                console.error('Błąd sprawdzania roli:', error);
+                showNotification('Błąd podczas logowania', 'error');
+                return false;
             }
             
             return true; // Sukces - przekierowanie nastąpi
