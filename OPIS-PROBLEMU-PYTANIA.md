@@ -171,3 +171,4 @@ WHERE target_user_id = auth.uid();
 - [ ] Sesja użytkownika jest poprawnie przekazywana
 - [ ] Funkcja `loadUserQuestions()` wyświetla błędy użytkownikowi
 
+

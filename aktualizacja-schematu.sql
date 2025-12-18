@@ -26,3 +26,4 @@ CREATE INDEX IF NOT EXISTS idx_calendar_days_country ON calendar_days(country);
 -- WHERE day_number = 1;
 
 
+

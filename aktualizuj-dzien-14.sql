@@ -20,3 +20,4 @@ WHERE day_number = 14;
 -- 2. Sprawdź czy dzień 14 pokazuje Francję na mapie
 -- =========================================================
 
+

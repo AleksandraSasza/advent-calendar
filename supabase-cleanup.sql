@@ -23,3 +23,4 @@ DROP TYPE IF EXISTS task_status CASCADE;
 SELECT 'Czyszczenie zakończone. Możesz teraz uruchomić supabase-schema.sql' AS status;
 
 
+

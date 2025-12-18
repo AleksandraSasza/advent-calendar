@@ -174,3 +174,4 @@ Admin musi przypisać zadanie przez panel admina lub bezpośrednio w Supabase.
 5. ✅ Przetestuj aplikację - dane powinny się wyświetlać z Supabase!
 
 
+

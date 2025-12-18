@@ -163,3 +163,4 @@ W pliku `script.js` trzeba dodać obsługę quizów o użytkownikach:
 - Automatyczne zaliczenie następuje po osiągnięciu progu punktów
 - Każda poprawna odpowiedź = 1 punkt
 
+

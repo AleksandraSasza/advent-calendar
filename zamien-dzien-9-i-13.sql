@@ -27,3 +27,4 @@ ORDER BY day_number;
 -- 4. Sprawdź panel admina - powinny być zaktualizowane
 -- =========================================================
 
+

@@ -206,6 +206,22 @@ let markers = {};
 
 // Inicjalizacja aplikacji
 document.addEventListener('DOMContentLoaded', async function() {
+    // NAJPIERW sprawdź autoryzację PRZED jakimikolwiek innymi operacjami
+    // Sprawdź czy użytkownik jest zalogowany - jeśli nie, przekieruj natychmiast
+    const isAuthenticated = await checkAuth();
+    
+    if (!isAuthenticated) {
+        console.log('Użytkownik nie jest zalogowany - przekierowanie do login.html');
+        // Pokaż tylko przycisk logowania
+        const authButtons = document.getElementById('auth-buttons');
+        if (authButtons) {
+            authButtons.style.display = 'block';
+        }
+        // Przekieruj do strony logowania
+        window.location.replace('login.html');
+        return; // Zatrzymaj dalsze wykonanie kodu
+    }
+    
     // Kod generowania płatków śniegu
     const snowContainer = document.querySelector(".snow-container");
     
@@ -291,25 +307,31 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (redirectFlag === 'true') {
         sessionStorage.removeItem('redirecting');
         console.log('Zabezpieczenie przed pętlą przekierowań - kontynuuję inicjalizację');
-        // NIE przerywaj - kontynuuj inicjalizację mapy
+        // Sprawdź autoryzację ponownie po usunięciu flagi
+        const isAuthAfterRedirect = await checkAuth();
+        if (!isAuthAfterRedirect) {
+            window.location.replace('login.html');
+            return;
+        }
     }
     
-    // Najpierw sprawdź czy użytkownik jest zalogowany
-    const isAuthenticated = await checkAuth();
-    
-    // Jeśli nie jest zalogowany, przekieruj do strony logowania
-    if (!isAuthenticated) {
-        console.log('Użytkownik nie jest zalogowany - przekierowanie do login.html');
-        // Użyj replace zamiast href, aby natychmiast przekierować
-        window.location.replace('login.html');
-        return;
-    }
-    
-    // Jeśli jest zalogowany, załaduj zadania z Supabase i kontynuuj inicjalizację
-    // Pokaż kontener mapy
+    // Użytkownik jest zalogowany - załaduj zadania z Supabase i kontynuuj inicjalizację
+    // Pokaż kontener mapy i przyciski
     const mapContainer = document.getElementById('map-container');
     if (mapContainer) {
         mapContainer.style.display = 'block';
+    }
+    
+    // Pokaż przyciski pod mapą
+    const buttonsContainer = document.getElementById('buttons-container');
+    if (buttonsContainer) {
+        buttonsContainer.style.display = 'flex';
+    }
+    
+    // Pokaż opis w headerze
+    const headerDescription = document.getElementById('header-description');
+    if (headerDescription) {
+        headerDescription.style.display = 'block';
     }
     
     await loadCalendarDays(); // Załaduj dane dni z bazy przed utworzeniem mapy
@@ -2344,12 +2366,66 @@ function showUserInfo() {
     }
     
     // Ukryj przycisk logowania dla zalogowanych użytkowników
-    document.getElementById('auth-buttons').style.display = 'none';
+    const authButtons = document.getElementById('auth-buttons');
+    if (authButtons) {
+        authButtons.style.display = 'none';
+    }
+    
+    // Pokaż opis w headerze
+    const headerDescription = document.getElementById('header-description');
+    if (headerDescription) {
+        headerDescription.style.display = 'block';
+    }
+    
+    // Pokaż kontener z przyciskami (ranking itd.)
+    const buttonsContainer = document.getElementById('buttons-container');
+    if (buttonsContainer) {
+        buttonsContainer.style.display = 'flex';
+    }
     
     // Pokaż link do panelu admina jeśli użytkownik jest adminem
     const adminLink = document.getElementById('admin-link');
     if (adminLink && currentUser.role === 'admin') {
         adminLink.style.display = 'inline-flex';
+    }
+}
+
+// Ukrycie wszystkich elementów dla niezalogowanych użytkowników
+function hideUnauthenticatedContent() {
+    // Ukryj mapę
+    const mapContainer = document.getElementById('map-container');
+    if (mapContainer) {
+        mapContainer.style.display = 'none';
+    }
+    
+    // Ukryj opis w headerze
+    const headerDescription = document.getElementById('header-description');
+    if (headerDescription) {
+        headerDescription.style.display = 'none';
+    }
+    
+    // Ukryj kontener z przyciskami (ranking itd.)
+    const buttonsContainer = document.getElementById('buttons-container');
+    if (buttonsContainer) {
+        buttonsContainer.style.display = 'none';
+    }
+    
+    // Ukryj przyciski w prawym górnym rogu
+    const topRightButtons = document.getElementById('top-right-buttons');
+    if (topRightButtons) {
+        topRightButtons.style.display = 'none';
+    }
+    
+    // Ukryj przycisk wyloguj dla mobile
+    const mobileLogoutContainer = document.getElementById('mobile-logout-container');
+    if (mobileLogoutContainer) {
+        mobileLogoutContainer.style.display = 'none';
+    }
+    
+    // Pokaż przycisk logowania
+    const authButtons = document.getElementById('auth-buttons');
+    if (authButtons) {
+        authButtons.style.display = 'block';
     }
 }
 
