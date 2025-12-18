@@ -2312,9 +2312,26 @@ async function checkAuth() {
     }
     
     try {
-        // Sprawdź sesję
+        // Sprawdź sesję - spróbuj kilka razy jeśli nie znajdzie od razu
         console.log('🔍 Pobieranie sesji z Supabase...');
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        let session = null;
+        let sessionError = null;
+        
+        // Spróbuj pobrać sesję kilka razy (dla synchronizacji)
+        for (let i = 0; i < 3; i++) {
+            const result = await supabase.auth.getSession();
+            session = result.data?.session;
+            sessionError = result.error;
+            
+            if (session && session.user) {
+                break; // Znaleziono sesję
+            }
+            
+            if (i < 2) {
+                // Poczekaj przed kolejną próbą
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+        }
         
         if (sessionError) {
             console.error('❌ Błąd sprawdzania sesji:', sessionError);
