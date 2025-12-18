@@ -13,23 +13,40 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 }
 
 // Inicjalizacja klienta Supabase
-let supabase;
-try {
-    // Sprawdź różne sposoby dostępu do biblioteki Supabase
-    if (typeof window.supabaseLib !== 'undefined' && window.supabaseLib.createClient) {
-        supabase = window.supabaseLib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    } else if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    } else {
-        console.error('Supabase library nie jest załadowana!');
-        alert('Błąd: Biblioteka Supabase nie jest załadowana. Odśwież stronę.');
-        throw new Error('Supabase library not loaded');
+// Używamy IIFE aby uniknąć konfliktów z innymi skryptami
+(function() {
+    // Sprawdź czy już istnieje w window (z poprzedniego ładowania)
+    if (window.loginSupabaseClient) {
+        window.loginSupabase = window.loginSupabaseClient;
+        console.log('Supabase już zainicjalizowany, używam istniejącej instancji');
+        return;
     }
-    console.log('Supabase zainicjalizowany pomyślnie');
-} catch (error) {
-    console.error('Błąd inicjalizacji Supabase:', error);
-    alert('Błąd inicjalizacji Supabase: ' + error.message);
-}
+    
+    try {
+        // Sprawdź różne sposoby dostępu do biblioteki Supabase
+        let client = null;
+        if (typeof window.supabaseLib !== 'undefined' && window.supabaseLib.createClient) {
+            client = window.supabaseLib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } else if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+            client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } else {
+            console.error('Supabase library nie jest załadowana!');
+            alert('Błąd: Biblioteka Supabase nie jest załadowana. Odśwież stronę.');
+            throw new Error('Supabase library not loaded');
+        }
+        
+        // Zapisz w window jako loginSupabase i loginSupabaseClient
+        window.loginSupabase = client;
+        window.loginSupabaseClient = client;
+        console.log('Supabase zainicjalizowany pomyślnie');
+    } catch (error) {
+        console.error('Błąd inicjalizacji Supabase:', error);
+        alert('Błąd inicjalizacji Supabase: ' + error.message);
+    }
+})();
+
+// Użyj zmiennej z window
+var supabase = window.loginSupabase;
 
 // Flaga wskazująca, że przekierowanie jest w toku
 let isRedirecting = false;

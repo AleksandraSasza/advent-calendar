@@ -123,8 +123,8 @@
             }
         })();
     </script>
-    <script src="config.js"></script>
-    <script src="vercel-config.js"></script>
+    <script src="config.js" onerror="console.warn('config.js nie znaleziony, używam meta tagów');"></script>
+    <script src="vercel-config.js" onerror="console.warn('vercel-config.js nie znaleziony');"></script>
     <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
