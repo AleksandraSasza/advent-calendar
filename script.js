@@ -11,15 +11,24 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 }
 
 // Inicjalizacja klienta Supabase
+// Używamy sprawdzenia, aby uniknąć błędów przy ponownym ładowaniu skryptu
 let supabase;
-try {
-    if (typeof window.supabaseLib !== 'undefined' && window.supabaseLib.createClient) {
-        supabase = window.supabaseLib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    } else if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+if (typeof window.indexSupabaseClient === 'undefined') {
+    try {
+        if (typeof window.supabaseLib !== 'undefined' && window.supabaseLib.createClient) {
+            supabase = window.supabaseLib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } else if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        }
+        // Zapisz w window, aby uniknąć ponownej inicjalizacji
+        if (supabase) {
+            window.indexSupabaseClient = supabase;
+        }
+    } catch (error) {
+        console.error('Błąd inicjalizacji Supabase:', error);
     }
-} catch (error) {
-    console.error('Błąd inicjalizacji Supabase:', error);
+} else {
+    supabase = window.indexSupabaseClient;
 }
 
 // Mapowanie dni do państw - STATYCZNE (w kodzie)
