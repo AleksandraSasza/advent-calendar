@@ -11,25 +11,33 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 }
 
 // Inicjalizacja klienta Supabase
-// Używamy sprawdzenia, aby uniknąć błędów przy ponownym ładowaniu skryptu
-let supabase;
-if (typeof window.indexSupabaseClient === 'undefined') {
+// Używamy IIFE aby uniknąć konfliktów z innymi skryptami
+(function() {
+    // Sprawdź czy już istnieje w window
+    if (window.indexSupabaseClient) {
+        window.indexSupabase = window.indexSupabaseClient;
+        return;
+    }
+    
     try {
+        let client = null;
         if (typeof window.supabaseLib !== 'undefined' && window.supabaseLib.createClient) {
-            supabase = window.supabaseLib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            client = window.supabaseLib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         } else if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         }
-        // Zapisz w window, aby uniknąć ponownej inicjalizacji
-        if (supabase) {
-            window.indexSupabaseClient = supabase;
+        
+        if (client) {
+            window.indexSupabase = client;
+            window.indexSupabaseClient = client;
         }
     } catch (error) {
         console.error('Błąd inicjalizacji Supabase:', error);
     }
-} else {
-    supabase = window.indexSupabaseClient;
-}
+})();
+
+// Użyj zmiennej z window
+var supabase = window.indexSupabase;
 
 // Mapowanie dni do państw - STATYCZNE (w kodzie)
 // Dzień 1-24 → Państwo + Współrzędne + Ciekawostka
