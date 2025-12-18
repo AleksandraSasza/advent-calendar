@@ -215,6 +215,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (authButtons) {
             authButtons.style.display = 'block';
         }
+        // NIE przekierowuj automatycznie - użytkownik sam kliknie przycisk
         return; // Zatrzymaj - nie ładuj kalendarza
     }
     

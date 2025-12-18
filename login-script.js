@@ -48,58 +48,8 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 // Użyj zmiennej z window
 var supabase = window.loginSupabase;
 
-// Sprawdź czy użytkownik jest już zalogowany
-document.addEventListener('DOMContentLoaded', async function() {
-    // Sprawdź czy użytkownik właśnie się wylogował - jeśli tak, nie przekierowuj z powrotem
-    const logoutFlag = sessionStorage.getItem('logoutInProgress');
-    if (logoutFlag === 'true') {
-        sessionStorage.removeItem('logoutInProgress');
-        console.log('✅ Wylogowanie w toku - pozwól użytkownikowi się zalogować');
-        setupAuthEvents();
-        return;
-    }
-    
-    
-    if (!supabase) {
-        console.error('Supabase nie jest zainicjalizowany!');
-        setupAuthEvents();
-        return;
-    }
-    
-    try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-            console.error('Błąd sprawdzania sesji:', sessionError);
-            setupAuthEvents();
-            return;
-        }
-        
-        if (session && session.user) {
-            console.log('✅ Znaleziono istniejącą sesję dla:', session.user.email);
-            
-            // Sprawdź czy użytkownik ma profil (czy jest w bazie)
-            const { data: profile, error: profileError } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .single();
-            
-            if (profileError || !profile) {
-                console.log('Użytkownik nie ma profilu, pozwól się zalogować');
-                setupAuthEvents();
-                return;
-            }
-            
-            // Użytkownik jest zalogowany i ma profil - przekieruj
-            const redirectUrl = profile.role === 'admin' ? 'admin.html' : 'index.html';
-            window.location.href = redirectUrl;
-            return;
-        }
-    } catch (error) {
-        console.error('Błąd sprawdzania sesji:', error);
-    }
-    
+// Inicjalizacja formularza logowania - BEZ automatycznego przekierowania
+document.addEventListener('DOMContentLoaded', function() {
     setupAuthEvents();
 });
 
