@@ -180,56 +180,19 @@ async function handleLogin(email, password) {
                 console.log('  - Profile:', profile);
                 console.log('  - Error:', profileError);
                 
-                if (profileError) {
-                    console.error('❌ Błąd pobierania profilu:', profileError);
-                    
-                    // Jeśli błąd RLS
-                    if (profileError.code === 'PGRST116' || profileError.message?.includes('row-level security')) {
-                        console.log('⚠️ Problem z RLS - sprawdź polityki bezpieczeństwa w Supabase');
-                        showNotification('Błąd: Polityki RLS blokują dostęp do profilu. Uruchom skrypt napraw-rls-admin.sql w Supabase.', 'error');
-                        return false;
-                    }
-                    
-                    // W razie błędu przekieruj do kalendarza
-                    showNotification('Zalogowano, ale wystąpił problem z profilem. Przekierowanie...', 'warning');
-                    sessionStorage.setItem('redirecting', 'true');
-                    window.location.href = 'index.html';
-                    return true; // Przekierowanie w toku, nie przywracaj przycisku
+                if (profileError || !profile) {
+                    console.error('Błąd pobierania profilu:', profileError);
+                    showNotification('Błąd pobierania profilu użytkownika', 'error');
+                    return false;
                 }
                 
-                if (!profile) {
-                    console.log('❌ Profil nie istnieje dla użytkownika');
-                    showNotification('Profil użytkownika nie istnieje. Przekierowanie...', 'warning');
-                    sessionStorage.setItem('redirecting', 'true');
-                    window.location.href = 'index.html';
-                    return true; // Przekierowanie w toku, nie przywracaj przycisku
-                }
-                
-                console.log('✅ Profil znaleziony:', profile);
-                console.log('🔍 Rola użytkownika:', profile.role);
-                
-                // Sprawdź rolę (case-insensitive dla bezpieczeństwa)
+                // Sprawdź rolę użytkownika
                 const userRole = profile.role?.toString().trim().toLowerCase();
                 const isAdmin = userRole === 'admin';
-                
-                console.log('🔍 Finalne sprawdzenie:');
-                console.log('  - userRole:', userRole);
-                console.log('  - isAdmin:', isAdmin);
-                
                 const redirectUrl = isAdmin ? 'admin.html' : 'index.html';
                 
-                // Wyświetl powiadomienie
-                showNotification('Zalogowano pomyślnie! Przekierowywanie...', 'success');
-                
-                console.log('🔄 ========== PRZEKIEROWANIE ==========');
-                console.log('🔄 URL:', redirectUrl);
-                console.log('🔄 User role:', profile.role);
-                console.log('🔄 Is admin:', isAdmin);
-                console.log('🔄 Session exists:', !!data.session);
-                
-                // Przekieruj natychmiast - sesja jest już ustawiona w supabase.auth
-                // Supabase automatycznie zapisuje sesję w localStorage
-                console.log('🔄 Wykonuję przekierowanie teraz...');
+                // Wyświetl powiadomienie i przekieruj
+                showNotification('Zalogowano pomyślnie!', 'success');
                 window.location.href = redirectUrl;
                 
             } catch (error) {
