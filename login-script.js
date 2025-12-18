@@ -206,29 +206,16 @@ async function handleLogin(email, password) {
                 const redirectUrl = isAdmin ? 'admin.html' : 'index.html';
                 
                 // Wyświetl powiadomienie
-                showNotification('Zalogowano pomyślnie!', 'success');
+                showNotification('Zalogowano pomyślnie! Przekierowywanie...', 'success');
                 
-                // DODAJ OPRÓŻNIENIE, ABY MOŻNA BYŁO ZOBACZYĆ LOGI
                 console.log('🔄 ========== PRZEKIEROWANIE ==========');
                 console.log('🔄 URL:', redirectUrl);
                 console.log('🔄 User role:', profile.role);
                 console.log('🔄 Is admin:', isAdmin);
-                console.log('🔄 Current URL:', window.location.href);
-                console.log('🔄 Current pathname:', window.location.pathname);
-                console.log('🔄 Czekam 1 sekundę przed przekierowaniem (aby zobaczyć logi)...');
                 
-                // Przekieruj po 1 sekundzie (aby można było zobaczyć logi w konsoli)
-                setTimeout(() => {
-                    console.log('🔄 Wykonuję przekierowanie teraz...');
-                    try {
-                        window.location.replace(redirectUrl);
-                        console.log('✅ window.location.replace wykonane');
-                    } catch (e) {
-                        console.error('❌ Błąd replace:', e);
-                        console.log('🔄 Próbuję window.location.href...');
-                        window.location.href = redirectUrl;
-                    }
-                }, 1000); // 1 sekunda opóźnienia
+                // Przekieruj natychmiast (bez opóźnienia)
+                console.log('🔄 Wykonuję przekierowanie teraz...');
+                window.location.href = redirectUrl;
                 
             } catch (error) {
                 console.error('❌ Błąd sprawdzania roli:', error);

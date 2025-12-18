@@ -206,20 +206,35 @@ let markers = {};
 
 // Inicjalizacja aplikacji
 document.addEventListener('DOMContentLoaded', async function() {
-    // NAJPIERW sprawdź autoryzację PRZED jakimikolwiek innymi operacjami
-    // Sprawdź czy użytkownik jest zalogowany - jeśli nie, przekieruj natychmiast
-    const isAuthenticated = await checkAuth();
-    
-    if (!isAuthenticated) {
-        console.log('Użytkownik nie jest zalogowany - przekierowanie do login.html');
-        // Pokaż tylko przycisk logowania
-        const authButtons = document.getElementById('auth-buttons');
-        if (authButtons) {
-            authButtons.style.display = 'block';
+    // Sprawdź czy użytkownik właśnie się zalogował (flaga redirecting)
+    const redirectFlag = sessionStorage.getItem('redirecting');
+    if (redirectFlag === 'true') {
+        sessionStorage.removeItem('redirecting');
+        console.log('Użytkownik właśnie się zalogował - sprawdzam autoryzację...');
+        // Sprawdź autoryzację - jeśli użytkownik jest zalogowany, kontynuuj
+        const isAuthenticated = await checkAuth();
+        if (!isAuthenticated) {
+            // Jeśli nadal nie jest zalogowany, przekieruj do logowania
+            console.log('Brak autoryzacji po logowaniu - przekierowanie do login.html');
+            window.location.replace('login.html');
+            return;
         }
-        // Przekieruj do strony logowania
-        window.location.replace('login.html');
-        return; // Zatrzymaj dalsze wykonanie kodu
+        // Użytkownik jest zalogowany - kontynuuj inicjalizację (kod poniżej)
+    } else {
+        // Normalne sprawdzenie autoryzacji dla użytkowników, którzy nie logują się teraz
+        const isAuthenticated = await checkAuth();
+        
+        if (!isAuthenticated) {
+            console.log('Użytkownik nie jest zalogowany - przekierowanie do login.html');
+            // Pokaż tylko przycisk logowania
+            const authButtons = document.getElementById('auth-buttons');
+            if (authButtons) {
+                authButtons.style.display = 'block';
+            }
+            // Przekieruj do strony logowania
+            window.location.replace('login.html');
+            return; // Zatrzymaj dalsze wykonanie kodu
+        }
     }
     
     // Kod generowania płatków śniegu
@@ -302,18 +317,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.addEventListener("visibilitychange", handleVisibilityChange);
     }
     
-    // Zabezpieczenie przed pętlą przekierowań
-    const redirectFlag = sessionStorage.getItem('redirecting');
-    if (redirectFlag === 'true') {
-        sessionStorage.removeItem('redirecting');
-        console.log('Zabezpieczenie przed pętlą przekierowań - kontynuuję inicjalizację');
-        // Sprawdź autoryzację ponownie po usunięciu flagi
-        const isAuthAfterRedirect = await checkAuth();
-        if (!isAuthAfterRedirect) {
-            window.location.replace('login.html');
-            return;
-        }
-    }
+    // Ten kod został przeniesiony na początek funkcji
     
     // Użytkownik jest zalogowany - załaduj zadania z Supabase i kontynuuj inicjalizację
     // Pokaż kontener mapy i przyciski
