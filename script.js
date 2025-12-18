@@ -206,20 +206,29 @@ let markers = {};
 
 // Inicjalizacja aplikacji
 document.addEventListener('DOMContentLoaded', async function() {
-    // Proste sprawdzenie - czy użytkownik jest zalogowany
+    // Daj czas na synchronizację sesji po przekierowaniu (jeśli było)
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    // Sprawdź czy użytkownik jest zalogowany
+    console.log('Sprawdzanie autoryzacji...');
+    console.log('Supabase zainicjalizowany:', !!supabase);
+    
     const isAuthenticated = await checkAuth();
+    
+    console.log('Wynik autoryzacji:', isAuthenticated);
     
     if (!isAuthenticated) {
         // Użytkownik nie jest zalogowany - pokaż tylko przycisk logowania
+        console.log('Użytkownik nie jest zalogowany - pokazuję przycisk logowania');
         const authButtons = document.getElementById('auth-buttons');
         if (authButtons) {
             authButtons.style.display = 'block';
         }
-        // NIE przekierowuj automatycznie - użytkownik sam kliknie przycisk
         return; // Zatrzymaj - nie ładuj kalendarza
     }
     
     // Użytkownik jest zalogowany - załaduj kalendarz
+    console.log('Użytkownik jest zalogowany - ładuję kalendarz');
     
     // Kod generowania płatków śniegu
     const snowContainer = document.querySelector(".snow-container");
@@ -2271,6 +2280,7 @@ async function checkAuth() {
     
     try {
         // Sprawdź sesję
+        console.log('Pobieranie sesji z Supabase...');
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
@@ -2278,9 +2288,15 @@ async function checkAuth() {
             return false;
         }
         
+        console.log('Sesja znaleziona:', !!session);
+        console.log('User w sesji:', !!session?.user);
+        
         if (!session || !session.user) {
+            console.log('Brak sesji - użytkownik nie jest zalogowany');
             return false;
         }
+        
+        console.log('Sesja istnieje dla:', session.user.email);
         
         // Użytkownik jest zalogowany - pobierz profil
         const { data: profile, error: profileError } = await supabase
