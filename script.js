@@ -148,9 +148,9 @@ const dayToCountry = {
         coordinates: [61.5240, 105.3188] // Moskwa
     },
     22: {
-        country: "Hiszpania",
-        funFact: "👑 W Hiszpanii główne prezenty przychodzą 6 stycznia od Trzech Króli! Dzieci zostawiają im buty wypełnione słomą dla wielbłądów.",
-        coordinates: [40.4637, -3.7492] // Madryt
+        country: "Indie",
+        funFact: "✨ W Indiach podczas święta Diwali, zwanego Świętem Świateł, wierzy się, że sen w tę noc ma wyjątkową moc. Po zapaleniu lampek i modlitwach ludzie kładą się spać w spokojnej atmosferze, bo to, co im się przyśni, może zapowiadać szczęście na cały nadchodzący rok. Dlatego przed snem sprząta się dom i unika kłótni – aby sny były jasne i dobre, tak jak światła Diwali ✨",
+        coordinates: [20.5937, 78.9629] // New Delhi
     },
     23: {
         country: "Argentyna",
