@@ -526,7 +526,7 @@ const dayToCountryMap = {
     18: { country: "Japonia", funFact: "🍗 W Japonii tradycją jest jedzenie KFC na Boże Narodzenie! Trzeba rezerwować kurczaka z tygodniowym wyprzedzeniem." },
     19: { country: "Polska", funFact: "🍽️ W Polsce tradycją jest 12 potraw na wigilijnym stole, symbolizujących 12 apostołów! Jedną z najważniejszych jest karp, a pod obrusem kładzie się sianko na pamiątkę żłóbka." },
     20: { country: "Rosja", funFact: "❄️ W Rosji Nowy Rok jest ważniejszy niż Boże Narodzenie! Dziadek Mróz (Ded Moroz) przynosi prezenty 31 grudnia." },
-    21: { country: "Peru", funFact: "🌟 W Peru tradycją jest budowanie elaborate szopek (nacimientos) z lokalnych materiałów i figurek z ceramiki z Ayacucho!" },
+    21: { country: "Kenia", funFact: "🍽️ W Kenii w Boże Narodzenie (25 grudnia) ważniejsze od prezentów jest dzielenie się jedzeniem i drobnymi pieniędzmi – nawet dalsi sąsiedzi i przypadkowi goście są zapraszani do wspólnego stołu." },
     22: { country: "Indie", funFact: "✨ W Indiach podczas święta Diwali, zwanego Świętem Świateł, wierzy się, że sen w tę noc ma wyjątkową moc. Po zapaleniu lampek i modlitwach ludzie kładą się spać w spokojnej atmosferze, bo to, co im się przyśni, może zapowiadać szczęście na cały nadchodzący rok. Dlatego przed snem sprząta się dom i unika kłótni – aby sny były jasne i dobre, tak jak światła Diwali ✨" },
     23: { country: "Argentyna", funFact: "🎆 W Argentynie o północy 24 grudnia eksplodują fajerwerki! To moment otwarcia prezentów i rozpoczęcia świętowania." },
     24: { country: "Urugwaj", funFact: "🎄 W Urugwaju Boże Narodzenie to czas rodzinnych spotkań na plaży i tradycyjnego asado (grilla) pod palmami zamiast choinkami!" }
@@ -552,6 +552,7 @@ const countriesList = [
     { name: "Meksyk", coordinates: [23.6345, -102.5528] },
     { name: "Indie", coordinates: [20.5937, 78.9629] },
     { name: "Egipt", coordinates: [26.0975, 30.0444] },
+    { name: "Kenia", coordinates: [-1.2921, 36.8219] },
     { name: "RPA", coordinates: [-30.5595, 22.9375] },
     { name: "Argentyna", coordinates: [-38.4161, -63.6167] },
     { name: "Chile", coordinates: [-35.6751, -71.5430] },

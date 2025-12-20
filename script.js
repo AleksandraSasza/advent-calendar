@@ -143,9 +143,9 @@ const dayToCountry = {
         coordinates: [61.5240, 105.3188] // Moskwa
     },
     21: {
-        country: "Peru",
-        funFact: "🌟 W Peru tradycją jest budowanie elaborate szopek (nacimientos) z lokalnych materiałów i figurek z ceramiki z Ayacucho!",
-        coordinates: [-9.1900, -75.0152] // Lima
+        country: "Kenia",
+        funFact: "🍽️ W Kenii w Boże Narodzenie (25 grudnia) ważniejsze od prezentów jest dzielenie się jedzeniem i drobnymi pieniędzmi – nawet dalsi sąsiedzi i przypadkowi goście są zapraszani do wspólnego stołu.",
+        coordinates: [-1.2921, 36.8219] // Nairobi
     },
     22: {
         country: "Indie",
@@ -197,6 +197,7 @@ const countriesList = [
     { name: "Meksyk", coordinates: [23.6345, -102.5528] },
     { name: "Indie", coordinates: [20.5937, 78.9629] },
     { name: "Egipt", coordinates: [26.0975, 30.0444] },
+    { name: "Kenia", coordinates: [-1.2921, 36.8219] },
     { name: "RPA", coordinates: [-30.5595, 22.9375] },
     { name: "Argentyna", coordinates: [-38.4161, -63.6167] },
     { name: "Chile", coordinates: [-35.6751, -71.5430] },
