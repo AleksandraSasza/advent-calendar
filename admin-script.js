@@ -525,9 +525,9 @@ const dayToCountryMap = {
     17: { country: "RPA", funFact: "🌞 W RPA Boże Narodzenie to letnia impreza! Ludzie świętują grillując na świeżym powietrzu i pływając w oceanie." },
     18: { country: "Japonia", funFact: "🍗 W Japonii tradycją jest jedzenie KFC na Boże Narodzenie! Trzeba rezerwować kurczaka z tygodniowym wyprzedzeniem." },
     19: { country: "Polska", funFact: "🍽️ W Polsce tradycją jest 12 potraw na wigilijnym stole, symbolizujących 12 apostołów! Jedną z najważniejszych jest karp, a pod obrusem kładzie się sianko na pamiątkę żłóbka." },
-    20: { country: "Peru", funFact: "🌟 W Peru tradycją jest budowanie elaborate szopek (nacimientos) z lokalnych materiałów i figurek z ceramiki z Ayacucho!" },
-    21: { country: "Rosja", funFact: "❄️ W Rosji Nowy Rok jest ważniejszy niż Boże Narodzenie! Dziadek Mróz (Ded Moroz) przynosi prezenty 31 grudnia." },
-    22: { country: "Hiszpania", funFact: "👑 W Hiszpanii główne prezenty przychodzą 6 stycznia od Trzech Króli! Dzieci zostawiają im buty wypełnione słomą dla wielbłądów." },
+    20: { country: "Rosja", funFact: "❄️ W Rosji Nowy Rok jest ważniejszy niż Boże Narodzenie! Dziadek Mróz (Ded Moroz) przynosi prezenty 31 grudnia." },
+    21: { country: "Peru", funFact: "🌟 W Peru tradycją jest budowanie elaborate szopek (nacimientos) z lokalnych materiałów i figurek z ceramiki z Ayacucho!" },
+    22: { country: "Indie", funFact: "✨ W Indiach podczas święta Diwali, zwanego Świętem Świateł, wierzy się, że sen w tę noc ma wyjątkową moc. Po zapaleniu lampek i modlitwach ludzie kładą się spać w spokojnej atmosferze, bo to, co im się przyśni, może zapowiadać szczęście na cały nadchodzący rok. Dlatego przed snem sprząta się dom i unika kłótni – aby sny były jasne i dobre, tak jak światła Diwali ✨" },
     23: { country: "Argentyna", funFact: "🎆 W Argentynie o północy 24 grudnia eksplodują fajerwerki! To moment otwarcia prezentów i rozpoczęcia świętowania." },
     24: { country: "Urugwaj", funFact: "🎄 W Urugwaju Boże Narodzenie to czas rodzinnych spotkań na plaży i tradycyjnego asado (grilla) pod palmami zamiast choinkami!" }
 };

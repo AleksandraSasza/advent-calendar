@@ -138,14 +138,14 @@ const dayToCountry = {
         coordinates: [52.2297, 21.0122] // Warszawa
     },
     20: {
-        country: "Peru",
-        funFact: "🌟 W Peru tradycją jest budowanie elaborate szopek (nacimientos) z lokalnych materiałów i figurek z ceramiki z Ayacucho!",
-        coordinates: [-9.1900, -75.0152] // Lima
-    },
-    21: {
         country: "Rosja",
         funFact: "❄️ W Rosji Nowy Rok jest ważniejszy niż Boże Narodzenie! Dziadek Mróz (Ded Moroz) przynosi prezenty 31 grudnia.",
         coordinates: [61.5240, 105.3188] // Moskwa
+    },
+    21: {
+        country: "Peru",
+        funFact: "🌟 W Peru tradycją jest budowanie elaborate szopek (nacimientos) z lokalnych materiałów i figurek z ceramiki z Ayacucho!",
+        coordinates: [-9.1900, -75.0152] // Lima
     },
     22: {
         country: "Indie",
