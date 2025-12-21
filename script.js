@@ -153,14 +153,14 @@ const dayToCountry = {
         coordinates: [20.5937, 78.9629] // New Delhi
     },
     23: {
-        country: "Argentyna",
-        funFact: "🎆 W Argentynie o północy 24 grudnia eksplodują fajerwerki! To moment otwarcia prezentów i rozpoczęcia świętowania.",
-        coordinates: [-38.4161, -63.6167] // Buenos Aires
-    },
-    24: {
         country: "Urugwaj",
         funFact: "🎄 W Urugwaju Boże Narodzenie to czas rodzinnych spotkań na plaży i tradycyjnego asado (grilla) pod palmami zamiast choinkami!",
         coordinates: [-32.5228, -55.7658] // Montevideo
+    },
+    24: {
+        country: "Argentyna",
+        funFact: "🎆 W Argentynie o północy 24 grudnia eksplodują fajerwerki! To moment otwarcia prezentów i rozpoczęcia świętowania.",
+        coordinates: [-38.4161, -63.6167] // Buenos Aires
     }
 };
 

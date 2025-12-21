@@ -528,8 +528,8 @@ const dayToCountryMap = {
     20: { country: "Rosja", funFact: "❄️ W Rosji Nowy Rok jest ważniejszy niż Boże Narodzenie! Dziadek Mróz (Ded Moroz) przynosi prezenty 31 grudnia." },
     21: { country: "Kenia", funFact: "🍽️ W Kenii w Boże Narodzenie (25 grudnia) ważniejsze od prezentów jest dzielenie się jedzeniem i drobnymi pieniędzmi – nawet dalsi sąsiedzi i przypadkowi goście są zapraszani do wspólnego stołu." },
     22: { country: "Indie", funFact: "✨ W Indiach podczas święta Diwali, zwanego Świętem Świateł, wierzy się, że sen w tę noc ma wyjątkową moc. Po zapaleniu lampek i modlitwach ludzie kładą się spać w spokojnej atmosferze, bo to, co im się przyśni, może zapowiadać szczęście na cały nadchodzący rok. Dlatego przed snem sprząta się dom i unika kłótni – aby sny były jasne i dobre, tak jak światła Diwali ✨" },
-    23: { country: "Argentyna", funFact: "🎆 W Argentynie o północy 24 grudnia eksplodują fajerwerki! To moment otwarcia prezentów i rozpoczęcia świętowania." },
-    24: { country: "Urugwaj", funFact: "🎄 W Urugwaju Boże Narodzenie to czas rodzinnych spotkań na plaży i tradycyjnego asado (grilla) pod palmami zamiast choinkami!" }
+    23: { country: "Urugwaj", funFact: "🎄 W Urugwaju Boże Narodzenie to czas rodzinnych spotkań na plaży i tradycyjnego asado (grilla) pod palmami zamiast choinkami!" },
+    24: { country: "Argentyna", funFact: "🎆 W Argentynie o północy 24 grudnia eksplodują fajerwerki! To moment otwarcia prezentów i rozpoczęcia świętowania." }
 };
 
 // Lista dostępnych państw z mapowaniem do współrzędnych (po polsku)
